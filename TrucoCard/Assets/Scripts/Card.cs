@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -93,6 +92,8 @@ public class Card : MonoBehaviour,IPointerDownHandler
         return null;
     }
 
+    public bool CanUserSelect() => _canSelect;
+
     public void OnPointerDown(PointerEventData eventData)
     {
         if (GameManager.Instance.IsMyTurn() && _canSelect && GameManager.Instance.CanPlayCard())
@@ -100,6 +101,13 @@ public class Card : MonoBehaviour,IPointerDownHandler
             _canSelect = false;
             GameManager.Instance.CardSelected(transform,suit, value);
         }
+    }
+
+    public void CommitPlayForTimeout()
+    {
+        if (!GameManager.Instance.IsMyTurn() || !GameManager.Instance.CanPlayCard() || !_canSelect) return;
+        _canSelect = false;
+        GameManager.Instance.CardSelected(transform, suit, value);
     }
 }
 

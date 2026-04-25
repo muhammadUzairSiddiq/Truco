@@ -59,22 +59,102 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     // Tournament-specific variables
     private bool _isInTournament = false;
     private bool _tournamentMatchFinalized = false;
+    private bool _1v1ResultPosted;
+    [SerializeField] private bool _isSpectator;
 
     private void Awake()
     {
         Instance = this;
+        _isSpectator = SpectatorContext.IsSpectator;
+        if (_isSpectator) return;
+        if (GetComponent<TrucoPunReconnectionManager>() == null)
+            gameObject.AddComponent<TrucoPunReconnectionManager>();
+        TrucoGameplayAudio.EnsureUnder(transform);
     }
 
     public override void OnEnable()
     {
         base.OnEnable();
+        if (_isSpectator) return;
         points = 1;
-        myPlayerScoreHandler.UpdateScore(DataHandler.Instance.points);
+        if (myPlayerScoreHandler != null)
+            myPlayerScoreHandler.UpdateScore(DataHandler.Instance.points);
     }
 
     private void Start()
     {
+        if (_isSpectator)
+        {
+            EnterSpectatorMode();
+            return;
+        }
         CheckTournamentStatus();
+        InvokeRepeating(nameof(CacheTrucoOpponentUserId), 1.5f, 2f);
+    }
+
+    void OnDestroy()
+    {
+        CancelInvoke(nameof(CacheTrucoOpponentUserId));
+    }
+
+    void CacheTrucoOpponentUserId()
+    {
+        if (_gameEnded || _isSpectator || !PhotonNetwork.InRoom) return;
+        var id = PhotonPlayerHelper.GetOtherTrucoPlayerUserId();
+        if (!string.IsNullOrEmpty(id)) OneVsOneMatchSession.SetCachedOpponentUserId(id);
+    }
+
+    /// <summary>Public for <see cref="TrucoPunReconnectionManager"/> / UI exit.</summary>
+    public bool IsTournamentGameplay() => _isInTournament;
+
+    /// <summary>After reconnect window expires: 1v1 = report opponent as winner; tournament = leave + loss; return to main menu. Server is source of truth for coins; client submits result when possible.</summary>
+    public void HandleReconnectionFailedExit()
+    {
+        if (_isSpectator)
+        {
+            OneVsOneMatchSession.Clear();
+            SceneManager.LoadScene("MainMenu");
+            return;
+        }
+        if (_isInTournament)
+        {
+            if (!_tournamentMatchFinalized) _tournamentMatchFinalized = true;
+            MultiplayerController.LeaveTournamentMatchmaking(null);
+            if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
+            if (ApiController.GetSessionUser?.Data?.stats != null)
+                ApiController.GetSessionUser.Data.stats.losses++;
+            OneVsOneMatchSession.Clear();
+            AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconectarFallo);
+            SceneManager.LoadScene("MainMenu");
+            return;
+        }
+        if (!_1v1ResultPosted && !string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId))
+        {
+            var winner = OneVsOneMatchSession.CachedOpponentUserId;
+            if (!string.IsNullOrEmpty(winner))
+            {
+                _1v1ResultPosted = true;
+                _ = ApiController.SubmitMatchResult1v1(OneVsOneMatchSession.CurrentMatchId, winner, null);
+            }
+        }
+        if (ApiController.GetSessionUser?.Data?.stats != null)
+            ApiController.GetSessionUser.Data.stats.losses++;
+        OneVsOneMatchSession.Clear();
+        AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexionPerdida1v1);
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    void EnterSpectatorMode()
+    {
+        if (UIMANAGER.Instance != null && UIMANAGER.Instance.myPlayerCards != null)
+        {
+            foreach (var go in UIMANAGER.Instance.myPlayerCards)
+            {
+                if (go != null) go.SetActive(false);
+            }
+        }
+        UIMANAGER.Instance?.DisableButtons();
+        SpectatorOverlayRuntime.Create();
     }
 
     #region Tournament
@@ -155,6 +235,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void NoFlor()
     {
+        if (_isSpectator) return;
         otherPlayerDeniedFlor = true;
     }
 
@@ -207,6 +288,9 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public void OnEvent(EventData photonEvent)
     {
+        if (TrucoPunChallenges.IsChallengeEventCode(photonEvent.Code))
+            TrucoGameplayAudio.PlayFromPhotonEvent(photonEvent);
+        if (_isSpectator) return;
         Debug.LogWarning("EventReceived: " + photonEvent.Code);
         if (photonEvent.Code == _cardSendEvent)
         {
@@ -511,6 +595,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void CheckForTrick()
     {
+        if (_isSpectator) return;
         if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.ConFlorQuiero))
         {
             UIMANAGER.Instance.invokedChallenges.Remove(ChallengeType.ConFlorQuiero);
@@ -522,6 +607,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     public void GetScore(ChallengeType _type)
     {
+        if (_isSpectator) return;
         switch (_type)
         {
             case ChallengeType.Envido:
@@ -603,6 +689,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void ConFlorQuieroWinner(int ID, int _points)
     {
+        if (_isSpectator) return;
         _gameEnded = true;
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
@@ -661,6 +748,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     public void EnvidoWinner(int ID, int _points)
     {
+        if (_isSpectator) return;
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             Debug.Log("You win!");
@@ -686,6 +774,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void ContraFlorWinner(int ID)
     {
+        if (_isSpectator) return;
         _gameEnded = true;
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
@@ -712,6 +801,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void FaltaEnvidoWinner(int ID, int _points)
     {
+        if (_isSpectator) return;
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             myPlayerScoreHandler.UpdateScore(_points);
@@ -857,6 +947,23 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         _myTurn = _value;
     }
 
+    public void PlayFirstHandCardOnTimeout()
+    {
+        if (!IsMyTurn() || !CanPlayCard() || cards == null) return;
+        foreach (var c in cards)
+        {
+            if (c == null) continue;
+            var card = c.GetComponent<Card>();
+            if (card != null && card.CanUserSelect())
+            {
+                card.CommitPlayForTimeout();
+                return;
+            }
+        }
+        if (AppManager.Instance != null)
+            AppManager.Instance.DisplayNotification(TrucoTextosClient.TiempoEsgotadoJugada);
+    }
+
     public void CardSelected(Transform cardTransform, CardSuit suit, int value)
     {
         SetCanPlayCard(false);
@@ -864,18 +971,39 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             player1Score.Add(new ScoreClass { suit = suit, value = value });
         }
+        else
+        {
+            // Non-host must record own trick locally; RPC only updates the other machine.
+            player2Score.Add(new ScoreClass { suit = suit, value = value });
+        }
         cardPlayed = true;
         deniedFlor = true;
         UIMANAGER.Instance.ShowMyCard(cardTransform, suit, value);
+        TrucoGameplayAudio.PlayCardPlaced();
         photonView.RPC(nameof(SelectedCardRPC), RpcTarget.Others, suit, value);
     }
 
     [PunRPC]
     private void SelectedCardRPC(CardSuit suit, int value)
     {
+        if (_isSpectator)
+        {
+            UIMANAGER.Instance?.ShowOtherPlayersCard(suit, value);
+            return;
+        }
         otherPlayerDeniedFlor = true;
-        player2Score.Add(new ScoreClass { suit = suit, value = value });
+        if (PhotonNetwork.IsMasterClient)
+        {
+            // Host receives: the client played, so that card belongs to player2.
+            player2Score.Add(new ScoreClass { suit = suit, value = value });
+        }
+        else
+        {
+            // Client receives: the host played, so that card belongs to player1.
+            player1Score.Add(new ScoreClass { suit = suit, value = value });
+        }
         UIMANAGER.Instance.ShowOtherPlayersCard(suit, value);
+        TrucoGameplayAudio.PlayCardPlaced();
         if (!_gameEnded)
         {
             TurnManager.Instance.EndTurn();
@@ -932,6 +1060,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void Winner(int ID, int points)
     {
+        if (_isSpectator) return;
         UIMANAGER.Instance.DisableButtons();
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
@@ -943,7 +1072,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         else
         {
             Debug.Log("You lose!");
-            UIMANAGER.Instance.UpdateTurnText("You lose!");
+            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.PerdisteMano);
             otherPlayerScoreHandler.UpdateScore(points, true);
             UIMANAGER.Instance.DisableButtons();
             _gameEnded = true;
@@ -976,9 +1105,20 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         ResetGame();
     }
 
+    void TryReport1v1MatchToBackend(string winnerUserId)
+    {
+        if (_isInTournament || _isSpectator) return;
+        if (string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId)) return;
+        if (_1v1ResultPosted) return;
+        if (string.IsNullOrEmpty(winnerUserId)) return;
+        _1v1ResultPosted = true;
+        _ = ApiController.SubmitMatchResult1v1(OneVsOneMatchSession.CurrentMatchId, winnerUserId, null);
+    }
+
     private void GameLost()
     {
         Debug.Log("You lost the game!");
+        TryReport1v1MatchToBackend(PhotonPlayerHelper.GetOtherTrucoPlayerUserId());
         photonView.Controller.SetScore(myPlayerScoreHandler.GetCurrentScore());
         UIMANAGER.Instance.DisableButtons();
 
@@ -992,14 +1132,16 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             ToggleMenuBtns(true);
         }
 
-        ApiController.GetSessionUser.Data.stats.losses++;
+        if (ApiController.GetSessionUser?.Data?.stats != null)
+            ApiController.GetSessionUser.Data.stats.losses++;
         _gameEnded = true;
     }
 
     private void GameWon()
     {
         Debug.Log("You won the game!");
-        UIMANAGER.Instance.UpdateTurnText("You won the game!");
+        TryReport1v1MatchToBackend(ApiController.GetSessionUser?.Data?._id);
+        UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.GanastePartida);
         UIMANAGER.Instance.DisableButtons();
 
         if (_isInTournament && !_tournamentMatchFinalized)
@@ -1012,7 +1154,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             ToggleMenuBtns(true);
         }
 
-        ApiController.GetSessionUser.Data.stats.wins++;
+        if (ApiController.GetSessionUser?.Data?.stats != null)
+            ApiController.GetSessionUser.Data.stats.wins++;
         _gameEnded = true;
     }
 
@@ -1068,6 +1211,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void AwardOtherPlayerPoints(int points)
     {
+        if (_isSpectator) return;
         otherPlayerScoreHandler.UpdateScore(points, true);
         if (myPlayerScoreHandler.GetCurrentScore() >= 15)
         {
@@ -1094,6 +1238,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void AwardPoints(int points)
     {
+        if (_isSpectator) return;
         myPlayerScoreHandler.UpdateScore(points);
         if (myPlayerScoreHandler.GetCurrentScore() >= 15)
         {
@@ -1233,6 +1378,21 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Retruco) ? 2 :
             UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Truco) ? 1 : 0;
         challengePoints = _points;
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        base.OnPlayerLeftRoom(otherPlayer);
+        if (_isSpectator) return;
+        if (otherPlayer == null || _gameEnded) return;
+        if (otherPlayer.IsLocal) return;
+        if (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom == null) return;
+        if (_isInTournament) return; // Bracket / API flow handles tournament exits
+        if (PhotonNetwork.CurrentRoom.PlayerCount > 1) return;
+
+        UIMANAGER.Instance.DisableButtons();
+        AppManager.Instance?.DisplayNotification(TrucoTextosClient.GanaPorAbandono);
+        GameWon();
     }
 }
 

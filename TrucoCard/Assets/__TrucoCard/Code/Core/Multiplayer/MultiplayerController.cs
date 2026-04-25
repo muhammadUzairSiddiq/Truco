@@ -88,6 +88,8 @@
 
                 RoomOptions roomOptions = new RoomOptions {
                     MaxPlayers = (byte)request.MaxPlayerCount,
+                    PlayerTtl = 60000,
+                    EmptyRoomTtl = 120000,
                     CustomRoomProperties = roomProperties,
                     CustomRoomPropertiesForLobby = new string[] { "tournamentId", "maxPlayers", "bracketLevel", "tournamentName", "isTournament" }
                 };
@@ -436,6 +438,8 @@
                 RoomOptions roomOptions = new RoomOptions
                 {
                     MaxPlayers = _isInTournamentMatch ? 2 : _currentPlayerCounts, // Tournament matches are 1v1
+                    PlayerTtl = 60000,
+                    EmptyRoomTtl = 120000,
                     CustomRoomProperties = roomProperties,
                     CustomRoomPropertiesForLobby = new string[] { "tournamentId", "bracketLevel", "isTournamentMatch" }
                 };
@@ -479,6 +483,8 @@
 
                 RoomOptions roomOptions = new RoomOptions {
                     MaxPlayers = _isInTournamentMatch ?  2 : _currentPlayerCounts, // Tournament matches are 1v1
+                    PlayerTtl = 60000,
+                    EmptyRoomTtl = 120000,
                     CustomRoomProperties = roomProperties,
                     CustomRoomPropertiesForLobby = new string[] { "tournamentId", "bracketLevel", "isTournamentMatch" }
                 };

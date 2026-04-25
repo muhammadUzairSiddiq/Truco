@@ -1,0 +1,71 @@
+Clients feedback
+................................
+
+
+Hi, I already tried it... as far as the visuals and secondary aspects go, it must be Paraguayan, not Argentinian. When playing 1v1, the cards only show the opponent's move, not mine. Regarding the most important elements for the game to function, the following are missing: STRUCTURAL STABILITY: It lacks:
+❌ timeout per turn (30s)
+❌ reconnection (45–60s)
+❌ automatic walkover
+❌ automatic resolution of invalid states
+❌ elimination of “zombie” tournaments
+❌ automatic cancellation with refund if it fails
+BACKEND AS AUTHORITY: It lacks:
+❌ final validation of results in the backend
+❌ economy ONLY on the server (not client-side)
+❌ discount before creating a room
+❌ backend as the sole authority
+❌ mandatory synchronization between players via the server
+GAME SYNCHRONIZATION (REAL TRICK): It lacks:
+❌ synchronized TRUCO / ENVIDO / FLOR
+❌ correct button activation
+❌ consistent state between players (because this breaks the game if it's incorrect)
+PANEL FLOW: It also lacks: Matches 1v1 matches created from the panel running on Unity
+❌ Ensure matches created from the panel follow the correct flow
+❌ Ensure they are not a parallel system
+❌ Check your balance before entering
+
+
+Here's what's urgently needed for the game: — 30-second timeout per turn
+— 45-60 second reconnection system
+— Automatic walkover resolution
+— ​​Elimination of zombie tournaments
+— Automatic cancellation with coin refund
+— Economy validation exclusively on the server
+— Synchronization of Truco text and audio between players
+— 1v1 matches created from the panel running on Unity
+
+In what format would you like me to send you the audio for: truco, envido, real envido, retruco, flor, etc.?
+
+Next Feeback
+I'm sending you a lot of information and asking you a lot of questions... I need you to catch up with me, because I also mentioned the possibility of using "addressables"—I don't know your level of knowledge about that.
+
+I'm sending you another reference; I hope you'll look at everything...
+
+
+
+clients new feedback 
+
+Players will create their own 1v1 matches from within Unity (public or private), with all validation handled in the backend (including balance verification and coin deduction before the match starts).
+
+The admin panel does NOT need to manually create 1v1 matches at this stage.
+The admin panel only needs to:
+1. View active matches in real time (players, match status, progress).
+
+2. Have manual control to:
+* force the closure of a match
+* assign a winner ONLY in exceptional cases
+Important clarification:
+Manual winner assignment is NOT part of the normal game flow.
+
+All normal results should be resolved automatically from the backend (timeouts, abandonment, disconnections, etc.). Manual intervention is only a safety measure for extreme cases, such as:
+* both players disconnect simultaneously
+* a bug leaves the game locked
+* coins are held without a result
+Without this, a game with an error could permanently lock players' balances.
+
+Summary:
+* Normal result → always automatic (backend as the authority)
+* Exceptional failure → the administrator can resolve manually from the panel
+Please confirm that you will implement this workflow with the backend as the authority.
+
+In the tournament, tournaments must only be created from the administration panel, and players cannot create tournaments...

@@ -81,11 +81,18 @@ public class AdminHandler : MonoBehaviour
         else
         {
             AppManager.Instance.DisplayNotification("Admin Access Verified");
+            if (Object.FindObjectOfType<AdminLiveDashboardRuntime>() == null)
+            {
+                var go = new GameObject("AdminLiveDashboard");
+                go.AddComponent<AdminLiveDashboardRuntime>();
+            }
         }
     }
 
     private void DisableAdminUI()
     {
-         _fetchAllTournaments.interactable = false;
+        if (_fetchAllTournaments != null) _fetchAllTournaments.interactable = false;
+        if (_addNewTournament != null) _addNewTournament.interactable = false;
+        if (_createTournamentOverlay != null) _createTournamentOverlay.gameObject.SetActive(false);
     }
 }

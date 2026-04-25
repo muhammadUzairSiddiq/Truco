@@ -6,6 +6,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class UIMANAGER : MonoBehaviour
@@ -86,6 +87,7 @@ public class UIMANAGER : MonoBehaviour
     // Go Back to Main Menu
     public void GoToHome()
     {
+        OneVsOneMatchSession.Clear();
         PhotonNetwork.LeaveRoom(false);
         PhotonNetwork.Disconnect();
         SceneManager.LoadScene("MainMenu");
@@ -196,22 +198,43 @@ public class UIMANAGER : MonoBehaviour
     // This moves my card to center of screen 
     public void ShowMyCard(Transform cardTransform,CardSuit suit, int value)
     {
-        cardTransform.LeanMove(myDisplayCardsPosition[_myDisplayCardIndex].position, 0.5f).setEaseInOutCubic();
+        if (cardTransform == null || myDisplayCardsPosition == null || myDisplayCardsPosition.Count == 0) return;
+        int idx = Mathf.Min(_myDisplayCardIndex, myDisplayCardsPosition.Count - 1);
+        PrepareTrickLayout(cardTransform, true);
+        cardTransform.LeanMove(myDisplayCardsPosition[idx].position, 0.5f).setEaseInOutCubic();
         _myDisplayCardIndex++;
     }
     
     // This moves other player's Card to center of screen
     public void ShowOtherPlayersCard(CardSuit suit, int value)
     {
-        otherPlayersCards[_otherPlayersDisplayCardIndex].GetComponent<Card>().SetupCard(suit, value);
-        otherPlayersCards[_otherPlayersDisplayCardIndex].transform.LeanMove(otherPlayersDisplayCardsPosition[_otherPlayersDisplayCardIndex].position, 0.5f).setEaseInOutCubic();
+        if (otherPlayersCards == null || _otherPlayersDisplayCardIndex < 0 || _otherPlayersDisplayCardIndex >= otherPlayersCards.Count) return;
+        if (otherPlayersDisplayCardsPosition == null || _otherPlayersDisplayCardIndex >= otherPlayersDisplayCardsPosition.Count) return;
+        var o = otherPlayersCards[_otherPlayersDisplayCardIndex].GetComponent<Card>();
+        if (o == null) return;
+        o.SetupCard(suit, value);
+        var t = o.transform;
+        PrepareTrickLayout(t, true);
+        t.LeanMove(otherPlayersDisplayCardsPosition[_otherPlayersDisplayCardIndex].position, 0.5f).setEaseInOutCubic();
         _otherPlayersDisplayCardIndex++;
-        envido.SetActive(false);
+        if (envido != null) envido.SetActive(false);
+    }
+
+    void PrepareTrickLayout(Transform t, bool lastSibling = true)
+    {
+        if (t == null) return;
+        var le = t.GetComponent<LayoutElement>();
+        if (le == null) le = t.gameObject.AddComponent<LayoutElement>();
+        le.ignoreLayout = true;
+        if (lastSibling) t.SetAsLastSibling();
+        var cg = t.GetComponent<CanvasGroup>();
+        if (cg != null) cg.alpha = 1f;
     }
     
     // This is called from UI Button To Call Truco Challenge on other player
     public void ChallengeTruco()
     {
+        TrucoGameplayAudio.PlayLocalRaise(TRUCO_CHALLENGE);
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Truco);
         _cantChallenge = true;
@@ -236,6 +259,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Retruco Challenge on other player
     public void ChallengeRetruco()
     {
+        TrucoGameplayAudio.PlayLocalRaise(RETRUCO_CHALLENGE);
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Retruco);
         _cantChallenge = true;
@@ -265,6 +289,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Vale4 Challenge on other player
     public void ChallengeVale4()
     {
+        TrucoGameplayAudio.PlayLocalRaise(VALE4_CHALLENGE);
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Vale4);
         _cantChallenge = true;
@@ -294,6 +319,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Envido Challenge on other player
     public void ChallengeEnvido()
     {
+        TrucoGameplayAudio.PlayLocalRaise(ENVIDO_CHALLENGE);
         // This checks if other player had invoked Truco Challenge and resets the Points
         if (GameManager.Instance.lastChallengeType != ChallengeType.Envido)
         {
@@ -324,6 +350,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call RealEnvido Challenge on other player
     public void ChallengeRealEnvido()
     {
+        TrucoGameplayAudio.PlayLocalRaise(REALENVIDO_CHALLENGE);
         // This checks if other player had invoked Truco Challenge and resets the Points
         if (GameManager.Instance.lastChallengeType == ChallengeType.Truco)
         {
@@ -363,6 +390,7 @@ public class UIMANAGER : MonoBehaviour
         // This checks if falta envido has been already invoked by other player and accepts the challenge
         if (GameManager.Instance.lastChallengeType == ChallengeType.FaltaEnvido)
         {
+            TrucoGameplayAudio.PlayLocalRaise(QUEIRO_CHALLENGE);
             truco.SetActive(false);
             retruco.SetActive(false);
             vale4.SetActive(false);
@@ -381,6 +409,7 @@ public class UIMANAGER : MonoBehaviour
         }
         else
         {
+            TrucoGameplayAudio.PlayLocalRaise(FALTAENVIDO_CHALLENGE);
             // This block of code invokes the Falta Envido Challenge for other player
             truco.SetActive(false);
             retruco.SetActive(false);
@@ -404,6 +433,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Quiero Challenge on other player
     public void ChallengeQueiro()
     {
+        TrucoGameplayAudio.PlayLocalRaise(QUEIRO_CHALLENGE);
         _challengeAccepted = true;
         DisableButtons();
         flor.SetActive(false);
@@ -514,6 +544,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call NoQuiero Challenge on other player
     public void ChallengeNoQueiro()
     {
+        TrucoGameplayAudio.PlayLocalRaise(NOQUEIRO_CHALLENGE);
         // TurnManager.Instance.SwitchTurnSilently();
         DisableButtons();
         flor.SetActive(false);
@@ -677,6 +708,7 @@ public class UIMANAGER : MonoBehaviour
         // This block of code checks if other player has already denied FLor and gives local player points
         if (GameManager.Instance.otherPlayerDeniedFlor)
         {
+            TrucoGameplayAudio.PlayLocalRaise(FLOR_CHALLENGE);
             flor.SetActive(false);
             conFlorQuiero.SetActive(false);
             contraFlor.SetActive(false);
@@ -722,6 +754,7 @@ public class UIMANAGER : MonoBehaviour
             }
             return;
         }
+        TrucoGameplayAudio.PlayLocalRaise(FLOR_CHALLENGE);
         GameManager.Instance.noQuieroPoints = 1;
         DisableButtons();
         flor.SetActive(false);
@@ -741,6 +774,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeFlorChica()
     {
+        TrucoGameplayAudio.PlayLocalRaise(FLOR_CHICA_CHALLENGE);
         _isChallengepPending = false;
         invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
@@ -766,6 +800,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeConFlorQuiero()
     {
+        TrucoGameplayAudio.PlayLocalRaise(CON_FLOR_QUIERO_CHALLENGE);
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Flor);
         invokedChallenges.Add(ChallengeType.ConFlorQuiero);
@@ -792,6 +827,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeContraFlor()
     {
+        TrucoGameplayAudio.PlayLocalRaise(CONTRA_FLOR_CHALLENGE);
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
@@ -820,6 +856,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeMazo()
     {
+        TrucoGameplayAudio.PlayLocalRaise(MAZO_CHALLENGE);
         PhotonNetwork.RaiseEvent(MAZO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
     }
 

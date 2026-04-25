@@ -47,6 +47,17 @@
     public static string GetMatch(string id) => $"{BaseUrl}/matches/{id}";
     public static string GetMyMatches => BaseUrl + "/matches/player/my-matches";
 
+    /// <summary>Player creates a 1v1 room: balance check + entry fee + match row (see Swagger).</summary>
+    public static string PlayerCreateMatch => BaseUrl + "/matches/player-create";
+
+    public static string PlayerJoinMatch(string id) => $"{BaseUrl}/matches/{id}/join";
+
+    /// <summary>After Photon room is created, register name so admin panel can see it.</summary>
+    public static string MatchRegisterPhotonRoom(string id) => $"{BaseUrl}/matches/{id}/photon-room";
+
+    /// <summary>POST body typically { "winnerId": "…" } — confirm in Swagger; may require admin or player role.</summary>
+    public static string MatchSubmitResult(string id) => $"{BaseUrl}/matches/{id}/result";
+
     #endregion
 
     #region Alerts
@@ -62,6 +73,13 @@
 
     #endregion
 
+    #region Dashboard (admin / live)
+
+    public static string DashboardRealtimeActiveMatches => $"{BaseUrl}/dashboard/realtime/active-matches";
+    public static string DashboardRealtimeFraudAlerts => $"{BaseUrl}/dashboard/realtime/fraud-alerts";
+
+    #endregion
+
     #region Admin
 
     public static string AdminLogin => $"{BaseUrl}/admin/login";
@@ -73,6 +91,8 @@
     public static string AdminGetTournament(string id) => $"{BaseUrl}/admin/tournaments/{id}";
     public static string AdminListMatches => $"{BaseUrl}/admin/matches";
     public static string AdminGetMatch(string id) => $"{BaseUrl}/admin/matches/{id}";
+
+    public static string AdminForceCloseMatch(string id) => $"{BaseUrl}/matches/{id}/force-close";
     public static string ListTransactions => $"{BaseUrl}/admin/transactions";
     public static string GetSystemStatus => $"{BaseUrl}/admin/system/status";
     public static string GetAlertsDashboard => $"{BaseUrl}/admin/alerts/dashboard";

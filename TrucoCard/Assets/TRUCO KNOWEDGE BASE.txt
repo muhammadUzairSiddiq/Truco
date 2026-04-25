@@ -1,0 +1,688 @@
+✅ CHECKLIST DE REVISIÓN POR HITOS – TRUCO ARGENTINO PROFESIONAL
+
+🛠️ MILESTONE 1: Game Core + Admin Foundation (Weeks 1-4) –
+🎮 Game Logic
+• Truco/Retruco/Vale Cuatro (Four). Implemented
+• Envido/Real Envido/Falta Envido (Functional).
+• Flor/Con Flor Quiero/Contra Flor (I Want) Correctly implemented
+• Turn management and point counting up to 10 or 15
+• Photon working for 1v1 matches (basic matchmaking)
+🛠️ Administration Panel v1.0
+• Secure administrator login
+• Registered user view
+• Manual coin allocation system
+• Basic player statistics
+📦 Technical
+• Source code delivered and well-commented
+• First technical document: general project structure, explanation of game flow, and Photon and PlayFab configuration
+• Cloud save working (persistent accounts with PlayFab)
+• First functional deliverable build (APK or executable for testing)
+________________________________________
+🏆 MILESTONE 2: Tournament Engine (Weeks 5-7) –
+🧩 Tournaments
+• Working 4- and 8-player brackets
+• Automatic coin deduction upon entry
+• Automatic prize distribution to the champion (80%)
+• Match and tournament history Saved
+🛠️ Administration Panel v2.0
+• Create tournaments manually (name, date, number of players)
+• Configure entry fees
+• View and manage match history
+📦 Technical
+• Updated and commented code delivered (minimum 75%)
+• Updated technical document: how to create tournaments, configure the economy, and control matches from the panel
+• Validated the flow to avoid duplicate tournaments or entry errors
+• Server-side validation to avoid coin manipulation from the client
+• Confirm that the tournament can be set up without developer intervention (without touching code)
+________________________________________
+💎 MILESTONE 3: Premium Features (Weeks 8-9) –
+🎨 Graphical Interface
+• Animated graphical lobby for tournaments
+• Customizable avatar system per player
+🛠️ Administration Panel v3.0
+• View real-time matches or tournament status
+• Alerts for suspicious activity (cheating, reconnections, hacks, etc.
+• )
+• Manual prize control (in case intervention is needed)
+📦 Technical
+• Well-commented UI code (clear Unity/Canvas/UI Manager sections)
+• Documentation on how to modify the UI, add new graphic elements and avatars
+• Verification that the assets used (avatars, icons, sounds) are royalty-free or have a valid license
+________________________________________
+🔒 MILESTONE 4: Security and Finalization (Weeks 10-12) – 
+🔐 Security and Backend
+• Anti-fraud system using PlayFab Cloud Scripts and validations in Photon
+• Export data from the dashboard (history, users, economy)
+• System status dashboard (connected players, active tournaments)
+📚 Final documentation
+• Administrator manual: how to use the dashboard
+• Economy guide: how to modify currencies, prizes, costs
+• Complete technical reference (API, scenes, functions, core files)
+• Maintenance instructions and future modifications
+• Delivery of a signed final APK
+• Full access to PlayFab accounts and backend
+• Commitment to post-delivery support to fix critical bugs
+
+
+
+Truco
+El truco es un juego de cartas en el cual se utilizan 40 cartas de la baraja española (se le han quitado los ochos, nueve y comodines). A cada jugador le corresponde 3 cartas en cada ronda. El jugador que comienza la ronda se dice que es "mano".
+El juego consiste en emplear las tres cartas que se poseen de la mejor manera posible para ganar al menos dos de las tres partes que componen cada ronda. El objetivo es ser el primero en llegar a los quince o treinta puntos, meta que se establece antes de iniciar el partido.
+Las cartas tienen una jerarquía determinada, y sólo pueden ganarle a una carta de menor jerarquía (en caso de empate el jugador que es "mano" supera al contrincante).
+Además, las cartas tienen un puntaje determinado, que es empleado en el envido. El puntaje de una carta coincide con su valor nominal excepto para los diez, los onces, y los doces. El valor de estas tres cartas es cero.
+La siguiente lista enumera de mayor a menor las cartas empleadas en el juego, de acuerdo a su "peso o jerarquía", a la derecha el puntaje que poseen para el envido.
+Carta	Puntaje (envido)	Imagen
+
+
+
+1 de espadas	
+
+
+1	
+
+
+
+1 de bastos	
+
+
+1	
+
+
+
+7 de espadas	
+
+
+7	
+
+
+
+7 de oros	
+
+
+7	
+
+
+
+3 (Todos)	
+
+
+3	
+
+
+
+2 (Todos)	
+
+
+2	
+
+
+
+1 copas y 1 de oros	
+
+
+1	
+
+
+
+12 (Todos)	
+
+
+0	
+
+
+
+11 (Todos)	
+
+
+0	
+
+
+
+10 (Todos)	
+
+
+0	
+
+
+
+7 copas y bastos	
+
+
+7	
+
+
+
+6 (Todos)	
+
+
+6	
+
+
+
+5 (Todos)	
+
+
+5	
+
+
+
+4 (Todos)	
+
+
+4	
+
+Es importante y fundamental en el juego conocer la jerarquía de cada de una de las cartas, así por ejemplo el 1 de espadas es la mayor carta que un jugador puede tener, mientras que los 4 (de todos los palos) son las cartas de menor valor en el juego truco.
+
+Envido
+El envido debe ser cantado antes de jugar la segunda carta (No es obligatorio el canto, pero no podrá ser cantado una vez jugada la primer carta). Ganará la apuesta el jugador que posea la mayor suma de tantos en 2 cartas del mismo palo, los tantos máximos que puede tener un jugador en el envido es 33, correspondientes a poseer un siete y un seis del mismo palo (13 puntos + 20 puntos que siempre se suman). Cualquier jugador puede cantar envido, aunque no posea 2 cartas del mismo palo; el contrincante puede aceptar o no el desafío, o incluso duplicar la apuesta volviendo a cantar envido.. En caso de no aceptar, el jugador que propuso el envido obtiene 1 punto. En caso de aceptar el desafío el ganador obtendrá 2 puntos. Si hay empate en la cantidad de tantos será vencedor el jugador que es "mano".
+
+
+Real Envido
+Similar al envido, solo que en este caso la apuesta es de 3 puntos.
+
+
+
+Falta Envido
+La falta envido es una apuesta fuerte en la cual se ponen en juego la cantidad de puntos que al contrincante le falten para ganar el partido (esto en caso que el contrincante tenga más de 15 puntos o el partido se juegue a 15 puntos) o los puntos que al contrincante le falten para llegar a los 15 en caso de tener menos de 15 puntos. Los tantos se suman de igual manera que en el envido y es posible cantarlo sin poseer cartas iguales para intentar engañar al contrincante.
+
+Flor
+Es un modo opcional para ganar puntos. Antes de iniciar la partida debe acordarse si se utilizará o no. Básicamente, la Flor se logra cuando alguno de los jugadores tiene 3 cartas (es decir, toda su mano) del mismo palo (Basto, Copas, Espada, Oro). Se aplica la misma lógica que en el Envido (de hecho cuando se juega sin Flor se eligen dos cartas) con la diferencia de que una vez cantada no puede ser rechazada por el otro contrincante, a menos que él también tenga Flor. El jugador que posea la Flor debe "cantarla" antes de jugar su primera carta. La Flor tiene un puntaje de 3 puntos. Tres figuras del mismo palo suman 30.
+Contraflor
+En el caso que ambos jugadores posean flor y ya uno de ellos la haya cantado, el contrincante podrá decir QUIERO, y los puntos en juego son 6. Si el segundo jugador dice CONTRAFLOR el primero puede decir NO QUIERO o QUIERO en el primer caso el segundo jugador obtiene 4 puntos y en el segundo caso termina el juego. También el segundo jugador puede decir FLOR CHICA y pierde 4 puntos.
+Truco
+La apuesta truco es una apuesta opcional en el juego en la cual se declara que el ganador de la ronda obtendrá 2 puntos. Si no es aceptado el jugador que realiza la apuesta obtiene 1 punto y se da por terminada la ronda y se vuelve a repartir las cartas para la siguiente ronda. Además de aceptar y rechazar la apuesta el contrincante puede doblar la apuesta cantando "retruco", en cuyo caso el juego vale 3 puntos.
+Retruco
+El retruco es una contra-apuesta que puede ser cantada una vez que se ha cantado truco, no puede ser cantada por el mismo jugador que ha cantado Truco en esa ronda, solo lo podrá hacer el contrincante. Los puntos en juego son 3. Si el contrincante rechaza el retruco el apostador obtiene 2 puntos y se da por terminada la ronda para volver a repartir.
+Vale 4
+Apuesta opcional del juego en la cual el ganador de la ronda obtiene 4 puntos. No puede ser cantado por el mismo jugador que ha cantado retruco en esa ronda, la puede cantar aquel que ya ha cantado "truco". Los puntos en juego son 4 al ganador. Si el contrincante rechaza el vale 4 el apostador obtiene 3 puntos y se da por terminada la ronda para volver a repartir.
+
+OBS.:
+Si hay un empate en la primera carta jugada por ambos jugadores, cada uno deberá jugar su mayor carta, ya que el jugador que en ese instante gane la segunda carta ganará la ronda. En el caso en que la segunda carta también produzca empate se desempatará con la tercera y en caso de triple empate ganará el jugador mano.
+El jugador mano
+Es el jugador que empieza el juego en una ronda, es decir aquel que debe jugar la primera carta o realiza el primer canto. En cada ronda se cambia el jugador mano, de manera que haya un completo equilibrio de juego. El hecho de ser mano influye por ejemplo en ganar el envido/real/falta en el caso que se produzca un empate en el conteo de los tantos. También, en el que caso que haya un empate en cuanto al peso de las 3 cartas jugadas sobre la mesa, ganará la ronda el jugador que es mano en ese momento. Es configurable desde el menú de opciones del juego.
+
+
+
+BACKEND
+
+hi, our Backend and Admin Panel are 100% complete and fully stable. Here is what we have prepared for the new developer:
+
+Ready to Use APIs (Swagger): All Game APIs (User Registration, Matchmaking, Coin Management) are fully documented using Swagger. The new developer can test all live database API endpoints directly here without any confusion: https://srv983121.hstgr.cloud/api-docs/
+
+Truco Admin Panel API
+ 1.0.0 
+OAS 3.0
+Complete API documentation for Truco Game Admin Panel. This API allows game developers to integrate with the admin panel for user management, matches, tournaments, and economy management.
+
+Servers
+
+https://srv983121.hstgr.cloud - Production server
+
+Authorize
+Audit
+
+
+GET
+/api/audit/logs
+Get audit logs (Admin only)
+
+
+
+GET
+/api/audit/logs/{id}
+Get audit log by ID (Admin only)
+
+
+Authentication
+
+
+POST
+/api/auth/login
+User login
+
+
+POST
+/api/auth/register
+Register new player
+
+
+GET
+/api/auth/me
+Get current user profile
+
+
+
+POST
+/api/auth/logout
+User logout
+
+
+
+POST
+/api/auth/refresh
+Refresh access token
+
+
+GET
+/api/auth/check-admin
+Check if user is admin
+
+
+
+POST
+/api/auth/verify-email
+Verify email address
+
+
+POST
+/api/auth/resend-verification
+Resend email verification
+
+
+POST
+/api/auth/send-otp
+Send OTP to user email
+
+
+POST
+/api/auth/verify-otp
+Verify OTP code
+
+Dashboard
+
+
+GET
+/api/dashboard/stats
+Get dashboard statistics
+
+
+
+GET
+/api/dashboard/realtime/active-players
+Get real-time active players count
+
+
+
+GET
+/api/dashboard/realtime/active-matches
+Get real-time active 1vs1 matches
+
+
+
+GET
+/api/dashboard/realtime/active-tournaments
+Get real-time active tournaments with status
+
+
+
+GET
+/api/dashboard/realtime/fraud-alerts
+Get recent fraud alerts
+
+
+
+GET
+/api/dashboard/realtime/activity
+Get all real-time activity
+
+
+Matches
+
+
+GET
+/api/matches
+Get all matches
+
+
+
+POST
+/api/matches
+Create a new match (Admin only)
+
+
+
+GET
+/api/matches/export
+Export matches (Admin only)
+
+
+
+GET
+/api/matches/{id}
+Get single match by ID
+
+
+
+PATCH
+/api/matches/{id}
+Update match details
+
+
+
+POST
+/api/matches/player-create
+Create a new player room (Player only)
+
+
+
+POST
+/api/matches/{id}/photon-room
+Register Photon room name (Called by players)
+
+
+
+POST
+/api/matches/auto-join
+Auto-join available match
+
+
+
+POST
+/api/matches/{id}/join
+Join a specific match
+
+
+
+POST
+/api/matches/{id}/result
+Record match result (Admin only)
+
+
+
+POST
+/api/matches/{id}/manual-winner
+Manually set match winner (Admin only)
+
+
+
+POST
+/api/matches/{id}/start-game
+Start a game (initialize game state)
+
+
+
+POST
+/api/matches/{id}/play-card
+Play a card
+
+
+
+POST
+/api/matches/{id}/declare-envido
+Declare Envido score
+
+
+
+POST
+/api/matches/{id}/declare-flor
+Declare Flor score
+
+
+
+POST
+/api/matches/{id}/game-action
+General game action handler
+
+
+
+GET
+/api/matches/{id}/game-state
+Get current game state
+
+
+
+POST
+/api/matches/{id}/force-close
+Force close a match (Admin only)
+
+
+
+POST
+/api/matches/{id}/manual-reward
+Manually distribute reward (Admin only)
+
+
+Reports
+
+
+GET
+/api/reports/daily
+Generate daily activity report (Admin only)
+
+
+
+GET
+/api/reports/weekly
+Generate weekly activity report (Admin only)
+
+
+
+GET
+/api/reports/economy-validation
+Generate economy validation report (Admin only)
+
+
+
+GET
+/api/reports/security-audit
+Generate security audit report (Admin only)
+
+
+Tournaments
+
+
+GET
+/api/tournaments
+Get all tournaments
+
+
+
+POST
+/api/tournaments
+Create tournament (Admin only)
+
+
+
+GET
+/api/tournaments/export
+Export tournaments (Admin only)
+
+
+
+GET
+/api/tournaments/{id}
+Get tournament by ID
+
+
+
+GET
+/api/tournaments/{id}/players
+Get tournament players
+
+
+
+POST
+/api/tournaments/{id}/join
+Join tournament
+
+
+
+POST
+/api/tournaments/{id}/validate-password
+Validate private tournament password
+
+
+
+POST
+/api/tournaments/{id}/create-match
+Create a match in tournament
+
+
+
+POST
+/api/tournaments/{id}/finalize-match
+Finalize a tournament match
+
+
+
+POST
+/api/tournaments/{id}/finalize
+Finalize tournament champion
+
+
+
+POST
+/api/tournaments/{id}/update-award-percentage
+Update tournament award percentage (Admin only)
+
+
+
+POST
+/api/tournaments/{id}/cancel
+Cancel tournament (Admin only)
+
+
+
+POST
+/api/tournaments/{id}/manual-winner
+Manually set tournament winner (Admin only)
+
+
+
+POST
+/api/tournaments/{id}/force-close
+Force close a tournament (Admin only)
+
+
+
+POST
+/api/tournaments/{id}/manual-prize
+Manually distribute tournament prize (Admin only)
+
+
+Transactions
+
+
+GET
+/api/transactions
+Get all transactions
+
+
+
+GET
+/api/transactions/export
+Export transactions (Admin only)
+
+
+Users
+
+
+GET
+/api/users
+Get all users
+
+
+
+GET
+/api/users/export
+Export users (Admin only)
+
+
+
+POST
+/api/users/register
+Register new player (Admin only)
+
+
+
+GET
+/api/users/{id}
+Get user by ID
+
+
+
+GET
+/api/users/{id}/stats
+Get user statistics (Admin only)
+
+
+
+PATCH
+/api/users/{id}/status
+Update user status (Admin only)
+
+
+
+PATCH
+/api/users/{id}/coins
+Update user coins (Admin only)
+
+
+
+POST
+/api/users/{id}/avatar
+Upload user avatar (Admin only)
+
+
+Validation
+
+
+GET
+/api/validation/match/{id}
+Validate match economy (Admin only)
+
+
+
+GET
+/api/validation/tournament/{id}
+Validate tournament economy (Admin only)
+
+
+
+GET
+/api/validation/user/{id}
+Validate user economy (Admin only)
+
+
+
+POST
+/api/validation/comprehensive
+Run comprehensive economy validation (Admin only)
+
+
+
+Schemas
+User
+Match
+Tournament
+Transaction
+Error
+Success
+
+[12:18 AM, 4/25/2026] ~Uxayr: @~Adnan Jamil Hi
+
+ For this new update player 1vs1 create from unity 
+
+Need player-side 1v1 creation enabled (not admin-only). Please add/allow endpoint for players to create match with backend authority validation: balance check + coin deduction + match create (maxPlayers=2, public/private, entryFee, room name). Keep admin panel only for realtime view + exceptional force-close/manual-winner
+[12:21 AM, 4/25/2026] ~Uxayr: POST /api/matches (currently admin-only)
+make it accessible for player role (or create POST /api/matches/player-create and tell path)
+
+
+GET /api/matches
+must return active player-created 1v1 rooms in list
+
+POST /api/matches/{id}/join
+player joins room with backend validation/deduction of coins
+[12:21 AM, 4/25/2026] +92 342 4804497: ok
+[9:50 AM, 4/25/2026] +92 342 4804497: POST /api/matches (currently admin-only)
+make it accessible for player role (or create POST /api/matches/player-create and tell path)
+
+
+GET /api/matches
+must return active player-created 1v1 rooms in list
+
+POST /api/matches/{id}/join
+player joins room with backend validation/deduction of coins
+Done, all requested match APIs are implemented and tested.
+
+Player flow now works end-to-end: POST /api/matches/player-create (create + auto-join + coin deduction), GET /api/matches (active player-created 1v1 rooms), POST /api/matches/{id}/join (validated join + coin deduction). https://srv983121.hstgr.cloud/api-docs

@@ -3,9 +3,14 @@ using System.Collections;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class NetworkManager : MonoBehaviourPunCallbacks
 {
+    [Header("1vs1: lista de salas (Paraguay / backend)")]
+    [Tooltip("Si está asignado, se deja de usar búsqueda al azar y se abre el lobby de salas.")]
+    [SerializeField] private OneVsOneRoomListController oneVsOneRoomList;
+
     [SerializeField] private int waitTime;
     [SerializeField] private MatchMakingPanel matchMakingPanel;
     
@@ -13,9 +18,29 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     private int _maximumPlayers = 2;
     private bool _clicked = false;
 
+    void Awake()
+    {
+        if (matchMakingPanel == null) matchMakingPanel = FindObjectOfType<MatchMakingPanel>(true);
+        if (oneVsOneRoomList == null) oneVsOneRoomList = FindObjectOfType<OneVsOneRoomListController>(true);
+    }
+
+    void Start()
+    {
+        if (oneVsOneRoomList != null) return;
+        if (SceneManager.GetActiveScene().name != "MainMenu") return;
+        TrucoOneVsOneMainMenuFactory.EnsureOnMainMenu();
+        oneVsOneRoomList = FindObjectOfType<OneVsOneRoomListController>(true);
+    }
+
     public void ConnectToMaster()
     {
-        AppManager.Instance.DisplayLoadingUI("Connecting to Server");
+        if (oneVsOneRoomList != null)
+        {
+            oneVsOneRoomList.Open();
+            return;
+        }
+
+        AppManager.Instance.DisplayLoadingUI("Conectando al servidor…");
 
         DataHandler.Instance.points = 0;
         DataHandler.Instance.roundNumber = 0;
@@ -80,7 +105,9 @@ public class NetworkManager : MonoBehaviourPunCallbacks
             {
                 MaxPlayers = (byte)_maximumPlayers,
                 IsVisible = true,
-                IsOpen = true
+                IsOpen = true,
+                PlayerTtl = 60000,
+                EmptyRoomTtl = 120000
             };
 
             PhotonNetwork.CreateRoom(null, roomOptions);
@@ -89,6 +116,12 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     public override void OnJoinedRoom()
     {
+        TrucoRoomPersistence.SaveCurrentRoom();
+        if (ApiController.GetSessionUser?.Data?._id != null)
+        {
+            var h = new ExitGames.Client.Photon.Hashtable { ["userId"] = ApiController.GetSessionUser.Data._id };
+            PhotonNetwork.LocalPlayer.SetCustomProperties(h);
+        }
         if (_clicked)
         {
 

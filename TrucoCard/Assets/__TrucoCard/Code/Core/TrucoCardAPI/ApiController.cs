@@ -582,6 +582,222 @@ public static class ApiController
         }
     }
 
+    #endregion
+
+    #region OneVsOne (player rooms, backend authority)
+
+    public static List<Player1v1Match> TryParsePlayerMatchListJson(string response)
+    {
+        var list = new List<Player1v1Match>();
+        if (string.IsNullOrEmpty(response) || !response.TrimStart().StartsWith("{"))
+        {
+            if (response != null && response.TrimStart().StartsWith("["))
+            {
+                try
+                {
+                    var arr = JsonHelper.FromJson<Player1v1Match>(response);
+                    if (arr != null) list.AddRange(arr);
+                }
+                catch (Exception e) { Debug.LogWarning("[ApiController] array parse: " + e.Message); }
+            }
+            return list;
+        }
+        try
+        {
+            var top = JsonUtility.FromJson<MatchesListEnvelope>(response);
+            if (top?.matches != null && top.matches.Length > 0)
+            {
+                list.AddRange(top.matches);
+                return list;
+            }
+        }
+        catch (Exception) { }
+        try
+        {
+            var dataRoot = JsonUtility.FromJson<MatchesListDataRoot>(response);
+            if (dataRoot?.data != null && dataRoot.data.matches != null)
+            {
+                list.AddRange(dataRoot.data.matches);
+                return list;
+            }
+            if (dataRoot?.matches != null)
+            {
+                list.AddRange(dataRoot.matches);
+                return list;
+            }
+        }
+        catch (Exception) { }
+        return list;
+    }
+
+    public static async Task<List<Player1v1Match>> FetchPlayer1v1MatchList()
+    {
+        var result = new List<Player1v1Match>();
+        try
+        {
+            string response = await HttpApiClient.GetAsync(ApiConfig.ListMatches);
+            Debug.Log("[ApiController] - GET /matches: " + response);
+            var parsed = TryParsePlayerMatchListJson(response);
+            if (parsed != null) result = parsed;
+        }
+        catch (Exception ex)
+        {
+            Debug.Log("[ApiController] - FetchPlayer1v1MatchList: " + ex.Message);
+        }
+        return result;
+    }
+
+    public static async Task<Player1v1Match> PlayerCreate1v1Match(PlayerCreateMatchRequest body, Action<string> onError = null)
+    {
+        try
+        {
+            string json = JsonUtility.ToJson(body);
+            string response = await HttpApiClient.PostAsync(ApiConfig.PlayerCreateMatch, json);
+            Debug.Log("[ApiController] - player-create: " + response);
+            if (string.IsNullOrEmpty(response) || !response.Contains("{"))
+            {
+                onError?.Invoke(response ?? "Error al crear la sala (backend).");
+                return null;
+            }
+            var parsed = JsonUtility.FromJson<PlayerCreateMatchResponse>(response);
+            if (parsed?.match != null && !string.IsNullOrEmpty(parsed.match._id))
+            {
+                await GetCurrentUserProfile();
+                return parsed.match;
+            }
+            onError?.Invoke("No se pudo crear la sala. Revisá el backend y el formato de respuesta.");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex.Message);
+            Debug.Log("[ApiController] - PlayerCreate1v1Match: " + ex);
+            return null;
+        }
+    }
+
+    public static async Task<bool> RegisterPhotonRoomName(string matchId, string photonRoomName, Action<string> onError = null)
+    {
+        if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(photonRoomName)) return false;
+        try
+        {
+            var body = new RegisterPhotonRoomRequest { photonRoomName = photonRoomName, roomName = photonRoomName };
+            string json = JsonUtility.ToJson(body);
+            string response = await HttpApiClient.PostAsync(ApiConfig.MatchRegisterPhotonRoom(matchId), json);
+            Debug.Log("[ApiController] - photon-room: " + response);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex.Message);
+            return false;
+        }
+    }
+
+    public static async Task<Player1v1Match> PlayerJoin1v1Match(string matchId, string password, Player1v1Match listRowHint, Action<string> onError = null)
+    {
+        try
+        {
+            string body = string.IsNullOrEmpty(password) ? "{}" : JsonUtility.ToJson(new PlayerMatchJoinRequest { password = password });
+            string response = await HttpApiClient.PostAsync(ApiConfig.PlayerJoinMatch(matchId), body);
+            Debug.Log("[ApiController] - join: " + response);
+            if (string.IsNullOrEmpty(response) || !response.Contains("{"))
+            {
+                onError?.Invoke(response ?? "Error al unirse.");
+                return null;
+            }
+            var parsed = JsonUtility.FromJson<PlayerJoinMatchResponse>(response);
+            if (parsed?.match != null) return parsed.match;
+            if (parsed != null && (parsed.ok || parsed.success) && listRowHint != null) return listRowHint;
+            onError?.Invoke("No se pudo unir a la sala.");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex.Message);
+            return null;
+        }
+    }
+
+    public static async Task<List<Player1v1Match>> FetchLiveActiveMatchesForDashboard()
+    {
+        var merged = new List<Player1v1Match>();
+        try
+        {
+            string live = await HttpApiClient.GetAsync(ApiConfig.DashboardRealtimeActiveMatches);
+            Debug.Log("[ApiController] - dashboard active-matches: " + (live != null && live.Length > 500 ? live.Substring(0, 500) + "…" : live));
+            var fromDash = TryParsePlayerMatchListJson(live);
+            if (fromDash != null) merged.AddRange(fromDash);
+        }
+        catch (Exception ex) { Debug.LogWarning("[ApiController] - dashboard: " + ex.Message); }
+        if (merged.Count == 0)
+        {
+            try
+            {
+                string m = await HttpApiClient.GetAsync(ApiConfig.ListMatches);
+                var list = TryParsePlayerMatchListJson(m);
+                if (list != null) merged = list;
+            }
+            catch (Exception ex) { Debug.LogWarning("[ApiController] - GET /matches: " + ex.Message); }
+        }
+        if (merged.Count == 0)
+        {
+            try
+            {
+                string admin = await HttpApiClient.GetAsync(ApiConfig.AdminListMatches);
+                var list = TryParsePlayerMatchListJson(admin);
+                if (list != null) merged = list;
+            }
+            catch (Exception ex) { Debug.LogWarning("[ApiController] - admin/matches: " + ex.Message); }
+        }
+        return merged;
+    }
+
+    public static async Task<string> FetchFraudAlertsSummaryRaw()
+    {
+        try
+        {
+            return await HttpApiClient.GetAsync(ApiConfig.DashboardRealtimeFraudAlerts);
+        }
+        catch (Exception ex)
+        {
+            return "Error: " + ex.Message;
+        }
+    }
+
+    public static async Task<bool> SubmitMatchResult1v1(string matchId, string winnerUserId, Action<string> onError = null)
+    {
+        if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(winnerUserId)) return false;
+        try
+        {
+            var body = new MatchResultSubmitRequest { winnerId = winnerUserId, status = "completed" };
+            string json = JsonUtility.ToJson(body);
+            await HttpApiClient.PostAsync(ApiConfig.MatchSubmitResult(matchId), json);
+            Debug.Log("[ApiController] - match result reported: " + matchId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex.Message);
+            Debug.LogWarning("[ApiController] - SubmitMatchResult1v1: " + ex.Message);
+            return false;
+        }
+    }
+
+    public static async Task<bool> AdminForceCloseMatch1v1(string matchId, Action<string> onError = null)
+    {
+        if (string.IsNullOrEmpty(matchId)) return false;
+        try
+        {
+            await HttpApiClient.PostAsync(ApiConfig.AdminForceCloseMatch(matchId), "{}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex.Message);
+            return false;
+        }
+    }
 
     #endregion
 }

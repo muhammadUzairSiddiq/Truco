@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -11,28 +13,33 @@ public class TurnManager : MonoBehaviourPunCallbacks
     
     private int currentTurnIndex = 0;
     private bool _giveTurnAgain = false;
+    private Coroutine _turnTimeoutRoutine;
+    const float TurnTimeoutSeconds = 30f;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     // This script is use to manage the turns of the players in the game.
     private void Awake()
     {
         Instance = this;
+        if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator)
+        {
+            return;
+        }
         DataHandler.Instance.roundNumber++;
+        var truco = PhotonPlayerHelper.GetTrucoPlayers();
+        if (truco.Count < 2) return;
         if (PhotonNetwork.IsMasterClient)
         {
-            // Check who is player 1 based on the round number
-            Player masterClient = DataHandler.Instance.roundNumber % 2 == 0
-                ? PhotonNetwork.PlayerList[1]
-                : PhotonNetwork.PlayerList[0];
+            Player firstForRound = DataHandler.Instance.roundNumber % 2 == 0 ? truco[1] : truco[0];
 
-            if (masterClient.Equals(PhotonNetwork.LocalPlayer))
+            if (firstForRound != null && firstForRound.Equals(PhotonNetwork.LocalPlayer))
             {
                 GameManager.Instance.SetCards();
                 StartTheTurn();
             }
             
-            Debug.LogWarning("Setting Master Client to: " + masterClient.ActorNumber);
-            PhotonNetwork.SetMasterClient(masterClient);
+            Debug.LogWarning("Truco first actor: " + firstForRound.ActorNumber);
+            PhotonNetwork.SetMasterClient(firstForRound);
         }
     }
 
@@ -40,6 +47,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
         Debug.LogWarning("OnMaster Client Switched");
+        if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
         if (newMasterClient.Equals(PhotonNetwork.LocalPlayer))
         {
             GameManager.Instance.SetCards();
@@ -50,19 +58,14 @@ public class TurnManager : MonoBehaviourPunCallbacks
     // This function is called to start the turn of the players
     void StartTheTurn()
     {
+        if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
         if (PhotonNetwork.IsMasterClient)
         {
-            _turnOrder.Add(PhotonNetwork.LocalPlayer.ActorNumber.ToString());
-            for (int i = 0; i < PhotonNetwork.CurrentRoom.PlayerCount; i++)
-            {
-                if (PhotonNetwork.PlayerList[i].ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
-                {
-                    _turnOrder.Add(PhotonNetwork.PlayerList[i].ActorNumber.ToString());
-                }
-            }
-            
+            _turnOrder.Clear();
+            var t = PhotonPlayerHelper.GetTrucoPlayers();
+            if (t.Count < 2) return;
+            for (int i = 0; i < t.Count; i++) _turnOrder.Add(t[i].ActorNumber.ToString());
             string turnNumber = GetCurrentPlayerTurn();
-        
             StartTurn(turnNumber);
         } 
     }
@@ -76,24 +79,63 @@ public class TurnManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void Turn(string turnNumber)
     {
-        if (GameManager.Instance._gameEnded)
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded) return;
+        if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator)
+        {
+            if (UIMANAGER.Instance != null)
+                UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EspectandoAdmin);
             return;
+        }
+        if (_turnTimeoutRoutine != null)
+        {
+            StopCoroutine(_turnTimeoutRoutine);
+            _turnTimeoutRoutine = null;
+        }
         if (PhotonNetwork.LocalPlayer.ActorNumber.ToString() == turnNumber)
         {
             Debug.Log("It's your turn: " + turnNumber);
-            UIMANAGER.Instance.UpdateTurnText("Your Turn");
+            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.TuTurno);
             GameManager.Instance.SetCanPlayCard(true);
             GameManager.Instance.SetMyTurn(true);
             UIMANAGER.Instance.EnableButtons();
+            _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(turnNumber));
         }
         else
         {
             Debug.Log("Waiting for player: " + turnNumber);
-            UIMANAGER.Instance.UpdateTurnText("Other Player's Turn");
+            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.TurnoRival);
             GameManager.Instance.SetCanPlayCard(false);
             GameManager.Instance.SetMyTurn(false);
             UIMANAGER.Instance.DisableButtons();
         }
+    }
+
+    IEnumerator TurnTimeoutRoutine(string turnForActor)
+    {
+        if (PhotonNetwork.LocalPlayer.ActorNumber.ToString() != turnForActor)
+            yield break;
+        float d = TurnTimeoutSeconds;
+        while (d > 0f)
+        {
+            if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
+            if (UIMANAGER.Instance != null &&
+                (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
+            {
+                yield return null;
+                continue;
+            }
+            d -= Time.deltaTime;
+            if (UIMANAGER.Instance != null)
+            {
+                int sec = Mathf.CeilToInt(d);
+                UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.TuTurno + " — " + string.Format(TrucoTextosClient.CuentaRegresiva, sec));
+            }
+            yield return null;
+        }
+        if (UIMANAGER.Instance != null &&
+            (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
+            yield break;
+        GameManager.Instance?.PlayFirstHandCardOnTimeout();
     }
 
     public void GiveTurnAgainTo(int playerNumber)
@@ -117,17 +159,20 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
     public void SwitchTurnSilently()
     {
-        string otherPlayerName = "";
-        for (int i = 0; i < PhotonNetwork.CurrentRoom.PlayerCount; i++)
+        if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
+        var tr = PhotonPlayerHelper.GetTrucoPlayers();
+        string otherPlayerName = string.Empty;
+        foreach (var p in tr)
         {
-            if (PhotonNetwork.PlayerList[i].ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
+            if (p.ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
             {
-                otherPlayerName = PhotonNetwork.PlayerList[i].ActorNumber.ToString();
+                otherPlayerName = p.ActorNumber.ToString();
                 break;
             }
         }
-
+        if (string.IsNullOrEmpty(otherPlayerName)) return;
         currentTurnIndex = _turnOrder.IndexOf(otherPlayerName);
+        if (currentTurnIndex < 0) currentTurnIndex = 0;
         photonView.RPC(nameof(SwitchTurnSilently),RpcTarget.OthersBuffered, currentTurnIndex);
     }    
     

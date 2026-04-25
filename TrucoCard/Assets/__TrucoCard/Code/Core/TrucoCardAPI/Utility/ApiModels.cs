@@ -42,12 +42,19 @@ public class  Participants
     public string email;
 }
 
+/// <summary>Nested tournament on a match (id only) — avoid referencing full <see cref="Tournament"/> which would cycle with <c>Tournament.matches</c> and break Unity serialization.</summary>
+[Serializable]
+public class MatchTournamentRef
+{
+    public string _id;
+    public string name;
+}
 
 [Serializable]
 public class match
 {
     public string _id;
-    public Tournament tournament;
+    public MatchTournamentRef tournament;
     public List<User> players;
     public string status;
     public User winner;
@@ -242,4 +249,106 @@ public class CreateTournamentRequestAdmin
     public string endDate;
     public int maxPlayers;
     public int entryFee;
+}
+
+// --- 1v1 player rooms (GET /matches, POST /matches/player-create, join, photon-room) ---
+
+[Serializable]
+public class PlayerCreateMatchRequest
+{
+    public string name;
+    /// <summary>Backend expects "public" or "private" (not bool isPublic).</summary>
+    public string type;
+    public int cost;
+    public int prize;
+    public int maxPlayers;
+    public string password;
+}
+
+[Serializable]
+public class PlayerMatchJoinRequest
+{
+    public string password;
+}
+
+/// <summary>Register Photon custom room name with backend (admin can trace exact room).</summary>
+[Serializable]
+public class RegisterPhotonRoomRequest
+{
+    public string photonRoomName;
+    public string roomName;
+}
+
+[Serializable]
+public class MatchResultSubmitRequest
+{
+    public string winnerId;
+    public string status;
+}
+
+[Serializable]
+public class Player1v1Match
+{
+    public string _id;
+    public string name;
+    public int entryFee;
+    public bool isPublic;
+    public int maxPlayers;
+    public string status;
+    public string photonRoomName;
+    public string photonRoom;
+    public string roomName;
+    public string passwordRequired;
+    public int playerCount;
+    public int currentPlayers;
+    public string createdBy;
+    /// <summary>Opcional: "public" / "private" si el API no usa solo isPublic (bool).</summary>
+    public string access;
+    /// <summary>API: "public" | "private".</summary>
+    public string type;
+    public int cost;
+    public int prize;
+    public User[] players;
+}
+
+[Serializable]
+public class PlayerCreateMatchResponse
+{
+    public bool ok;
+    public bool success;
+    public string message;
+    public string error;
+    public Player1v1Match match;
+}
+
+[Serializable]
+public class PlayerJoinMatchResponse
+{
+    public bool ok;
+    public bool success;
+    public string message;
+    public string error;
+    public Player1v1Match match;
+    public int coins;
+}
+
+[Serializable]
+public class MatchesListEnvelope
+{
+    public bool success;
+    public bool ok;
+    public Player1v1Match[] matches;
+}
+
+[Serializable]
+public class MatchesListDataInner
+{
+    public Player1v1Match[] matches;
+}
+
+[Serializable]
+public class MatchesListDataRoot
+{
+    public MatchesListDataInner data;
+    public Player1v1Match[] matches;
 }
