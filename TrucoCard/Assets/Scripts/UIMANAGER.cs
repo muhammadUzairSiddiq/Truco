@@ -1,0 +1,1297 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using ExitGames.Client.Photon;
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
+
+public class UIMANAGER : MonoBehaviour
+{
+    // Event Names to Call on Network
+    public static byte TRUCO_CHALLENGE = 10;
+    public static byte RETRUCO_CHALLENGE = 11;
+    public static byte VALE4_CHALLENGE = 12;
+    public static byte ENVIDO_CHALLENGE = 13;
+    public static byte REALENVIDO_CHALLENGE = 14;
+    public static byte FALTAENVIDO_CHALLENGE = 15;
+    public static byte QUEIRO_CHALLENGE = 16;
+    public static byte NOQUEIRO_CHALLENGE = 17;
+    public static byte FLOR_CHALLENGE = 18;
+    public static byte CON_FLOR_QUIERO_CHALLENGE = 19;
+    public static byte CONTRA_FLOR_CHALLENGE = 20;
+    public static byte FLOR_CHICA_CHALLENGE = 21;
+    public static byte MAZO_CHALLENGE = 22;
+    
+    // Contains a list off challenges 
+    public List<ChallengeType> invokedChallenges = new List<ChallengeType>();
+    
+    public static UIMANAGER Instance { get; private set; }
+    [SerializeField] private List<GameObject> allUiButtons;
+    [SerializeField] private GameObject turnText;
+    public List<GameObject> myPlayerCards;
+    [SerializeField] private List<GameObject> otherPlayersCards;
+    [SerializeField] private List<Transform> myDisplayCardsPosition;
+    [SerializeField] private List<Transform> otherPlayersDisplayCardsPosition;
+    [SerializeField] private List<Vector3> myCardsInitialPositions;
+    [SerializeField] private List<Vector3> otherPlayersCardsInitialPositions;
+    
+    // UI Buttons
+    [SerializeField] private GameObject truco;
+    [SerializeField] private GameObject retruco;
+    [SerializeField] private GameObject vale4;
+    [SerializeField] private GameObject envido;
+    [SerializeField] private GameObject realEnvido;
+    [SerializeField] private GameObject faltaEnvido;
+    [SerializeField] private GameObject queiro;
+    [SerializeField] private GameObject noQueiro;
+    [SerializeField] private GameObject flor;
+    [SerializeField] private GameObject conFlorQuiero;
+    [SerializeField] private GameObject contraFlor;
+    [SerializeField] private GameObject florChica;
+    [SerializeField] private GameObject mazo;
+    
+    public bool _envidoPlayed = false;
+    public bool trucoPlayed = false;
+    
+    public Dictionary<ChallengeType,int> unAnsweredChallenges = new Dictionary<ChallengeType, int>();
+    private bool _cantChallenge = false;
+    private int _myDisplayCardIndex = 0;
+    private int _otherPlayersDisplayCardIndex = 0;
+    private bool _challengeAccepted = false;
+    private bool _isDoubleEnvido = false;
+    private bool _isDoubleRealEnvido = false;
+    public bool _isChallengepPending = false;
+    
+    private void Awake()
+    {
+        Instance = this;
+        // store Initial Positions of Cards
+        for (int i = 0; i < otherPlayersCards.Count; i++)
+        {
+            otherPlayersCardsInitialPositions.Add(otherPlayersCards[i].transform.position);
+        }
+    }
+
+    // This updates the text on screen indicating whose turn it is
+    public void UpdateTurnText(string message)
+    {
+        turnText.gameObject.SetActive(true);
+        turnText.GetComponent<TMPro.TMP_Text>().text = message;
+        Invoke(nameof(DisableTurnText),1);
+    }
+
+    // Go Back to Main Menu
+    public void GoToHome()
+    {
+        PhotonNetwork.LeaveRoom(false);
+        PhotonNetwork.Disconnect();
+        SceneManager.LoadScene("MainMenu");
+    }
+    
+    private void DisableTurnText()
+    {
+        turnText.gameObject.SetActive(false);
+    }
+    
+    // This enables all the buttons in the UI Depending on the game state
+    public void EnableButtons()
+    {
+        // Only enable buttons if it's actually my turn - don't enable all buttons first
+        if (!GameManager.Instance.IsMyTurn() || GameManager.Instance._gameEnded)
+        {
+            DisableButtons();
+            return;
+        }
+
+        foreach (GameObject button in allUiButtons)
+        {
+            if (button != null && !GameManager.Instance._gameEnded)
+            {
+                button.SetActive(true);
+            }
+        }
+
+        if (!_cantChallenge)
+        {
+            if (!invokedChallenges.Contains(ChallengeType.Truco))
+            {
+                truco.SetActive(true);
+                mazo.SetActive(true);
+            }
+            else if (!invokedChallenges.Contains(ChallengeType.Retruco))
+            {
+                retruco.SetActive(true);
+                mazo.SetActive(true);
+            }
+            else if (!invokedChallenges.Contains(ChallengeType.Vale4))
+            {
+                vale4.SetActive(true);
+                mazo.SetActive(true);
+            }
+        }
+        
+        if (GameManager.Instance.cardPlayed)
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+        }
+        else
+        {
+            if (!_challengeAccepted)
+            {
+                Debug.LogWarning("It is my turn, enabling buttons");
+                if (!invokedChallenges.Contains(ChallengeType.Envido) && !invokedChallenges.Contains(ChallengeType.Flor) 
+                                                                      && !invokedChallenges.Contains(ChallengeType.ContraFlor)
+                                                                      && !invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
+                                                                      && !invokedChallenges.Contains(ChallengeType.FaltaEnvido)
+                                                                      && !invokedChallenges.Contains(ChallengeType.RealEnvido))
+                {
+                    envido.SetActive(true);
+                    realEnvido.SetActive(true);
+                    faltaEnvido.SetActive(true);
+                }
+                if (GameManager.Instance.PlayerHasFlor() && !invokedChallenges.Contains(ChallengeType.Flor) 
+                                                         && !invokedChallenges.Contains(ChallengeType.Envido)
+                                                         && !invokedChallenges.Contains(ChallengeType.FaltaEnvido)
+                                                         && !invokedChallenges.Contains(ChallengeType.RealEnvido)
+                                                         && !invokedChallenges.Contains(ChallengeType.Truco))
+                {
+                    flor.SetActive(true);
+                }
+            }
+        }
+    }
+    
+    // This disables all the buttons in the UI
+    public void DisableButtons()
+    {
+        foreach (GameObject button in allUiButtons)
+        {
+            if (button != null)
+            {
+                button.SetActive(false);
+            }
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            queiro.SetActive(false);
+            noQueiro.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            contraFlor.SetActive(false);
+            florChica.SetActive(false);
+            mazo.SetActive(false);
+        }
+    }
+
+    // This moves my card to center of screen 
+    public void ShowMyCard(Transform cardTransform,CardSuit suit, int value)
+    {
+        cardTransform.LeanMove(myDisplayCardsPosition[_myDisplayCardIndex].position, 0.5f).setEaseInOutCubic();
+        _myDisplayCardIndex++;
+    }
+    
+    // This moves other player's Card to center of screen
+    public void ShowOtherPlayersCard(CardSuit suit, int value)
+    {
+        otherPlayersCards[_otherPlayersDisplayCardIndex].GetComponent<Card>().SetupCard(suit, value);
+        otherPlayersCards[_otherPlayersDisplayCardIndex].transform.LeanMove(otherPlayersDisplayCardsPosition[_otherPlayersDisplayCardIndex].position, 0.5f).setEaseInOutCubic();
+        _otherPlayersDisplayCardIndex++;
+        envido.SetActive(false);
+    }
+    
+    // This is called from UI Button To Call Truco Challenge on other player
+    public void ChallengeTruco()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Truco);
+        _cantChallenge = true;
+        DisableButtons();
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        unAnsweredChallenges.Add(ChallengeType.Truco,PhotonNetwork.LocalPlayer.ActorNumber);
+        GameManager.Instance.SetCanPlayCard(false);
+        GameManager.Instance.deniedFlor = true;
+        GameManager.Instance.challengePoints = 1;
+        GameManager.Instance.noQuieroPoints = 1;
+        GameManager.Instance.lastChallengeType = ChallengeType.Truco;
+        PhotonNetwork.RaiseEvent(TRUCO_CHALLENGE,null, RaiseEventOptions.Default, SendOptions.SendReliable);
+    }
+    
+    // This is called from UI Button To Call Retruco Challenge on other player
+    public void ChallengeRetruco()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Retruco);
+        _cantChallenge = true;
+        DisableButtons();
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        unAnsweredChallenges.Add(ChallengeType.Retruco,PhotonNetwork.LocalPlayer.ActorNumber);
+        GameManager.Instance.deniedFlor = true;
+        GameManager.Instance.challengePoints = 2;
+        GameManager.Instance.noQuieroPoints = 2;
+        GameManager.Instance.SetCanPlayCard(false);
+        GameManager.Instance.lastChallengeType = ChallengeType.Retruco;
+        PhotonNetwork.RaiseEvent(RETRUCO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+
+    }
+    
+    // This is called from UI Button To Call Vale4 Challenge on other player
+    public void ChallengeVale4()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Vale4);
+        _cantChallenge = true;
+        DisableButtons();
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        unAnsweredChallenges.Add(ChallengeType.Vale4,PhotonNetwork.LocalPlayer.ActorNumber);
+        GameManager.Instance.deniedFlor = true;
+        GameManager.Instance.challengePoints = 3;
+        GameManager.Instance.noQuieroPoints = 3;
+        GameManager.Instance.SetCanPlayCard(false);
+        GameManager.Instance.lastChallengeType = ChallengeType.Vale4;
+        PhotonNetwork.RaiseEvent(VALE4_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+
+    }
+    
+    // This is called from UI Button To Call Envido Challenge on other player
+    public void ChallengeEnvido()
+    {
+        // This checks if other player had invoked Truco Challenge and resets the Points
+        if (GameManager.Instance.lastChallengeType != ChallengeType.Envido)
+        {
+            GameManager.Instance.challengePoints = 0;
+        }
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Envido);
+        DisableButtons();
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+        GameManager.Instance.ActiveChallenges.Add(ChallengeType.Envido);
+        GameManager.Instance.deniedFlor = true;
+        GameManager.Instance.lastChallengeType = ChallengeType.Envido;
+        GameManager.Instance.challengePoints += 2;
+        PhotonNetwork.RaiseEvent(ENVIDO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+    }
+    
+    // This is called from UI Button To Call RealEnvido Challenge on other player
+    public void ChallengeRealEnvido()
+    {
+        // This checks if other player had invoked Truco Challenge and resets the Points
+        if (GameManager.Instance.lastChallengeType == ChallengeType.Truco)
+        {
+            GameManager.Instance.challengePoints = 0;
+        }
+        
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Envido);
+        DisableButtons();
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        GameManager.Instance.ActiveChallenges.Add(ChallengeType.RealEnvido);
+        GameManager.Instance.deniedFlor = true;
+        GameManager.Instance.lastChallengeType = ChallengeType.RealEnvido;
+        GameManager.Instance.challengePoints += 3;
+        PhotonNetwork.RaiseEvent(REALENVIDO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+    }
+    
+    // This is called from UI Button To Call Falta Envido Challenge on other player
+
+    public void ChallengeFaltaEnvido()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Envido);
+        invokedChallenges.Add(ChallengeType.FaltaEnvido);
+        DisableButtons();
+        // This checks if falta envido has been already invoked by other player and accepts the challenge
+        if (GameManager.Instance.lastChallengeType == ChallengeType.FaltaEnvido)
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            contraFlor.SetActive(false);
+            florChica.SetActive(false);
+            queiro.SetActive(false);
+            noQueiro.SetActive(false);
+            GameManager.Instance.deniedFlor = true;
+            GameManager.Instance.lastChallengeType = ChallengeType.FaltaEnvido;
+            PhotonNetwork.RaiseEvent(QUEIRO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        }
+        else
+        {
+            // This block of code invokes the Falta Envido Challenge for other player
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            contraFlor.SetActive(false);
+            florChica.SetActive(false);
+            queiro.SetActive(false);
+            noQueiro.SetActive(false);
+            GameManager.Instance.deniedFlor = true;
+            GameManager.Instance.lastChallengeType = ChallengeType.FaltaEnvido;
+            // GameManager.Instance.challengePoints += 3;
+            PhotonNetwork.RaiseEvent(FALTAENVIDO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        }
+    }
+    
+    // This is called from UI Button To Call Quiero Challenge on other player
+    public void ChallengeQueiro()
+    {
+        _challengeAccepted = true;
+        DisableButtons();
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Truco))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Truco);
+            GameManager.Instance.mazoPoints = 2;
+            trucoPlayed = true;
+            unAnsweredChallenges.Clear();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Retruco))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Retruco);
+            GameManager.Instance.mazoPoints = 3;
+            trucoPlayed = true;
+            unAnsweredChallenges.Clear();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Vale4))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Vale4);
+            GameManager.Instance.mazoPoints = 4;
+            trucoPlayed = true;
+            unAnsweredChallenges.Clear();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Envido);
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            GameManager.Instance.ActiveChallenges.Clear();
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Envido);
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            GameManager.Instance.ActiveChallenges.Clear();
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Envido);
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
+        {
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.ContraFlor))
+        {
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            GameManager.Instance.ShowAllCards();
+        }
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        _isChallengepPending = false;
+        PhotonNetwork.RaiseEvent(QUEIRO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        // This block of code checks if there are any unanswered challenges
+        if (unAnsweredChallenges.Count > 0)
+        {
+            StartCoroutine(CheckForUnansweredChallenges());
+        }
+        else if (GameManager.Instance.IsMyTurn())
+        {
+            Debug.LogWarning("Setting My turn Again");
+            GameManager.Instance.SetCanPlayCard(true);
+        }
+    }
+    
+    // This is called from UI Button To Call NoQuiero Challenge on other player
+    public void ChallengeNoQueiro()
+    {
+        // TurnManager.Instance.SwitchTurnSilently();
+        DisableButtons();
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Truco))
+        {
+            GameManager.Instance.challengePoints = 1;
+            _cantChallenge = true;
+            GameManager.Instance.AwardPointsToOtherPlayer(GameManager.Instance.challengePoints);
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            trucoPlayed = true;
+            unAnsweredChallenges.Clear();
+            GameManager.Instance.EndRound();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Retruco))
+        {
+            GameManager.Instance.challengePoints = 2;
+            _cantChallenge = true;
+            GameManager.Instance.AwardPointsToOtherPlayer(GameManager.Instance.challengePoints);
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            trucoPlayed = true;
+            unAnsweredChallenges.Clear();
+            GameManager.Instance.EndRound();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Vale4))
+        {
+            GameManager.Instance.challengePoints = 3;
+            _cantChallenge = true;
+            GameManager.Instance.AwardPointsToOtherPlayer(GameManager.Instance.challengePoints);
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false); 
+            trucoPlayed = true;
+            unAnsweredChallenges.Clear();
+            GameManager.Instance.EndRound();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        {
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Envido);
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            GameManager.Instance.ActiveChallenges.Clear();
+            _envidoPlayed = true; 
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
+        {
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Envido);
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            GameManager.Instance.ActiveChallenges.Clear();
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
+        {
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            invokedChallenges.Add(ChallengeType.Envido);
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            GameManager.Instance.ActiveChallenges.Clear();
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
+        {
+            // Check if there's a pending TRUCO challenge before awarding FLOR points
+            bool hasPendingTruco = unAnsweredChallenges.ContainsKey(ChallengeType.Truco);
+            bool hasPendingRetruco = unAnsweredChallenges.ContainsKey(ChallengeType.Retruco);
+            bool hasPendingVale4 = unAnsweredChallenges.ContainsKey(ChallengeType.Vale4);
+            
+            GameManager.Instance.AwardPointsToOtherPlayer(3);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            
+            // After FLOR is resolved, restore the pending TRUCO challenge UI
+            if (hasPendingTruco)
+            {
+                // Restore TRUCO challenge state for the player who declined FLOR
+                GameManager.Instance.lastChallengeType = ChallengeType.Truco;
+                TrucoChallenged();
+            }
+            else if (hasPendingRetruco)
+            {
+                // Restore RETRUCO challenge state
+                GameManager.Instance.lastChallengeType = ChallengeType.Retruco;
+                RetrucoChallenged();
+            }
+            else if (hasPendingVale4)
+            {
+                // Restore VALE4 challenge state
+                GameManager.Instance.lastChallengeType = ChallengeType.Vale4;
+                Vale4Challenged();
+            }
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.ContraFlor))
+        {
+            GameManager.Instance.AwardPointsToOtherPlayer(Random.Range(4,7));
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+        }
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        GameManager.Instance.noQuieroPoints = 0;
+        _isChallengepPending = false;
+        PhotonNetwork.RaiseEvent(NOQUEIRO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        if (unAnsweredChallenges.Count > 0)
+        {
+            StartCoroutine(CheckForUnansweredChallenges());
+        }
+        else if (GameManager.Instance.IsMyTurn())
+        {
+            if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido) ||
+                GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido) ||
+                GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
+            {
+                if (!invokedChallenges.Contains(ChallengeType.Truco))
+                {
+                    truco.SetActive(true);
+                    mazo.SetActive(true);
+                }
+            }
+            Debug.LogWarning("Setting My turn Again");
+            GameManager.Instance.SetCanPlayCard(true);
+        }
+        else
+        {
+            DisableButtons();
+        }
+        GameManager.Instance.challengePoints = 0;
+
+    }
+    
+    // This is called from UI Button To Call Flor Challenge on other player
+
+    public void ChallengeFlor()
+    {
+         _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Flor);
+        // This block of code checks if other player has already denied FLor and gives local player points
+        if (GameManager.Instance.otherPlayerDeniedFlor)
+        {
+            flor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            contraFlor.SetActive(false);
+            florChica.SetActive(false);
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            
+            // Check if there's a pending TRUCO challenge before awarding FLOR points
+            bool hasPendingTruco = unAnsweredChallenges.ContainsKey(ChallengeType.Truco);
+            bool hasPendingRetruco = unAnsweredChallenges.ContainsKey(ChallengeType.Retruco);
+            bool hasPendingVale4 = unAnsweredChallenges.ContainsKey(ChallengeType.Vale4);
+            
+            GameManager.Instance.AwardPointsToThisPlayer(3);
+            PhotonNetwork.RaiseEvent(FLOR_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+            
+            // After FLOR is resolved, restore the pending TRUCO challenge UI
+            if (hasPendingTruco)
+            {
+                // Restore TRUCO challenge state
+                GameManager.Instance.lastChallengeType = ChallengeType.Truco;
+                TrucoChallenged();
+            }
+            else if (hasPendingRetruco)
+            {
+                // Restore RETRUCO challenge state
+                GameManager.Instance.lastChallengeType = ChallengeType.Retruco;
+                RetrucoChallenged();
+            }
+            else if (hasPendingVale4)
+            {
+                // Restore VALE4 challenge state
+                GameManager.Instance.lastChallengeType = ChallengeType.Vale4;
+                Vale4Challenged();
+            }
+            else if (GameManager.Instance.IsMyTurn())
+            {
+                GameManager.Instance.SetCanPlayCard(true);
+            }
+            else
+            {
+                DisableButtons();
+            }
+            return;
+        }
+        GameManager.Instance.noQuieroPoints = 1;
+        DisableButtons();
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        GameManager.Instance.lastChallengeType = ChallengeType.Flor;
+        PhotonNetwork.RaiseEvent(FLOR_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+    }
+
+    // This is called from UI Button To Call Flor Chica Challenge on other player
+
+    public void ChallengeFlorChica()
+    {
+        _isChallengepPending = false;
+        invokedChallenges.Add(ChallengeType.Flor);
+        DisableButtons();
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        GameManager.Instance.lastChallengeType = ChallengeType.FlorChica;
+        GameManager.Instance.AwardPointsToOtherPlayer(4);
+        PhotonNetwork.RaiseEvent(FLOR_CHICA_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        if (GameManager.Instance.IsMyTurn())
+        {
+            GameManager.Instance.SetCanPlayCard(true);
+        }
+    }
+    
+    // This is called from UI Button To Call Con FLor Quiero Challenge on other player
+
+    public void ChallengeConFlorQuiero()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Flor);
+        invokedChallenges.Add(ChallengeType.ConFlorQuiero);
+        DisableButtons();
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        GameManager.Instance.lastChallengeType = ChallengeType.ConFlorQuiero;
+        GameManager.Instance.challengePoints = 5;
+        PhotonNetwork.RaiseEvent(CON_FLOR_QUIERO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        if (GameManager.Instance.IsMyTurn())
+        {
+            GameManager.Instance.SetCanPlayCard(true);
+        }
+    }
+    
+    // This is called from UI Button To Call Contra Flor Challenge on other player
+
+    public void ChallengeContraFlor()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Flor);
+        DisableButtons();
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        queiro.SetActive(false);
+        GameManager.Instance.noQuieroPoints = 1;
+        noQueiro.SetActive(false);
+        GameManager.Instance.lastChallengeType = ChallengeType.ContraFlor;
+        PhotonNetwork.RaiseEvent(CONTRA_FLOR_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        // if (GameManager.Instance.IsMyTurn())
+        // {
+            GameManager.Instance.SetCanPlayCard(false);
+        // }
+    }
+    
+    // This is called from UI Button To Call Mazo Challenge on other player
+
+    public void ChallengeMazo()
+    {
+        PhotonNetwork.RaiseEvent(MAZO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+    }
+
+    // This is called When Other player Challenges us with this Challenge
+
+    public void TrucoChallenged()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Truco);
+        _cantChallenge = false;
+        truco.SetActive(false);
+        queiro.SetActive(true);
+        noQueiro.SetActive(true);
+        retruco.SetActive(true);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        GameManager.Instance.mazoPoints = 1;
+        GameManager.Instance.noQuieroPoints = 1;
+        GameManager.Instance.challengePoints = 1;
+        if (!invokedChallenges.Contains(ChallengeType.Envido) && !invokedChallenges.Contains(ChallengeType.Flor) && 
+            !GameManager.Instance.cardPlayed)
+        {
+            envido.SetActive(true);
+            realEnvido.SetActive(true);
+            faltaEnvido.SetActive(true);
+            if (GameManager.Instance.PlayerHasFlor())
+            {
+                flor.SetActive(true);
+            }
+        }
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void RetrucoChallenged()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Retruco);
+        _cantChallenge = false;
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        queiro.SetActive(true);
+        noQueiro.SetActive(true);
+        vale4.SetActive(true);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        unAnsweredChallenges.Add(ChallengeType.Retruco,PhotonNetwork.PlayerListOthers[0].ActorNumber);
+        GameManager.Instance.mazoPoints = 2;
+        GameManager.Instance.noQuieroPoints = 2;
+        GameManager.Instance.cardPlayed = true;
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void Vale4Challenged()
+    {
+        _isChallengepPending = true;
+        invokedChallenges.Add(ChallengeType.Vale4);
+        _cantChallenge = false;
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        queiro.SetActive(true);
+        noQueiro.SetActive(true);
+        vale4.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        unAnsweredChallenges.Add(ChallengeType.Vale4,PhotonNetwork.PlayerListOthers[0].ActorNumber);
+        GameManager.Instance.mazoPoints = 3;
+        GameManager.Instance.noQuieroPoints = 3;
+        GameManager.Instance.cardPlayed = true;
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void EnvidoChallenged()
+    {
+        _isChallengepPending = true;
+        GameManager.Instance.ActiveChallenges.Add(ChallengeType.Envido);
+        // This block of code checks if there is a double envido is in play
+        if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        {
+            _isDoubleEnvido = true;
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(true);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            florChica.SetActive(false);
+            queiro.SetActive(true);
+            noQueiro.SetActive(true);
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            mazo.SetActive(false);
+        }else 
+        {
+            envido.SetActive(true);
+            realEnvido.SetActive(true);
+            faltaEnvido.SetActive(true);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            florChica.SetActive(false);
+            queiro.SetActive(true);
+            noQueiro.SetActive(true);
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            if (GameManager.Instance.lastChallengeType == ChallengeType.Truco)
+            {
+                mazo.SetActive(false);
+            }
+            else
+            {
+                mazo.SetActive(true);
+            }
+
+            if (GameManager.Instance.PlayerHasFlor())
+            {
+                flor.SetActive(true);
+            }
+            
+        }
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void RealEnvidoChallenged()
+    {
+        _isChallengepPending = true;
+        GameManager.Instance.ActiveChallenges.Add(ChallengeType.RealEnvido);
+        // This block of code checks if there is Double Real Envido in play
+        if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
+        {
+            _isDoubleEnvido = false;
+            _isDoubleRealEnvido = true;
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(true);
+            queiro.SetActive(true);
+            noQueiro.SetActive(true);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            florChica.SetActive(false);
+        }
+        else if(GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(true);
+            queiro.SetActive(true);
+            noQueiro.SetActive(true);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            florChica.SetActive(false);
+        }
+        else
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            realEnvido.SetActive(true);
+            faltaEnvido.SetActive(true);
+            queiro.SetActive(true);
+            noQueiro.SetActive(true);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            conFlorQuiero.SetActive(false);
+            florChica.SetActive(false);
+            if (GameManager.Instance.lastChallengeType == ChallengeType.Truco)
+            {
+                mazo.SetActive(false);
+            }
+            else
+            {
+                mazo.SetActive(true);
+            }
+            if (GameManager.Instance.PlayerHasFlor())
+            {
+                flor.SetActive(true);
+            }
+        }
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void FaltaEnvidoChallenged()
+    {
+        _isChallengepPending = true;
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        queiro.SetActive(true);
+        noQueiro.SetActive(true);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        if (GameManager.Instance.PlayerHasFlor() && !invokedChallenges.Contains(ChallengeType.Flor) 
+                                                 && !invokedChallenges.Contains(ChallengeType.Envido)
+                                                 && !invokedChallenges.Contains(ChallengeType.Truco))
+        {
+            flor.SetActive(true);
+        }
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void FlorChallenged()
+    {
+        _isChallengepPending = true;
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(true);
+        florChica.SetActive(true);
+        contraFlor.SetActive(true);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+    }
+
+    // This is called When Other player Challenges us with this Challenge
+    public void FlorChicaChallenged()
+    {
+        _isChallengepPending = false;
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void ConFlorQuieroChallenged()
+    {
+        _isChallengepPending = false;
+        invokedChallenges.Add(ChallengeType.ConFlorQuiero);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+    }
+    
+    // This is called When Other player Challenges us with this Challenge
+    public void ContraFlorChallenged()
+    {
+        _isChallengepPending = true;
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(true);
+        queiro.SetActive(true);
+        noQueiro.SetActive(false);
+        truco.SetActive(false);
+        retruco.SetActive(false);
+        vale4.SetActive(false);
+        // GameManager.Instance.ShowAllCards();
+    }
+    
+    // This block of code is called when the player accepts the challenge
+    public void QueiroChallenged()
+    {
+        _isChallengepPending = false;
+        _challengeAccepted = true;
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Truco))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            GameManager.Instance.mazoPoints = 2;
+            unAnsweredChallenges.Clear();
+            invokedChallenges.Add(ChallengeType.Truco);
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Retruco))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            GameManager.Instance.mazoPoints = 3;
+            unAnsweredChallenges.Clear();
+            invokedChallenges.Add(ChallengeType.Retruco);
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Vale4))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            vale4.SetActive(false);
+            GameManager.Instance.mazoPoints = 4;
+            unAnsweredChallenges.Clear();
+            invokedChallenges.Add(ChallengeType.Vale4);
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            _envidoPlayed = true;
+            GameManager.Instance.ActiveChallenges.Clear();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            _envidoPlayed = true;
+            GameManager.Instance.ActiveChallenges.Clear();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            faltaEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.ContraFlor))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+        }
+
+        // if (GameManager.Instance.IsMyTurn())
+        // {
+        //     GameManager.Instance.SetCanPlayCard(true);
+        // }
+    }
+    
+    // This block of code is called when the player does not accept the challenge
+    public void NoQueiroChallenged()
+    {
+        _isChallengepPending = false;
+        flor.SetActive(false);
+        contraFlor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        florChica.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+        if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Truco))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            DisableButtons();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Retruco))
+        {
+            truco.SetActive(false);
+            retruco.SetActive(false);
+            DisableButtons();
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+            _envidoPlayed = true;
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+        }
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.ContraFlor))
+        {
+            envido.SetActive(false);
+            realEnvido.SetActive(false);
+            flor.SetActive(false);
+            contraFlor.SetActive(false);
+        }
+
+        GameManager.Instance.noQuieroPoints = 0;
+        if (unAnsweredChallenges.Count > 0)
+        {
+            StartCoroutine(CheckForUnansweredChallenges());
+        }
+        else if (GameManager.Instance.IsMyTurn())
+        {
+            GameManager.Instance.SetCanPlayCard(true);
+        }
+        else
+        {
+            DisableButtons();
+        }
+
+        GameManager.Instance.challengePoints = 0;
+    }
+
+    
+    // This block of code checks for any unanswered challenges after a delay
+    public IEnumerator CheckForUnansweredChallenges()
+    {
+        yield return new WaitForSeconds(3);
+        ChallengeType lastChallenge = unAnsweredChallenges.Last().Key;
+        int playerActorNumber = unAnsweredChallenges.Last().Value;
+
+        switch (lastChallenge)
+        {
+            case ChallengeType.Truco:
+            {
+                unAnsweredChallenges.Clear();
+                GameManager.Instance.lastChallengeType = ChallengeType.Truco;
+                if (playerActorNumber.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
+                {
+                    PhotonNetwork.RaiseEvent(TRUCO_CHALLENGE,null, RaiseEventOptions.Default, SendOptions.SendReliable);
+                }else
+                {
+                    TrucoChallenged();
+                }
+                break;
+            }
+        }
+    }
+    
+}

@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "710925574732",
+    "firebase_url": "https://authenticationtest-2dfee-default-rtdb.firebaseio.com",
+    "project_id": "authenticationtest-2dfee",
+    "storage_bucket": "authenticationtest-2dfee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:710925574732:android:470d814f7a705adbaa4ae9",
+        "android_client_info": {
+          "package_name": "com.OctalGames.ArgentininanTruco"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "710925574732-l9ap4f21cujhj5hf9vuibs7q4vjpb8us.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCagv8DOJm5GfUe7M-atAR1NsYbBQm8tzQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "710925574732-l9ap4f21cujhj5hf9vuibs7q4vjpb8us.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,244 @@
+{
+  "cards": [
+    {
+      "id": 1,
+      "suit": 0,
+      "rank": 1,
+      "name": "1 de espadas"
+    },
+    {
+      "id": 2,
+      "suit": 0,
+      "rank": 2,
+      "name": "2 de espadas"
+    },
+    {
+      "id": 3,
+      "suit": 0,
+      "rank": 3,
+      "name": "3 de espadas"
+    },
+    {
+      "id": 4,
+      "suit": 0,
+      "rank": 4,
+      "name": "4 de espadas"
+    },
+    {
+      "id": 5,
+      "suit": 0,
+      "rank": 5,
+      "name": "5 de espadas"
+    },
+    {
+      "id": 6,
+      "suit": 0,
+      "rank": 6,
+      "name": "6 de espadas"
+    },
+    {
+      "id": 7,
+      "suit": 0,
+      "rank": 7,
+      "name": "7 de espadas"
+    },
+    {
+      "id": 8,
+      "suit": 0,
+      "rank": 10,
+      "name": "10 de espadas"
+    },
+    {
+      "id": 9,
+      "suit": 0,
+      "rank": 11,
+      "name": "11 de espadas"
+    },
+    {
+      "id": 10,
+      "suit": 0,
+      "rank": 12,
+      "name": "12 de espadas"
+    },
+    {
+      "id": 11,
+      "suit": 1,
+      "rank": 1,
+      "name": "1 de bastos"
+    },
+    {
+      "id": 12,
+      "suit": 1,
+      "rank": 2,
+      "name": "2 de bastos"
+    },
+    {
+      "id": 13,
+      "suit": 1,
+      "rank": 3,
+      "name": "3 de bastos"
+    },
+    {
+      "id": 14,
+      "suit": 1,
+      "rank": 4,
+      "name": "4 de bastos"
+    },
+    {
+      "id": 15,
+      "suit": 1,
+      "rank": 5,
+      "name": "5 de bastos"
+    },
+    {
+      "id": 16,
+      "suit": 1,
+      "rank": 6,
+      "name": "6 de bastos"
+    },
+    {
+      "id": 17,
+      "suit": 1,
+      "rank": 7,
+      "name": "7 de bastos"
+    },
+    {
+      "id": 18,
+      "suit": 1,
+      "rank": 10,
+      "name": "10 de bastos"
+    },
+    {
+      "id": 19,
+      "suit": 1,
+      "rank": 11,
+      "name": "11 de bastos"
+    },
+    {
+      "id": 20,
+      "suit": 1,
+      "rank": 12,
+      "name": "12 de bastos"
+    },
+    {
+      "id": 21,
+      "suit": 2,
+      "rank": 1,
+      "name": "1 de copas"
+    },
+    {
+      "id": 22,
+      "suit": 2,
+      "rank": 2,
+      "name": "2 de copas"
+    },
+    {
+      "id": 23,
+      "suit": 2,
+      "rank": 3,
+      "name": "3 de copas"
+    },
+    {
+      "id": 24,
+      "suit": 2,
+      "rank": 4,
+      "name": "4 de copas"
+    },
+    {
+      "id": 25,
+      "suit": 2,
+      "rank": 5,
+      "name": "5 de copas"
+    },
+    {
+      "id": 26,
+      "suit": 2,
+      "rank": 6,
+      "name": "6 de copas"
+    },
+    {
+      "id": 27,
+      "suit": 2,
+      "rank": 7,
+      "name": "7 de copas"
+    },
+    {
+      "id": 28,
+      "suit": 2,
+      "rank": 10,
+      "name": "10 de copas"
+    },
+    {
+      "id": 29,
+      "suit": 2,
+      "rank": 11,
+      "name": "11 de copas"
+    },
+    {
+      "id": 30,
+      "suit": 2,
+      "rank": 12,
+      "name": "12 de copas"
+    },
+    {
+      "id": 31,
+      "suit": 3,
+      "rank": 1,
+      "name": "1 de oros"
+    },
+    {
+      "id": 32,
+      "suit": 3,
+      "rank": 2,
+      "name": "2 de oros"
+    },
+    {
+      "id": 33,
+      "suit": 3,
+      "rank": 3,
+      "name": "3 de oros"
+    },
+    {
+      "id": 34,
+      "suit": 3,
+      "rank": 4,
+      "name": "4 de oros"
+    },
+    {
+      "id": 35,
+      "suit": 3,
+      "rank": 5,
+      "name": "5 de oros"
+    },
+    {
+      "id": 36,
+      "suit": 3,
+      "rank": 6,
+      "name": "6 de oros"
+    },
+    {
+      "id": 37,
+      "suit": 3,
+      "rank": 7,
+      "name": "7 de oros"
+    },
+    {
+      "id": 38,
+      "suit": 3,
+      "rank": 10,
+      "name": "10 de oros"
+    },
+    {
+      "id": 39,
+      "suit": 3,
+      "rank": 11,
+      "name": "11 de oros"
+    },
+    {
+      "id": 40,
+      "suit": 3,
+      "rank": 12,
+      "name": "12 de oros"
+    }
+  ]
+}
