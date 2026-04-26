@@ -3,7 +3,6 @@ using PlayFab.ClientModels;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class PlayFabLogin : MonoBehaviour
@@ -171,21 +170,7 @@ public class PlayFabLogin : MonoBehaviour
     
     void OnLoginSuccess()
     {
-        //bool isAdmin = await ApiController.CheckUserAdmin();
-
-        //if (isAdmin)
-        //{
-
-        //    ApiController.GetSessionUser.Data.role = "admin";
-        //    SceneManager.LoadScene("AdminScene");
-        //}
-        //else
-        //{
-        //    ApiController.GetSessionUser.Data.role = "player";
-        //    SceneManager.LoadScene("MainMenu");
-        //}
-
-        SceneManager.LoadScene("MainMenu");
+        PostLoginSceneRouter.LoadSceneForCredentials(loginEmailField.text, loginPasswordField.text);
     }
 
     public void GetUserData()

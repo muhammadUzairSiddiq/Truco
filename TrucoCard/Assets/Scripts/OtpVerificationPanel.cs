@@ -72,7 +72,7 @@ public class OtpVerificationPanel : MonoBehaviour
                     new LoginRequest { email = _requestCredientials.email, password = _requestCredientials.password },
                     () =>
                     {
-                        SceneManager.LoadScene("MainMenu");
+                        PostLoginSceneRouter.LoadSceneForCredentials(_requestCredientials.email, _requestCredientials.password);
                     },
                     (ERR) =>
                     {

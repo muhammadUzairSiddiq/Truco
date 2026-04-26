@@ -44,6 +44,12 @@ public static class TrucoTextosClient
     public const string ReconexionPerdida1v1 = "Se cortó la conexión. Perdiste la partida; gana el rival.";
     public const string EspectandoAdmin = "Modo espectador (admin).";
     public const string LiveDashboardTitle = "Panel en vivo — partidas 1v1";
+    public const string LiveDashboardButton = "Live Dashboard";
+    public const string AdminVolver = "Volver";
+    public const string AdminRefreshList = "Actualizar";
+    public const string AdminPhotonRoomLabel = "Sala Photon:";
+    public const string LiveRowMetaTemplate = "Estado: {0}  ·  {1}  ·  Entrada: {2}  ·  Jugadores: {3}/2";
+    public const string SpectateEntrando = "Entrando como espectador…";
     public const string LiveDashboardFraud = "Resumen de alertas";
     public const string Spectate = "Ver / espectar";
     public const string ForceCloseMatch = "Cerrar partida (admin)";
