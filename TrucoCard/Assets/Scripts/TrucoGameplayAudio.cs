@@ -41,7 +41,12 @@ public class TrucoGameplayAudio : MonoBehaviour
         _calloutSource.spatialBlend = 0f;
         _cardSource.spatialBlend = 0f;
         TryLoadClipsFromResources();
+#if !UNITY_ANDROID || UNITY_EDITOR
         EnsureProceduralFallbacks();
+#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (GetComponent<TrucoTtsService>() == null) gameObject.AddComponent<TrucoTtsService>();
+#endif
     }
 
     void EnsureAudioSources()
@@ -72,6 +77,14 @@ public class TrucoGameplayAudio : MonoBehaviour
     public static void PlayLocalRaise(byte eventCode)
     {
         if (Instance == null) return;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        var phrase = TrucoCalloutPhrases.ForEventCode(eventCode);
+        if (!string.IsNullOrEmpty(phrase) && TrucoTtsService.UseTtsOnThisBuild && TrucoTtsService.Instance != null)
+        {
+            TrucoTtsService.SpeakChallengePhrase(phrase);
+            return;
+        }
+#endif
         var c = Instance.ResolveClip(eventCode);
         if (c != null && Instance._calloutSource != null)
             Instance._calloutSource.PlayOneShot(c);
@@ -94,6 +107,14 @@ public class TrucoGameplayAudio : MonoBehaviour
             return;
         }
         if (Instance == null) return;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        var phrase = TrucoCalloutPhrases.ForEventCode(eventCode);
+        if (!string.IsNullOrEmpty(phrase) && TrucoTtsService.UseTtsOnThisBuild && TrucoTtsService.Instance != null)
+        {
+            TrucoTtsService.SpeakChallengePhrase(phrase);
+            return;
+        }
+#endif
         var c = Instance.ResolveClip(eventCode);
         if (c != null && Instance._calloutSource != null)
             Instance._calloutSource.PlayOneShot(c);

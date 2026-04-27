@@ -603,6 +603,63 @@ public static class ApiController
 
     #region OneVsOne (player rooms, backend authority)
 
+    /// <summary>Parses POST join responses: flat <c>match</c>, <c>data.match</c>, or <c>data</c> as match; falls back to list row only after those shapes are tried.</summary>
+    public static Player1v1Match TryParsePlayerJoinMatchJson(string response, Player1v1Match listRowHint, out string apiErrorOrMessage)
+    {
+        apiErrorOrMessage = null;
+        if (string.IsNullOrEmpty(response) || !response.TrimStart().StartsWith("{"))
+            return null;
+
+        bool flatOk = false, wrappedOk = false, flatDataOk = false;
+
+        try
+        {
+            var flat = JsonUtility.FromJson<PlayerJoinMatchResponse>(response);
+            if (flat?.match != null && !string.IsNullOrEmpty(flat.match._id))
+                return flat.match;
+            flatOk = flat != null && (flat.ok || flat.success);
+            if (flat != null)
+            {
+                if (!string.IsNullOrEmpty(flat.error)) apiErrorOrMessage = flat.error;
+                else if (!string.IsNullOrEmpty(flat.message)) apiErrorOrMessage = flat.message;
+            }
+        }
+        catch (Exception e) { Debug.LogWarning("[ApiController] join parse (flat): " + e.Message); }
+
+        try
+        {
+            var wrapped = JsonUtility.FromJson<PlayerJoinMatchWrappedRoot>(response);
+            if (wrapped?.data?.match != null && !string.IsNullOrEmpty(wrapped.data.match._id))
+                return wrapped.data.match;
+            wrappedOk = wrapped != null && (wrapped.ok || wrapped.success);
+            if (wrapped != null)
+            {
+                if (!string.IsNullOrEmpty(wrapped.error)) apiErrorOrMessage = wrapped.error;
+                else if (!string.IsNullOrEmpty(wrapped.message)) apiErrorOrMessage = wrapped.message;
+            }
+        }
+        catch (Exception e) { Debug.LogWarning("[ApiController] join parse (wrapped): " + e.Message); }
+
+        try
+        {
+            var flatData = JsonUtility.FromJson<PlayerJoinMatchFlattenedDataRoot>(response);
+            if (flatData?.data != null && !string.IsNullOrEmpty(flatData.data._id))
+                return flatData.data;
+            flatDataOk = flatData != null && (flatData.ok || flatData.success);
+            if (flatData != null)
+            {
+                if (!string.IsNullOrEmpty(flatData.error)) apiErrorOrMessage = flatData.error;
+                else if (!string.IsNullOrEmpty(flatData.message)) apiErrorOrMessage = flatData.message;
+            }
+        }
+        catch (Exception e) { Debug.LogWarning("[ApiController] join parse (flat data): " + e.Message); }
+
+        if (listRowHint != null && (flatOk || wrappedOk || flatDataOk))
+            return listRowHint;
+
+        return null;
+    }
+
     public static List<Player1v1Match> TryParsePlayerMatchListJson(string response)
     {
         var list = new List<Player1v1Match>();
@@ -723,10 +780,12 @@ public static class ApiController
                 onError?.Invoke(response ?? "Error al unirse.");
                 return null;
             }
-            var parsed = JsonUtility.FromJson<PlayerJoinMatchResponse>(response);
-            if (parsed?.match != null) return parsed.match;
-            if (parsed != null && (parsed.ok || parsed.success) && listRowHint != null) return listRowHint;
-            onError?.Invoke("No se pudo unir a la sala.");
+            var match = TryParsePlayerJoinMatchJson(response, listRowHint, out string apiMsg);
+            if (match != null) return match;
+            if (!string.IsNullOrEmpty(apiMsg))
+                onError?.Invoke(apiMsg);
+            else
+                onError?.Invoke("No se pudo unir a la sala.");
             return null;
         }
         catch (Exception ex)
@@ -782,6 +841,10 @@ public static class ApiController
         }
     }
 
+    /// <summary>
+    /// Reports winner; backend should mark match finished, settle coins, and remove both players from the joinable lobby
+    /// (e.g. empty <c>players</c> or status <c>completed</c>) so new joins are not blocked by "Match is full".
+    /// </summary>
     public static async Task<bool> SubmitMatchResult1v1(string matchId, string winnerUserId, Action<string> onError = null)
     {
         if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(winnerUserId)) return false;
@@ -798,6 +861,24 @@ public static class ApiController
             onError?.Invoke(ex.Message);
             Debug.LogWarning("[ApiController] - SubmitMatchResult1v1: " + ex.Message);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Notifies server this user left the match (early quit, scene unload, etc.). Requires <c>POST …/matches/:id/leave</c> on API.
+    /// Fails quietly if route is missing so older servers keep working.
+    /// </summary>
+    public static async System.Threading.Tasks.Task TryNotifyPlayerLeftMatch1v1(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        try
+        {
+            await HttpApiClient.PostAsync(ApiConfig.MatchPlayerLeave(matchId), "{}");
+            Debug.Log("[ApiController] - match leave notified: " + matchId);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[ApiController] - TryNotifyPlayerLeftMatch1v1 (add POST /matches/:id/leave on server if needed): " + ex.Message);
         }
     }
 

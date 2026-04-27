@@ -60,6 +60,12 @@
     /// <summary>POST body typically { "winnerId": "…" } — confirm in Swagger; may require admin or player role.</summary>
     public static string MatchSubmitResult(string id) => $"{BaseUrl}/matches/{id}/result";
 
+    /// <summary>
+    /// Player leaves match lobby / unregisters from active <c>players</c> (implement on server).
+    /// Called when exiting gameplay so stale "full" rows clear; safe if match already completed (no-op).
+    /// </summary>
+    public static string MatchPlayerLeave(string id) => $"{BaseUrl}/matches/{id}/leave";
+
     #endregion
 
     #region Alerts

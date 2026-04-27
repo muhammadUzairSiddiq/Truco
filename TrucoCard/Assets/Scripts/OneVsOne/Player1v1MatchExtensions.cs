@@ -42,17 +42,65 @@ public static class Player1v1MatchExtensions
         return 0;
     }
 
+    /// <summary>Players as reported by GET /matches payload (not merged with Photon).</summary>
+    public static int GetApiReportedPlayerCount(this Player1v1Match m)
+    {
+        if (m == null) return 0;
+        if (m.players != null && m.players.Length > 0)
+            return Mathf.Clamp(m.players.Length, 0, 2);
+        if (m.currentPlayers > 0)
+            return Mathf.Clamp(m.currentPlayers, 0, 2);
+        if (m.playerCount > 0)
+            return Mathf.Clamp(m.playerCount, 0, 2);
+        return 0;
+    }
+
+    /// <summary>API says full (2) but Photon lobby has synced and shows 0 in the room — ghost / expired lobby row.</summary>
+    public static bool IsStaleFullVersusPhoton(this Player1v1Match m)
+    {
+        if (m == null) return false;
+        if (m.GetApiReportedPlayerCount() < 2) return false;
+        string room = m.ResolvePhotonRoomName();
+        if (string.IsNullOrEmpty(room)) return false;
+        if (!OneVsOnePhotonFlow.TryGetLiveLobbyPlayerCountForMatch(room, out int live)) return false;
+        return live == 0;
+    }
+
+    /// <summary>Player count shown in list: for stale rows use live Photon count so UI shows 0/2, not 2/2.</summary>
+    public static int GetTrucoPlayerCountForUi(this Player1v1Match m)
+    {
+        if (m == null) return 0;
+        if (m.IsStaleFullVersusPhoton())
+        {
+            string room = m.ResolvePhotonRoomName();
+            if (!string.IsNullOrEmpty(room) && OneVsOnePhotonFlow.TryGetLiveLobbyPlayerCountForMatch(room, out int live))
+                return Mathf.Clamp(live, 0, 2);
+            return 0;
+        }
+        return m.GetTrucoPlayerCount();
+    }
+
     public static int GetTrucoPlayerCount(this Player1v1Match m)
     {
         if (m == null) return 0;
-        // Do not use PhotonNetwork.CurrentRoom.PlayerCount here: after Gameplay, clients often
-        // stayed InRoom while browsing MainMenu → stale 2/2 and "Full". Backend /players is source of truth for the list.
+        // Join is enforced by the API; Photon lobby can lag or show 0 while DB already has 2 players → "Match is full".
+        // Use the higher of API-reported count and Photon lobby count so ENTRAR / 0/2 matches reality.
+        int apiCount = 0;
         if (m.players != null && m.players.Length > 0)
-            return Mathf.Clamp(m.players.Length, 0, 2);
-        int fromApi = 0;
-        if (m.currentPlayers > 0) fromApi = m.currentPlayers;
-        else if (m.playerCount > 0) fromApi = m.playerCount;
-        return Mathf.Clamp(fromApi, 0, 2);
+            apiCount = Mathf.Clamp(m.players.Length, 0, 2);
+        else if (m.currentPlayers > 0)
+            apiCount = Mathf.Clamp(m.currentPlayers, 0, 2);
+        else if (m.playerCount > 0)
+            apiCount = Mathf.Clamp(m.playerCount, 0, 2);
+
+        int photonCount = -1;
+        string room = m.ResolvePhotonRoomName();
+        if (!string.IsNullOrEmpty(room) && OneVsOnePhotonFlow.TryGetLiveLobbyPlayerCountForMatch(room, out int live))
+            photonCount = Mathf.Clamp(live, 0, 2);
+
+        if (photonCount < 0)
+            return apiCount;
+        return Mathf.Clamp(Mathf.Max(photonCount, apiCount), 0, 2);
     }
 
     /// <summary>Backend host id. Do not use <c>players[0]</c> — list order is not the creator (e.g. joiner can appear first if creator left API ordering).</summary>
@@ -76,6 +124,7 @@ public static class Player1v1MatchExtensions
     public static bool CanClickJoinOnRoom(this Player1v1Match m)
     {
         if (m == null) return false;
+        if (m.IsStaleFullVersusPhoton()) return false;
         if (m.GetTrucoPlayerCount() >= 2) return false;
         if (m.IsCurrentUserHostOfRoom()) return false;
         return true;

@@ -97,8 +97,8 @@ public static class TrucoOneVsOneMainMenuFactory
         var rowRt = rowGo.AddComponent<RectTransform>();
         rowRt.SetParent(content, false);
         var rowLe = rowGo.AddComponent<LayoutElement>();
-        rowLe.minHeight = 112;
-        rowLe.preferredHeight = 112;
+        rowLe.minHeight = 128;
+        rowLe.preferredHeight = 132;
         var rowCard = rowGo.AddComponent<Image>();
         rowCard.color = new Color(0.16f, 0.19f, 0.25f, 1f);
         rowCard.raycastTarget = false;
@@ -120,10 +120,41 @@ public static class TrucoOneVsOneMainMenuFactory
         var nm = RowLineText("Name", col, font, "—", 24);
         var meta = RowLineText("Meta", col, font, "—", 20);
         var pl = RowLineText("Players", col, font, "—", 20);
-        var jn = UiButtonJoin("Join", rowRt, font, TrucoTextosClient.Unirse);
+
+        var joinCol = CreateRect("JoinCol", rowRt);
+        var jvl = joinCol.gameObject.AddComponent<VerticalLayoutGroup>();
+        jvl.spacing = 4f;
+        jvl.childAlignment = TextAnchor.UpperCenter;
+        jvl.childControlWidth = true;
+        jvl.childControlHeight = true;
+        jvl.childForceExpandWidth = true;
+        jvl.childForceExpandHeight = false;
+        var jcolLe = joinCol.gameObject.AddComponent<LayoutElement>();
+        jcolLe.minWidth = 152;
+        jcolLe.preferredWidth = 168;
+        jcolLe.minHeight = 64;
+        jcolLe.preferredHeight = 96;
+
+        var jn = UiButtonJoin("Join", joinCol, font, TrucoTextosClient.Entrar);
         var joinLabel = jn.GetComponentInChildren<TextMeshProUGUI>();
+
+        var expGo = new GameObject("ExpiredHint", typeof(RectTransform));
+        expGo.transform.SetParent(joinCol, false);
+        var expTmp = expGo.AddComponent<TextMeshProUGUI>();
+        expTmp.text = string.Empty;
+        expTmp.fontSize = 18f;
+        expTmp.fontStyle = FontStyles.Bold;
+        expTmp.alignment = TextAlignmentOptions.Center;
+        expTmp.color = new Color(0.82f, 0.14f, 0.1f, 1f);
+        expTmp.raycastTarget = false;
+        if (font != null) expTmp.font = font;
+        var expLe = expGo.AddComponent<LayoutElement>();
+        expLe.minHeight = 22f;
+        expLe.preferredHeight = 24f;
+        expGo.SetActive(false);
+
         var row = rowGo.AddComponent<OneVsOneRoomRowView>();
-        row.SetRuntimeBinding(nm, meta, pl, jn, joinLabel);
+        row.SetRuntimeBinding(nm, meta, pl, jn, joinLabel, null, null, null, null, expTmp);
 
         var sessionStrip = CreateRect("PhotonSessionStrip", root.transform);
         SetAnchors(sessionStrip, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, sessionStripH));

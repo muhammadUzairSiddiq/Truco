@@ -88,16 +88,23 @@ public static class HttpApiClient
         if (string.IsNullOrEmpty(responseText))
             return "Unknown error";
 
-        try
+        string trimmed = responseText.TrimStart();
+        if (trimmed.StartsWith("{"))
         {
-            // Try to parse JSON: {"error":"Invalid credentials"}
-            var json = JsonUtility.FromJson<ErrorResponse>(responseText);
-            if (json != null && !string.IsNullOrEmpty(json.error))
-                return json.error;
+            try
+            {
+                var json = JsonUtility.FromJson<ErrorResponse>(responseText);
+                if (json != null)
+                {
+                    if (!string.IsNullOrEmpty(json.error))
+                        return json.error.Trim();
+                    if (!string.IsNullOrEmpty(json.message))
+                        return json.message.Trim();
+                }
+            }
+            catch { }
         }
-        catch { }
 
-        // Fallback: return raw text
         return responseText;
     }
 
@@ -105,6 +112,7 @@ public static class HttpApiClient
     private class ErrorResponse
     {
         public string error;
+        public string message;
     }
 
     private static void AttachAuthHeaders(UnityWebRequest req, string explicitToken = null)

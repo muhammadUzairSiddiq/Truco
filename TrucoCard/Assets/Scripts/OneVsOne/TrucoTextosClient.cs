@@ -12,6 +12,10 @@ public static class TrucoTextosClient
     public const string TuSalaEsperando = "Tu sala";
     /// <summary>English: room is full. Short label for join button.</summary>
     public const string SalaLlena = "Full";
+    /// <summary>Short label under join button when API says full but Photon shows an empty room.</summary>
+    public const string SalaExpiradaEtiqueta = "Expirado";
+    /// <summary>Toast / IMPORTANT when user tries to join an expired row.</summary>
+    public const string SalaExpiradaAviso = "La sala expiró. Creá o unite a otra sala.";
     public const string CrearSala = "Crear sala";
     public const string ActualizarLista = "Actualizar";
     public const string Volver = "Volver";

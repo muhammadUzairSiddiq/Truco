@@ -336,6 +336,35 @@ public class PlayerJoinMatchResponse
     public int coins;
 }
 
+/// <summary>Join response when match is nested under <c>data</c> (same style as match list).</summary>
+[Serializable]
+public class PlayerJoinMatchDataInner
+{
+    public Player1v1Match match;
+    public int coins;
+}
+
+[Serializable]
+public class PlayerJoinMatchWrappedRoot
+{
+    public bool ok;
+    public bool success;
+    public string message;
+    public string error;
+    public PlayerJoinMatchDataInner data;
+}
+
+/// <summary>Join response when the API puts the full match object directly in <c>data</c>.</summary>
+[Serializable]
+public class PlayerJoinMatchFlattenedDataRoot
+{
+    public bool ok;
+    public bool success;
+    public string message;
+    public string error;
+    public Player1v1Match data;
+}
+
 [Serializable]
 public class MatchesListEnvelope
 {

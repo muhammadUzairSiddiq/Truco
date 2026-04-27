@@ -9,6 +9,8 @@ public class OneVsOneRoomRowView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _playersText;
     [SerializeField] private Button _joinButton;
     [SerializeField] private TextMeshProUGUI _joinButtonLabel;
+    [Tooltip("Optional: red ‘Expirado’ line centered under the join button (runtime builders wire this).")]
+    [SerializeField] private TextMeshProUGUI _expiredBelowJoin;
     [SerializeField] private GameObject _codeStripRoot;
     [SerializeField] private TextMeshProUGUI _codeCaption;
     [SerializeField] private TextMeshProUGUI _hostCodeText;
@@ -16,6 +18,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
 
     private Player1v1Match _data;
     private System.Action<Player1v1Match, OneVsOneRoomRowView> _onJoin;
+    private string _cachedHostCode;
 
     /// <summary>Fallback when the row has no in-bar code strip (e.g. auto lobby factory).</summary>
     public void SetRuntimeBinding(
@@ -25,7 +28,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
         Button join,
         TextMeshProUGUI joinLabel = null)
     {
-        SetRuntimeBinding(title, meta, players, join, joinLabel, null, null, null, null);
+        SetRuntimeBinding(title, meta, players, join, joinLabel, null, null, null, null, null);
     }
 
     public void SetRuntimeBinding(
@@ -37,7 +40,8 @@ public class OneVsOneRoomRowView : MonoBehaviour
         GameObject codeStripRoot,
         TextMeshProUGUI codeCaption,
         TextMeshProUGUI hostCode,
-        TMP_InputField joinerCode)
+        TMP_InputField joinerCode,
+        TextMeshProUGUI expiredBelowJoin = null)
     {
         _titleText = title;
         _metaText = meta;
@@ -48,6 +52,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
         _codeCaption = codeCaption;
         _hostCodeText = hostCode;
         _joinerCodeField = joinerCode;
+        _expiredBelowJoin = expiredBelowJoin;
     }
 
     /// <param name="hostOnlyPrivateCode">Only for your private room as host (displayed in-bar, not in meta).</param>
@@ -60,6 +65,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
     {
         _data = m;
         _onJoin = onJoin;
+        _cachedHostCode = hostOnlyPrivateCode;
         if (m == null) return;
 
         if (_titleText != null)
@@ -70,7 +76,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
         if (_metaText != null)
             _metaText.text = $"{typeStr}  ·  {TrucoTextosClient.EntradaAbrev}: {cost}";
 
-        int count = m.GetTrucoPlayerCount();
+        int count = m.GetTrucoPlayerCountForUi();
         if (_playersText != null)
             _playersText.text = string.Format(TrucoTextosClient.JugadoresEnSala, count, 2);
 
@@ -114,17 +120,67 @@ public class OneVsOneRoomRowView : MonoBehaviour
             if (canJoin) _joinButton.onClick.AddListener(() => _onJoin?.Invoke(_data, this));
             _joinButton.interactable = canJoin;
         }
+
+        bool stale = m.IsStaleFullVersusPhoton();
         if (_joinButtonLabel != null)
-            _joinButtonLabel.text = string.IsNullOrEmpty(joinButtonOverride)
-                ? TrucoTextosClient.Entrar
-                : joinButtonOverride;
+        {
+            if (stale)
+                _joinButtonLabel.text = TrucoTextosClient.Entrar;
+            else
+                _joinButtonLabel.text = string.IsNullOrEmpty(joinButtonOverride)
+                    ? TrucoTextosClient.Entrar
+                    : joinButtonOverride;
+            _joinButtonLabel.enableWordWrapping = false;
+            _joinButtonLabel.overflowMode = TextOverflowModes.Ellipsis;
+        }
+        if (_expiredBelowJoin != null)
+        {
+            _expiredBelowJoin.gameObject.SetActive(stale);
+            if (stale)
+            {
+                _expiredBelowJoin.text = TrucoTextosClient.SalaExpiradaEtiqueta;
+                _expiredBelowJoin.color = new Color(0.82f, 0.14f, 0.1f, 1f);
+                _expiredBelowJoin.alignment = TextAlignmentOptions.Center;
+            }
+        }
     }
 
     LayoutElement codeStripLayout;
     void Awake()
     {
         if (_codeStripRoot != null) codeStripLayout = _codeStripRoot.GetComponent<LayoutElement>();
+        TryBindExpiredFromHierarchy();
+    }
+
+    void TryBindExpiredFromHierarchy()
+    {
+        if (_expiredBelowJoin != null || _joinButton == null) return;
+        var parent = _joinButton.transform.parent;
+        if (parent == null) return;
+        var hint = parent.Find("ExpiredHint");
+        if (hint != null) _expiredBelowJoin = hint.GetComponent<TextMeshProUGUI>();
     }
 
     public string GetJoinerCodeText() => _joinerCodeField != null ? _joinerCodeField.text : string.Empty;
+
+    /// <summary>Tras <see cref="OneVsOnePhotonFlow.OnRoomListUpdate"/> para actualizar 0/2–2/2 sin volver a pedir el API.</summary>
+    public void RefreshFromLivePhoton()
+    {
+        if (_data == null || _onJoin == null) return;
+        bool can = _data.CanClickJoinOnRoom();
+        string joinTxt = null;
+        if (!can)
+        {
+            if (_data.IsStaleFullVersusPhoton()) joinTxt = null;
+            else if (_data.IsCurrentUserHostOfRoom()) joinTxt = TrucoTextosClient.TuSalaEsperando;
+            else if (_data.GetTrucoPlayerCount() >= 2) joinTxt = TrucoTextosClient.SalaLlena;
+        }
+        string hostCode = _cachedHostCode;
+        if (_data.IsPrivate() && _data.IsCurrentUserHostOfRoom())
+        {
+            if (!string.IsNullOrEmpty(_data.joinCode)) hostCode = _data.joinCode.Trim();
+            if (string.IsNullOrEmpty(hostCode)) hostCode = OneVsOnePrivateRoomCode.TryGetRememberedForMatch(_data._id);
+        }
+        Bind(_data, _onJoin, can, joinTxt, hostCode);
+    }
 }

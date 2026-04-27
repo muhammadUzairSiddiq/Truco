@@ -158,8 +158,26 @@ public static class TrucoRuntimeUiBuilders
         capLabGo.SetActive(false);
 
         var codeStripRoot = codeStrip;
+
+        var joinCol = new GameObject("JoinCol", typeof(RectTransform));
+        joinCol.transform.SetParent(rowRt, false);
+        var joinV = joinCol.AddComponent<VerticalLayoutGroup>();
+        joinV.spacing = 6f;
+        joinV.padding = new RectOffset(0, 0, 0, 0);
+        joinV.childAlignment = TextAnchor.UpperCenter;
+        joinV.childControlWidth = true;
+        joinV.childControlHeight = true;
+        joinV.childForceExpandWidth = true;
+        joinV.childForceExpandHeight = false;
+        var joinColLe = joinCol.AddComponent<LayoutElement>();
+        joinColLe.minWidth = 180f;
+        joinColLe.preferredWidth = 196f;
+        joinColLe.flexibleWidth = 0f;
+        joinColLe.minHeight = 88f;
+        joinColLe.preferredHeight = 124f;
+
         var joinGo = new GameObject("Join", typeof(RectTransform));
-        joinGo.transform.SetParent(rowRt, false);
+        joinGo.transform.SetParent(joinCol.transform, false);
         var joinImg = joinGo.AddComponent<Image>();
         joinImg.raycastTarget = true;
         joinImg.sprite = null;
@@ -192,8 +210,25 @@ public static class TrucoRuntimeUiBuilders
         jtmp.raycastTarget = false;
         if (f != null) jtmp.font = f;
 
+        var expGo = new GameObject("ExpiredHint", typeof(RectTransform));
+        expGo.transform.SetParent(joinCol.transform, false);
+        var expTmp = expGo.AddComponent<TextMeshProUGUI>();
+        expTmp.text = string.Empty;
+        expTmp.alignment = TextAlignmentOptions.Center;
+        expTmp.fontSize = 28f;
+        expTmp.fontStyle = FontStyles.Bold;
+        expTmp.color = new Color(0.82f, 0.14f, 0.1f, 1f);
+        expTmp.enableWordWrapping = false;
+        expTmp.raycastTarget = false;
+        if (f != null) expTmp.font = f;
+        var expLe = expGo.AddComponent<LayoutElement>();
+        expLe.minHeight = 30f;
+        expLe.preferredHeight = 32f;
+        expLe.flexibleWidth = 1f;
+        expGo.SetActive(false);
+
         var view = rowGo.AddComponent<OneVsOneRoomRowView>();
-        view.SetRuntimeBinding(t1, t2, t3, btn, jtmp, codeStripRoot, ccap, hostT, jInp);
+        view.SetRuntimeBinding(t1, t2, t3, btn, jtmp, codeStripRoot, ccap, hostT, jInp, expTmp);
         return view;
     }
 

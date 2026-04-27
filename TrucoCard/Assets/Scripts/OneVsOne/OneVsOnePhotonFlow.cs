@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -26,6 +27,13 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     bool _deferredJoinAfterLeave;
     bool _deferredCreateAfterLeave;
     int _deferredCreateMaxPlayers;
+
+    /// <summary>Salas visibles en el lobby de Photon (nombre → jugadores en tiempo real).</summary>
+    readonly Dictionary<string, int> _lobbyRoomPlayerCount = new Dictionary<string, int>(32, StringComparer.Ordinal);
+    bool _lobbySyncReceived;
+
+    /// <summary>La lista de salas del menú debe refrescar filas cuando llega <see cref="OnRoomListUpdate"/>.</summary>
+    public static event Action OnLobbyRoomCountsChanged;
 
     private void Awake()
     {
@@ -128,6 +136,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, OneVsOneMatchSession.MaxPlayersPhoton);
         else if (CurrentPurpose == Purpose.JoinHostedRoom)
             PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
+        else if (!PhotonNetwork.InRoom && !PhotonNetwork.InLobby && !PhotonNetwork.OfflineMode)
+            PhotonNetwork.JoinLobby();
     }
 
     private void CreateRoomWithOptions(string name, int maxPlayers)
@@ -171,6 +181,75 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     {
         _deferredJoinAfterLeave = false;
         _deferredCreateAfterLeave = false;
+        _lobbyRoomPlayerCount.Clear();
+        _lobbySyncReceived = false;
+    }
+
+    public override void OnJoinedLobby()
+    {
+        _lobbyRoomPlayerCount.Clear();
+        _lobbySyncReceived = false;
+    }
+
+    public override void OnLeftLobby()
+    {
+        _lobbyRoomPlayerCount.Clear();
+        _lobbySyncReceived = false;
+    }
+
+    public override void OnRoomListUpdate(List<RoomInfo> roomList)
+    {
+        if (roomList == null) return;
+        _lobbySyncReceived = true;
+        for (int i = 0; i < roomList.Count; i++)
+        {
+            var ri = roomList[i];
+            if (ri == null || string.IsNullOrEmpty(ri.Name)) continue;
+            if (ri.RemovedFromList)
+            {
+                _lobbyRoomPlayerCount.Remove(ri.Name);
+            }
+            else
+            {
+                _lobbyRoomPlayerCount[ri.Name] = ri.PlayerCount;
+            }
+        }
+        OnLobbyRoomCountsChanged?.Invoke();
+    }
+
+    /// <summary>Conecta a Master y entra al lobby por defecto para recibir <see cref="OnRoomListUpdate"/> (conteo real de jugadores).</summary>
+    public void EnsureLobbyForRoomList()
+    {
+        if (PhotonNetwork.OfflineMode) return;
+        if (PhotonNetwork.InRoom) return;
+        if (!PhotonNetwork.IsConnected) { PhotonNetwork.ConnectUsingSettings(); return; }
+        if (PhotonNetwork.Server != ServerConnection.MasterServer) return;
+        if (!PhotonNetwork.InLobby) PhotonNetwork.JoinLobby(TypedLobby.Default);
+    }
+
+    /// <summary>Conteo en vivo según el lobby de Photon. Si el nombre no está y ya hubo sync, la sala no existe (0 jugadores).</summary>
+    public bool TryGetLiveLobbyPlayerCount(string photonRoomName, out int count)
+    {
+        count = 0;
+        if (string.IsNullOrEmpty(photonRoomName) || !PhotonNetwork.InLobby) return false;
+        if (_lobbyRoomPlayerCount.TryGetValue(photonRoomName, out int c))
+        {
+            count = Mathf.Clamp(c, 0, 2);
+            return true;
+        }
+        if (_lobbySyncReceived)
+        {
+            count = 0;
+            return true;
+        }
+        return false;
+    }
+
+    public static bool TryGetLiveLobbyPlayerCountForMatch(string photonRoomName, out int count)
+    {
+        count = 0;
+        if (Instance == null) return false;
+        return Instance.TryGetLiveLobbyPlayerCount(photonRoomName, out count);
     }
 
     public override void OnJoinedRoom()

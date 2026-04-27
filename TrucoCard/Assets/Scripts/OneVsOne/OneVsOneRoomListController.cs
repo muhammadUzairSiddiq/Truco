@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -79,6 +80,7 @@ public class OneVsOneRoomListController : MonoBehaviour
     void OnEnable()
     {
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
+        OneVsOnePhotonFlow.OnLobbyRoomCountsChanged += OnPhotonLobbyCountsChanged;
         if (_buttonRefresh != null) _buttonRefresh.onClick.AddListener(Refresh);
         if (_buttonCreate != null) _buttonCreate.onClick.AddListener(OnClickCreate);
         if (_buttonBack != null) _buttonBack.onClick.AddListener(Close);
@@ -90,6 +92,7 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     void OnDisable()
     {
+        OneVsOnePhotonFlow.OnLobbyRoomCountsChanged -= OnPhotonLobbyCountsChanged;
         if (_buttonRefresh != null) _buttonRefresh.onClick.RemoveListener(Refresh);
         if (_buttonCreate != null) _buttonCreate.onClick.RemoveListener(OnClickCreate);
         if (_buttonBack != null) _buttonBack.onClick.RemoveListener(Close);
@@ -129,10 +132,21 @@ public class OneVsOneRoomListController : MonoBehaviour
         if (_root != null) _root.SetActive(false);
     }
 
+    void OnPhotonLobbyCountsChanged()
+    {
+        if (_root != null && !_root.activeInHierarchy) return;
+        foreach (var v in _spawned)
+        {
+            if (v != null) v.RefreshFromLivePhoton();
+        }
+    }
+
     public async void Refresh()
     {
         _lastRefreshTime = Time.unscaledTime;
         if (_scrollContent == null || _rowPrefab == null) return;
+        if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.EnsureInstance();
+        _photonFlow.EnsureLobbyForRoomList();
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
         var list = await ApiController.FetchPlayer1v1MatchList();
         AppManager.Instance.HideLoadingUI();
@@ -149,7 +163,8 @@ public class OneVsOneRoomListController : MonoBehaviour
             string joinTxt = null;
             if (!can)
             {
-                if (m.IsCurrentUserHostOfRoom()) joinTxt = TrucoTextosClient.TuSalaEsperando;
+                if (m.IsStaleFullVersusPhoton()) joinTxt = null;
+                else if (m.IsCurrentUserHostOfRoom()) joinTxt = TrucoTextosClient.TuSalaEsperando;
                 else if (m.GetTrucoPlayerCount() >= 2) joinTxt = TrucoTextosClient.SalaLlena;
             }
             string hostCode = null;
@@ -260,12 +275,23 @@ public class OneVsOneRoomListController : MonoBehaviour
             AppManager.Instance.DisplayNotification(TrucoTextosClient.CodigoInvalido4);
             return;
         }
+        if (m != null && m.IsStaleFullVersusPhoton())
+        {
+            AppManager.Instance.DisplayNotification(TrucoTextosClient.SalaExpiradaAviso);
+            return;
+        }
         int stake = m.GetEntryStake();
         if (!ClientBalanceOk(stake, out _)) { AppManager.Instance.DisplayNotification(TrucoTextosClient.SaldoInsuficiente); return; }
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
-        var result = await ApiController.PlayerJoin1v1Match(m._id, password, m, err => AppManager.Instance.DisplayNotification(err));
+        string joinApiMessage = null;
+        var result = await ApiController.PlayerJoin1v1Match(m._id, password, m, err => { joinApiMessage = err; AppManager.Instance.DisplayNotification(err); });
         AppManager.Instance.HideLoadingUI();
-        if (result == null) { AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorUnirse); return; }
+        if (result == null)
+        {
+            if (string.IsNullOrEmpty(joinApiMessage))
+                AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorUnirse);
+            return;
+        }
         string photon = result.ResolvePhotonRoomName();
         if (string.IsNullOrEmpty(photon)) photon = m.ResolvePhotonRoomName();
         if (string.IsNullOrEmpty(photon)) { AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorUnirse); return; }

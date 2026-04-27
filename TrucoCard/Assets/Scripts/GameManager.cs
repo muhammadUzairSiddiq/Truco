@@ -131,18 +131,21 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             SceneManager.LoadScene("MainMenu");
             return;
         }
-        if (!_1v1ResultPosted && !string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId))
+        string matchIdSnapshot = OneVsOneMatchSession.CurrentMatchId;
+        if (!_1v1ResultPosted && !string.IsNullOrEmpty(matchIdSnapshot))
         {
             var winner = OneVsOneMatchSession.CachedOpponentUserId;
             if (!string.IsNullOrEmpty(winner))
             {
                 _1v1ResultPosted = true;
-                _ = ApiController.SubmitMatchResult1v1(OneVsOneMatchSession.CurrentMatchId, winner, null);
+                _ = ApiController.SubmitMatchResult1v1(matchIdSnapshot, winner, null);
             }
         }
         if (ApiController.GetSessionUser?.Data?.stats != null)
             ApiController.GetSessionUser.Data.stats.losses++;
         OneVsOneMatchSession.Clear();
+        if (!string.IsNullOrEmpty(matchIdSnapshot))
+            _ = ApiController.TryNotifyPlayerLeftMatch1v1(matchIdSnapshot);
         AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexionPerdida1v1);
         SceneManager.LoadScene("MainMenu");
     }
