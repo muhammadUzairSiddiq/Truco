@@ -17,10 +17,10 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
 // Android Resolver Repos Start
-        // Use File#toURI() so paths with spaces (e.g. "UNITY PROJECTS") encode correctly — raw file:// strings fail in Gradle.
+        def unityProjectPath = $/file:///**DIR_UNITYPROJECT**/$.replace("\\", "/")
         maven {
-            url = new File("**DIR_UNITYPROJECT**/Assets/GeneratedLocalRepo/Firebase/m2repository").toURI()
-        } // AppDependencies / Auth / Database Unity packages
+            url (unityProjectPath + "/Assets/GeneratedLocalRepo/Firebase/m2repository") // Assets/Firebase/Editor/AppDependencies.xml:22, Assets/Firebase/Editor/AuthDependencies.xml:20, Assets/Firebase/Editor/DatabaseDependencies.xml:22
+        }
         mavenLocal()
 // Android Resolver Repos End
         flatDir {
