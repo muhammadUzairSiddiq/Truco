@@ -646,7 +646,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0.000030517578, y: 0}
-  m_SizeDelta: {x: 920, y: 50}
+  m_SizeDelta: {x: 1000, y: 50}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &164594948
 MonoBehaviour:
@@ -5126,7 +5126,8 @@ MonoBehaviour:
   _tournamentCardPF: {fileID: 8627085484819804709, guid: 7ce13ab4abd4f774aba26c728d731957, type: 3}
   _closeTournamentSelectionUiBtn: {fileID: 1405008228}
   _woodTopPanelSprite: {fileID: -8946563626199900312, guid: 6a2ec8dd3baf5244994d65743187137e, type: 3}
-  _headerTitle: LISTA DE TORNEOS: ABIERTOS
+  _headerTitle: TORNEOS
+  _headerBlockHeight: 100
 --- !u!1 &2053279784
 GameObject:
   m_ObjectHideFlags: 0

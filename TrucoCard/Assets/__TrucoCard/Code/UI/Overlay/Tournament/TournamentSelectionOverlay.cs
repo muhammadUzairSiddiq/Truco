@@ -11,14 +11,16 @@ public class TournamentSelectionOverlay : MonoBehaviour
     [Tooltip("Legacy; always hidden at runtime.")]
     [SerializeField] private Button _closeTournamentSelectionUiBtn;
 
-    [Header("Truco look (Truco Assets / Top Panel)")]
+    [Header("Truco look")]
+    [Tooltip("Optional slice sprite for subtle texture; if null, solid brown only.")]
     [SerializeField] private Sprite _woodTopPanelSprite;
-    [SerializeField] private string _headerTitle = "LISTA DE TORNEOS: ABIERTOS";
+    [Tooltip("Encabezado en español (MAYÚSCULAS recomendado).")]
+    [SerializeField] private string _headerTitle = "TORNEOS";
 
-    /// <summary>One horizontal bar: brown background, white title, back on the left. No double strips.</summary>
+    /// <summary>Brown block + back + título (sin barra anidada duplicada).</summary>
     const string HeaderRootName = "TournamentListHeader";
 
-    [SerializeField] private float _topBarHeight = 108f;
+    [SerializeField] private float _headerBlockHeight = 96f;
 
     private List<TournamentCardItem> _instantiatedCards = new List<TournamentCardItem>();
 
@@ -68,30 +70,27 @@ public class TournamentSelectionOverlay : MonoBehaviour
         var rootRect = _contentHolder.GetComponent<RectTransform>();
         if (rootRect == null) return;
 
-        var header = new GameObject(HeaderRootName, typeof(RectTransform));
+        // Un solo bloque marrón: el propio contenedor es el fondo; hijos = volver + título.
+        var header = new GameObject(HeaderRootName, typeof(RectTransform), typeof(Image));
         var headerRt = header.GetComponent<RectTransform>();
+        var headerBg = header.GetComponent<Image>();
+        if (_woodTopPanelSprite != null)
+        {
+            headerBg.sprite = _woodTopPanelSprite;
+            headerBg.type = Image.Type.Sliced;
+        }
+        else
+        {
+            headerBg.sprite = null;
+        }
+        headerBg.color = TrucoUiTheme.TournamentTopBarSolid;
         header.transform.SetParent(holder, false);
         headerRt.SetAsFirstSibling();
         headerRt.anchorMin = new Vector2(0f, 1f);
         headerRt.anchorMax = new Vector2(1f, 1f);
         headerRt.pivot = new Vector2(0.5f, 1f);
-        headerRt.sizeDelta = new Vector2(0f, _topBarHeight);
+        headerRt.sizeDelta = new Vector2(0f, _headerBlockHeight);
         headerRt.anchoredPosition = Vector2.zero;
-
-        var bar = new GameObject("Bar", typeof(RectTransform), typeof(Image));
-        var barRt = bar.GetComponent<RectTransform>();
-        bar.transform.SetParent(header.transform, false);
-        barRt.anchorMin = Vector2.zero;
-        barRt.anchorMax = Vector2.one;
-        barRt.offsetMin = Vector2.zero;
-        barRt.offsetMax = Vector2.zero;
-        var barImg = bar.GetComponent<Image>();
-        if (_woodTopPanelSprite != null)
-        {
-            barImg.sprite = _woodTopPanelSprite;
-            barImg.type = Image.Type.Sliced;
-        }
-        barImg.color = TrucoUiTheme.TournamentTopBarSolid;
 
         var back = new GameObject("Back", typeof(RectTransform), typeof(Image), typeof(Button));
         var backRt = back.GetComponent<RectTransform>();
@@ -125,7 +124,7 @@ public class TournamentSelectionOverlay : MonoBehaviour
         blRt.offsetMin = Vector2.zero;
         blRt.offsetMax = Vector2.zero;
 
-        var title = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
+        var title = new GameObject("Encabezado", typeof(RectTransform), typeof(TextMeshProUGUI));
         title.transform.SetParent(header.transform, false);
         var trt = title.GetComponent<RectTransform>();
         trt.anchorMin = new Vector2(0f, 0f);
@@ -133,15 +132,15 @@ public class TournamentSelectionOverlay : MonoBehaviour
         trt.offsetMin = new Vector2(100f, 0f);
         trt.offsetMax = new Vector2(-16f, 0f);
         var tmp = title.GetComponent<TextMeshProUGUI>();
-        tmp.text = string.IsNullOrEmpty(_headerTitle) ? string.Empty : _headerTitle.Trim().ToUpperInvariant();
-        tmp.fontSize = 30;
+        tmp.text = string.IsNullOrEmpty(_headerTitle) ? "TORNEOS" : _headerTitle.Trim().ToUpperInvariant();
+        tmp.fontSize = 32;
         tmp.fontStyle = FontStyles.Bold;
         tmp.color = Color.white;
         tmp.alignment = TextAlignmentOptions.Midline;
         tmp.enableAutoSizing = true;
-        tmp.fontSizeMin = 20;
-        tmp.fontSizeMax = 34;
-        tmp.characterSpacing = 0.5f;
+        tmp.fontSizeMin = 22;
+        tmp.fontSizeMax = 40;
+        tmp.characterSpacing = 1.2f;
 
         var scroll = holder.Find("Scroll View") as RectTransform;
         if (scroll != null)
@@ -150,7 +149,7 @@ public class TournamentSelectionOverlay : MonoBehaviour
             scroll.anchorMax = Vector2.one;
             scroll.pivot = new Vector2(0.5f, 0.5f);
             scroll.offsetMin = new Vector2(0f, 0f);
-            scroll.offsetMax = new Vector2(0f, -_topBarHeight);
+            scroll.offsetMax = new Vector2(0f, -_headerBlockHeight);
         }
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);

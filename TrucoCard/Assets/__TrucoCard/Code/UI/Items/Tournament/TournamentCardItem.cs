@@ -83,19 +83,20 @@ public class TournamentCardItem : MonoBehaviour
 
     void EnsureLargeCardLayout()
     {
+        // ~1 tarjeta visible a la vez en móvil vertical (Game ref: zona roja).
         var le = GetComponent<LayoutElement>();
         if (le == null) le = gameObject.AddComponent<LayoutElement>();
-        le.minWidth = 900f;
-        le.minHeight = 1020f;
-        le.preferredWidth = 920f;
-        le.preferredHeight = 1100f;
+        le.minWidth = 920f;
+        le.minHeight = 1540f;
+        le.preferredWidth = 960f;
+        le.preferredHeight = 1600f;
 
         var rulesBg = transform.Find("RulesBG");
         if (rulesBg != null)
         {
             var rle = rulesBg.GetComponent<LayoutElement>();
             if (rle == null) rle = rulesBg.gameObject.AddComponent<LayoutElement>();
-            rle.minHeight = 520f;
+            rle.minHeight = 900f;
         }
     }
 
