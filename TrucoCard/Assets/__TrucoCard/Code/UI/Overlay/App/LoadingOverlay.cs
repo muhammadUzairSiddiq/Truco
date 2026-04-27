@@ -10,14 +10,26 @@ public class LoadingOverlay : MonoBehaviour
 
     #endregion
 
+    void Awake()
+    {
+        ApplyTheme();
+    }
+
     public void DisplayLoadingUI(string msgStr = "")
     {
-        _loadingText.text = msgStr;
-
-        _contentHolder.SetActive(true);
+        if (_loadingText != null) _loadingText.text = msgStr;
+        ApplyTheme();
+        if (_contentHolder != null) _contentHolder.SetActive(true);
     }
-    public void HideLoadingUI() 
+
+    public void HideLoadingUI()
     {
-        _contentHolder.SetActive(false);
+        if (_contentHolder != null) _contentHolder.SetActive(false);
+    }
+
+    void ApplyTheme()
+    {
+        if (_contentHolder == null || _loadingText == null) return;
+        TrucoThemeRuntime.ApplyToLoading(_contentHolder.transform, _loadingText);
     }
 }

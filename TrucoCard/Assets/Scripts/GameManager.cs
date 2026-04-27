@@ -69,6 +69,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (_isSpectator) return;
         if (GetComponent<TrucoPunReconnectionManager>() == null)
             gameObject.AddComponent<TrucoPunReconnectionManager>();
+        if (GetComponent<GameplayTrucoPlayerAvatars>() == null)
+            gameObject.AddComponent<GameplayTrucoPlayerAvatars>();
         TrucoGameplayAudio.EnsureUnder(transform);
     }
 

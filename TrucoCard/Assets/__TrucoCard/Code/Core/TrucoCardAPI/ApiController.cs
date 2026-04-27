@@ -120,6 +120,23 @@ public static class ApiController
         }
     }
     
+    /// <summary>Local logout: clear HTTP session, destroy DDOL session holders. Call before loading the login scene.</summary>
+    public static void ClearClientSessionState()
+    {
+        if (GetSessionUser != null)
+        {
+            GetSessionUser.Logout();
+            Object.Destroy(GetSessionUser.gameObject);
+            GetSessionUser = null;
+        }
+        if (GetActiveTournaments != null)
+        {
+            Object.Destroy(GetActiveTournaments.gameObject);
+            GetActiveTournaments = null;
+        }
+        HttpApiClient.ClearAuthSession();
+    }
+
     public static async Task<bool> GetCurrentUserProfile()
     {
         try

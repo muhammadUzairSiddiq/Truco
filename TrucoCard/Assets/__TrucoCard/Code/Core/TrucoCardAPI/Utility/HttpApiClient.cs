@@ -132,6 +132,15 @@ public static class HttpApiClient
         Debug.Log("[HttpApiClient] Auth token manually set.");
     }
 
+    /// <summary>Clears bearer/cookie session so further requests are unauthenticated (e.g. after logout).</summary>
+    public static void ClearAuthSession()
+    {
+        _accessToken = null;
+        _refreshToken = null;
+        _xsrfToken = null;
+        _cookieHeader = null;
+    }
+
     private static void SaveCookies(UnityWebRequest req)
     {
         string setCookie = req.GetResponseHeader("Set-Cookie");

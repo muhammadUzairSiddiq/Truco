@@ -60,6 +60,7 @@ public class TournamentManager : SingeltonBase<TournamentManager>
                 else
                 {
                     _tournamentsSelectionOverlay.DisplayTournamentSelectionUI(tournaments);
+                    MainMenuViewCoordinator.EnsureTournamentNavPriority();
                 }
             }
         }

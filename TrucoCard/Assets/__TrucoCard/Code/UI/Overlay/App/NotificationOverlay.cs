@@ -13,9 +13,12 @@ public class NotificationOverlay : MonoBehaviour
 
     #endregion
 
+    void Awake() => ApplyTheme();
+
     public void DisplayNotification(string msgStr = "", Action onCloseAction = null)
     {
         _notificationText.text = msgStr;
+        ApplyTheme();
         _contentHolder.SetActive(true);
 
         _closeNotificationBtn.onClick.RemoveAllListeners();
@@ -28,5 +31,11 @@ public class NotificationOverlay : MonoBehaviour
     public void HideNotification()
     {
         _contentHolder.SetActive(false);
+    }
+
+    void ApplyTheme()
+    {
+        if (_contentHolder == null || _notificationText == null) return;
+        TrucoThemeRuntime.ApplyToNotification(_contentHolder.transform, _notificationText, _closeNotificationBtn);
     }
 }

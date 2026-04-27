@@ -158,7 +158,13 @@ public class OneVsOneRoomListController : MonoBehaviour
     void OnClickCreate()
     {
         if (_createPanel == null) { AppManager.Instance.DisplayNotification(TrucoTextosClient.FaltaPanelCrear); return; }
-        _createPanel.Open(OnCreateRoomConfirmed);
+        if (_root != null) _root.SetActive(false);
+        _createPanel.Open(OnCreateRoomConfirmed, OnCreateRoomCancelled);
+    }
+
+    void OnCreateRoomCancelled()
+    {
+        if (_root != null) _root.SetActive(true);
     }
 
     async void OnCreateRoomConfirmed(OneVsOneCreateRoomPanel panel)

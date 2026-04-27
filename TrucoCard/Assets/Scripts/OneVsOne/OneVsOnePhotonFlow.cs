@@ -132,11 +132,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     {
         IsConnecting = false;
         TrucoRoomPersistence.SaveCurrentRoom();
-        if (ApiController.GetSessionUser?.Data?._id != null)
-        {
-            var h = new Hashtable { ["userId"] = ApiController.GetSessionUser.Data._id };
-            PhotonNetwork.LocalPlayer.SetCustomProperties(h);
-        }
+        TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         if (PhotonNetwork.CurrentRoom == null) return;
         if (_sessionUi == null) _sessionUi = FindObjectOfType<OneVsOnePhotonSessionUi>(true);
         if (_sessionUi != null) _sessionUi.Initialize();

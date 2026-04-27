@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class CoinGetter : MonoBehaviour
 {
+    [Tooltip("Must be the coin balance label only. Do not use on titles, usernames, or notification text — it overwrites TMP with wallet balance.")]
     [SerializeField] private TMP_Text coins;
     
     

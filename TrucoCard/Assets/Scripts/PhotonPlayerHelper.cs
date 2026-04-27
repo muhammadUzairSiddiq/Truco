@@ -46,4 +46,24 @@ public static class PhotonPlayerHelper
         }
         return null;
     }
+
+    public static bool TryGetAvatarIndex(Player p, out int index)
+    {
+        index = 0;
+        if (p?.CustomProperties == null) return false;
+        if (!p.CustomProperties.TryGetValue(TrucoPunPlayerAvatarUtil.AvatarKey, out object o) || o == null) return false;
+        if (o is int i) { index = UnityEngine.Mathf.Clamp(i, 0, PlayerAvatarData.Count - 1); return true; }
+        if (int.TryParse(o.ToString(), out int j)) { index = UnityEngine.Mathf.Clamp(j, 0, PlayerAvatarData.Count - 1); return true; }
+        return false;
+    }
+
+    /// <summary>When Photon has no avatar property, use a stable per-player fallback (not random every frame).</summary>
+    public static int ResolveAvatarIndexForDisplay(Player p)
+    {
+        if (p == null) return 0;
+        if (TryGetAvatarIndex(p, out int i)) return i;
+        int salt = p.ActorNumber * 1103515245;
+        if (!string.IsNullOrEmpty(p.UserId)) salt ^= p.UserId.GetHashCode();
+        return UnityEngine.Mathf.Abs(salt) % PlayerAvatarData.Count;
+    }
 }

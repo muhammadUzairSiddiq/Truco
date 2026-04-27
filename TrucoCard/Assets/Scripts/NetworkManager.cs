@@ -117,11 +117,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         TrucoRoomPersistence.SaveCurrentRoom();
-        if (ApiController.GetSessionUser?.Data?._id != null)
-        {
-            var h = new ExitGames.Client.Photon.Hashtable { ["userId"] = ApiController.GetSessionUser.Data._id };
-            PhotonNetwork.LocalPlayer.SetCustomProperties(h);
-        }
+        TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         if (_clicked)
         {
 

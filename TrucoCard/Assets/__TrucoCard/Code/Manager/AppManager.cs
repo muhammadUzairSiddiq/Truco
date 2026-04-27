@@ -41,6 +41,22 @@ public class AppManager : SingeltonBase<AppManager>
     #endregion
 
     #region Unity Methods
+
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == PostLoginSceneRouter.MainMenuSceneName) return;
+        MainMenuViewCoordinator.DestroyBottomNavIfPresent();
+    }
     
     private void Start()
     {

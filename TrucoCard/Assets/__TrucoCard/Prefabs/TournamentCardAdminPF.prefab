@@ -37,7 +37,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 350, y: -200}
+  m_AnchoredPosition: {x: 457.48776, y: -495.8804}
   m_SizeDelta: {x: 672.137, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &1387832302209001671
@@ -157,10 +157,10 @@ RectTransform:
   - {fileID: 7695314018071017479}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 431.5, y: -277.93}
-  m_SizeDelta: {x: 700, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -3.4674, y: 0}
+  m_SizeDelta: {x: 914.9755, y: 1253.5012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2818228895805362780
 CanvasRenderer:
@@ -220,17 +220,131 @@ MonoBehaviour:
     _id: 
     name: 
     description: 
+    type: 
     entryFee: 0
     maxPlayers: 0
     status: 
-    players: []
+    participants: []
     champion:
-      _id: 
+    - _id: 
       username: 
       email: 
       role: 
       avatar: 
       emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
+      wallet:
+        balance: 100
+      stats:
+        wins: 0
+        losses: 0
+        matchesPlayed: 0
+      createdAt: 
+    - _id: 
+      username: 
+      email: 
+      role: 
+      avatar: 
+      emailVerified: 0
+      status: 
       wallet:
         balance: 100
       stats:
@@ -241,8 +355,8 @@ MonoBehaviour:
     startDate: 
     endDate: 
     tournamentAwardPercentage: 0
+    prizePool: 0
     matches: []
-    prizeDistributed: 0
 --- !u!114 &7954848892537024588
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256,7 +370,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_HorizontalFit: 0
-  m_VerticalFit: 2
+  m_VerticalFit: 0
 --- !u!114 &7605742813134154507
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -386,6 +500,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 5
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -511,17 +626,18 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
+  m_fontSize: 49.95
   m_fontSizeBase: 60
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 50
-  m_fontStyle: 1
+  m_fontStyle: 17
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -668,7 +784,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 350, y: -330.86}
+  m_AnchoredPosition: {x: 457.48776, y: -922.62085}
   m_SizeDelta: {x: 672.137, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &8223313886094874889
@@ -973,6 +1089,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 5
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 20
   m_lineSpacingMax: 0
@@ -1109,6 +1226,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0

@@ -24,6 +24,16 @@ public class PlayFabLogin : MonoBehaviour
         //LoginWithCustomID();
 
         AppManager.Instance.HideLoadingUI();
+        ApplySavedCredentialsToLoginFields();
+    }
+
+    void ApplySavedCredentialsToLoginFields()
+    {
+        LoginCredentialsStore.Load(out var email, out var password);
+        if (loginEmailField != null && !string.IsNullOrEmpty(email))
+            loginEmailField.text = email;
+        if (loginPasswordField != null)
+            loginPasswordField.text = password;
     }
 
     public void Login()
@@ -140,6 +150,7 @@ public class PlayFabLogin : MonoBehaviour
         await ApiController.RegisterAsync(registerRequest,
             () =>
             {
+                LoginCredentialsStore.Save(registerRequest.email, registerRequest.password);
                 OnRegisterSuccess();
 
                 otpVerificationPanel.gameObject.SetActive(true);
@@ -162,14 +173,15 @@ public class PlayFabLogin : MonoBehaviour
         registerEmailField.text = string.Empty;
         registerPasswordField.text = string.Empty;
         registerUsernameField.text = string.Empty;
-        loginEmailField.text = string.Empty;
-        loginPasswordField.text = string.Empty;
         registerPanel.SetActive(false);
+        ApplySavedCredentialsToLoginFields();
         //loginPanel.SetActive(true);
     }
     
     void OnLoginSuccess()
     {
+        if (loginEmailField != null && loginPasswordField != null)
+            LoginCredentialsStore.Save(loginEmailField.text.Trim(), loginPasswordField.text);
         PostLoginSceneRouter.LoadSceneForCredentials(loginEmailField.text, loginPasswordField.text);
     }
 
