@@ -2,6 +2,7 @@ namespace MH.Multiplayer
 {
     using Photon.Pun;
     using Photon.Realtime;
+    using UnityEngine;
 
     public class MultiplayerCallbacks : MonoBehaviourPunCallbacks
     {
@@ -73,6 +74,7 @@ namespace MH.Multiplayer
 
         public override void OnConnectedToMaster()
         {
+            TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
             if (_isTournamentModeActive)
             {
                 MultiplayerController.OnConnectedToMasterForTournament();

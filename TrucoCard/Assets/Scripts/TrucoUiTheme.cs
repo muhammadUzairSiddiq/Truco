@@ -19,4 +19,14 @@ public static class TrucoUiTheme
     /// <summary>Child &quot;Icon&quot; Image tint when its tab is active (Button ColorBlock tints the background, not the icon).</summary>
     public static readonly Color NavIconOnTab = Color.white;
     public static readonly Color NavIconOffTab = new Color(0.55f, 0.5f, 0.45f, 0.8f);
+
+    public static readonly Color TournamentListScreenBg = new Color(0.97f, 0.95f, 0.92f, 1f);
+    public static readonly Color TournamentHeaderWoodTint = new Color(0.55f, 0.42f, 0.3f, 1f);
+    /// <summary>Single top bar for list screens (no double-strip).</summary>
+    public static readonly Color TournamentTopBarSolid = new Color(0.36f, 0.25f, 0.16f, 1f);
+    public static readonly Color TournamentTitleBarBg = new Color(1f, 0.99f, 0.97f, 1f);
+    public static readonly Color TournamentCardWoodTint = new Color(0.65f, 0.5f, 0.35f, 1f);
+    public static readonly Color TournamentPromoGold = new Color(0.92f, 0.75f, 0.35f, 1f);
+    /// <summary>Primary CTA for tournament list (e.g. INSCRIBIRSE).</summary>
+    public static readonly Color TournamentRegisterButton = new Color(0.22f, 0.58f, 0.34f, 1f);
 }

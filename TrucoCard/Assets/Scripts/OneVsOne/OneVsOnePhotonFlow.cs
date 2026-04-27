@@ -88,6 +88,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
+        TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         if (CurrentPurpose == Purpose.CreateHostedRoom)
             CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, OneVsOneMatchSession.MaxPlayersPhoton);
         else if (CurrentPurpose == Purpose.JoinHostedRoom)

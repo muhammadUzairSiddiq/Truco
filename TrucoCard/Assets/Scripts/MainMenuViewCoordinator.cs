@@ -10,6 +10,7 @@ public static class MainMenuViewCoordinator
     static bool _navWired;
     static Transform _mainRoot;
     static Action _showTournamentTab;
+    static Action _showMenuTab;
     static GameObject _bottomNav;
 
     public static bool IsNavigationWired => _navWired;
@@ -21,6 +22,7 @@ public static class MainMenuViewCoordinator
         _navWired = false;
         _mainRoot = null;
         _showTournamentTab = null;
+        _showMenuTab = null;
         _bottomNav = null;
     }
 
@@ -45,6 +47,9 @@ public static class MainMenuViewCoordinator
     }
 
     public static void TriggerTournamentFromMain() => _showTournamentTab?.Invoke();
+
+    /// <summary>Back from tournament list overlay: show main menu and nav highlight (same as bottom &quot;Menu&quot; tab).</summary>
+    public static void ReturnToMenuFromTournament() => _showMenuTab?.Invoke();
 
     /// <summary>Call after tournament UI opens so the bottom bar stays above overlay content.</summary>
     public static void EnsureTournamentNavPriority()
@@ -154,6 +159,7 @@ public static class MainMenuViewCoordinator
         }
 
         _showTournamentTab = ShowTournamentTab;
+        _showMenuTab = ShowMenuTab;
         WireButton(navMenu, ShowMenuTab);
         WireButton(navTournament, ShowTournamentTab);
         WireButton(navProfile, ShowProfileTab);
@@ -424,6 +430,7 @@ public static class MainMenuViewCoordinator
         }
 
         _showTournamentTab = ShowTournamentTab;
+        _showMenuTab = ShowMenuTab;
         WireButton(navMenu, ShowMenuTab);
         WireButton(navTournament, ShowTournamentTab);
         WireButton(navProfile, ShowProfileTab);

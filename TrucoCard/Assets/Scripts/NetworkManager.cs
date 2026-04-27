@@ -71,6 +71,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     
     public override void OnConnectedToMaster()
     {
+        TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         if (_clicked)
         {
             StartCoroutine(TryToFindMatch());

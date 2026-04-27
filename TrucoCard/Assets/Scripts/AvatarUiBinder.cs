@@ -42,7 +42,10 @@ public static class AvatarUiBinder
 
     static void ApplyAvatarToUi(Transform main, int index)
     {
-        var sp = TrucoAvatarRepository.Instance != null ? TrucoAvatarRepository.Instance.GetPortrait(index) : null;
+        var repo = TrucoAvatarRepository.Instance;
+        if (repo == null) repo = Object.FindObjectOfType<TrucoAvatarRepository>(true);
+        if (repo != null) repo.EnsureCache();
+        var sp = repo != null ? repo.GetPortrait(index) : null;
         foreach (var img in main.GetComponentsInChildren<Image>(true))
         {
             if (img == null) continue;

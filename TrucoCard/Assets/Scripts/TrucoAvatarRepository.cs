@@ -48,20 +48,37 @@ public class TrucoAvatarRepository : MonoBehaviour
             _cached = list;
             return;
         }
-        _cached = Array.Empty<Sprite>();
+        _cached = null;
     }
 
     bool TryDiscoverFromUi(out Sprite[] list)
     {
         list = null;
-        var canvas = FindObjectOfType<Canvas>(true);
-        if (canvas == null) return false;
-        Transform root = FindDeepChild(canvas.transform, t =>
-            t != null && t.name == "Avatar Selection Panel");
+        Transform root = null;
+        var allT = UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < allT.Length; i++)
+        {
+            var t = allT[i];
+            if (t != null && t.name == "Avatar Selection Panel" && t.gameObject.scene.IsValid())
+            {
+                root = t;
+                break;
+            }
+        }
         if (root == null && !string.IsNullOrEmpty(_avatarPanelPath))
         {
-            var p = canvas.transform.Find(_avatarPanelPath);
-            if (p != null) root = p;
+            for (int s = 0; s < UnityEngine.SceneManagement.SceneManager.sceneCount; s++)
+            {
+                var sc = UnityEngine.SceneManagement.SceneManager.GetSceneAt(s);
+                if (!sc.isLoaded) continue;
+                var gos = sc.GetRootGameObjects();
+                for (int g = 0; g < gos.Length; g++)
+                {
+                    var found = gos[g].transform.Find(_avatarPanelPath);
+                    if (found != null) { root = found; break; }
+                }
+                if (root != null) break;
+            }
         }
         if (root == null) return false;
         var buttons = new List<Button>();
@@ -69,7 +86,7 @@ public class TrucoAvatarRepository : MonoBehaviour
         {
             if (b == null) continue;
             if (!b.name.StartsWith("Avatar Button", StringComparison.Ordinal)) continue;
-            var img = b.GetComponent<Image>();
+            var img = b.GetComponent<Image>() ?? b.GetComponentInChildren<Image>(true);
             if (img == null || img.sprite == null) continue;
             buttons.Add(b);
         }
@@ -77,7 +94,11 @@ public class TrucoAvatarRepository : MonoBehaviour
         buttons.Sort((a, b) => a.transform.GetSiblingIndex().CompareTo(b.transform.GetSiblingIndex()));
         var sp = new Sprite[PlayerAvatarData.Count];
         for (int i = 0; i < PlayerAvatarData.Count; i++)
-            sp[i] = buttons[i].GetComponent<Image>().sprite;
+        {
+            var im = buttons[i].GetComponent<Image>() ?? buttons[i].GetComponentInChildren<Image>(true);
+            sp[i] = im != null ? im.sprite : null;
+        }
+        if (sp[0] == null) return false;
         list = sp;
         return true;
     }
