@@ -17,6 +17,7 @@ public class MainMenuManager : MonoBehaviour
 
     private void Start()
     {
+        TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         MainMenuViewCoordinator.TryCompleteNavigationIfNeeded();
         WireLogoutButton();
         AppManager.Instance.DisplayLoadingUI("Please Wait...");
@@ -27,6 +28,7 @@ public class MainMenuManager : MonoBehaviour
             await ApiController.GetCurrentUserProfile();
 
             AppManager.Instance.HideLoadingUI();
+            UsernameMainMenuBinder.ApplyToScene();
             MainMenuViewCoordinator.TryCompleteNavigationIfNeeded();
             RegisterButtonEvents();
 

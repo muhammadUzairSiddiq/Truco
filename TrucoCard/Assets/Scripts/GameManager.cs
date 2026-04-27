@@ -97,6 +97,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     void OnDestroy()
     {
         CancelInvoke(nameof(CacheTrucoOpponentUserId));
+        if (!_isSpectator) TrucoReturnFromGameplayCleanup.MarkLeavingGameplay();
     }
 
     void CacheTrucoOpponentUserId()

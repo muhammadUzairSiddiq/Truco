@@ -191,6 +191,7 @@ public static class MainMenuViewCoordinator
 
         ShowMenuTab();
         AvatarUiBinder.HookProfileAndMainMenu(main);
+        UsernameMainMenuBinder.ApplyToScene();
     }
 
     static void WireOneVsOneRoomFlow(Transform main, GameObject roomList, GameObject roomCreate, GameObject bottomNav, Action onExitToMenu)

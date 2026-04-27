@@ -11,7 +11,8 @@ public static class OneVsOneMatchSession
     /// <summary>Opponent’s backend user id (from Photon custom properties), cached while in-room for forfeit on reconnect failure.</summary>
     public static string CachedOpponentUserId { get; private set; }
     public const int MaxPlayersGameplay = 2;
-    public const int MaxPlayersPhoton = 3;
+    /// <summary>1v1 real: dos jugadores (sin hueco “reservado” extra).</summary>
+    public const int MaxPlayersPhoton = 2;
 
     public static void SetHostContext(string matchId, string photonName, int entryFee)
     {

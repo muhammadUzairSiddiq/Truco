@@ -78,6 +78,7 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     void OnEnable()
     {
+        TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         if (_buttonRefresh != null) _buttonRefresh.onClick.AddListener(Refresh);
         if (_buttonCreate != null) _buttonCreate.onClick.AddListener(OnClickCreate);
         if (_buttonBack != null) _buttonBack.onClick.AddListener(Close);
@@ -107,6 +108,7 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     public void Open()
     {
+        TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         if (_root != null)
         {
             _root.SetActive(true);

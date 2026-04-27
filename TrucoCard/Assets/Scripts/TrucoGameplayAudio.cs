@@ -41,6 +41,7 @@ public class TrucoGameplayAudio : MonoBehaviour
         _calloutSource.spatialBlend = 0f;
         _cardSource.spatialBlend = 0f;
         TryLoadClipsFromResources();
+        EnsureProceduralFallbacks();
     }
 
     void EnsureAudioSources()
@@ -139,6 +140,42 @@ public class TrucoGameplayAudio : MonoBehaviour
         if (_contraFlor == null) _contraFlor = Resources.Load<AudioClip>(p + "contraFlor");
         if (_mazo == null) _mazo = Resources.Load<AudioClip>(p + "mazo");
         if (_cardPlaced == null) _cardPlaced = Resources.Load<AudioClip>(p + "cardPlaced");
+    }
+
+    /// <summary>Si no hay WAV en Resources/TrucoSFX/, genera tonos cortos para que local y red tengan feedback audible (sustituir por clips reales).</summary>
+    void EnsureProceduralFallbacks()
+    {
+        if (_truco == null) _truco = CreateToneClip("truco", 329.63f, 0.11f);
+        if (_retruco == null) _retruco = CreateToneClip("retruco", 392f, 0.11f);
+        if (_vale4 == null) _vale4 = CreateToneClip("vale4", 523.25f, 0.12f);
+        if (_envido == null) _envido = CreateToneClip("envido", 277.18f, 0.1f);
+        if (_realEnvido == null) _realEnvido = CreateToneClip("realEnvido", 311.13f, 0.1f);
+        if (_faltaEnvido == null) _faltaEnvido = CreateToneClip("faltaEnvido", 349.23f, 0.12f);
+        if (_quiero == null) _quiero = CreateToneClip("quiero", 440f, 0.08f);
+        if (_noQuiero == null) _noQuiero = CreateToneClip("noQuiero", 196f, 0.1f);
+        if (_flor == null) _flor = CreateToneClip("flor", 587.33f, 0.1f);
+        if (_florChica == null) _florChica = CreateToneClip("florChica", 554.37f, 0.09f);
+        if (_conFlorQuiero == null) _conFlorQuiero = CreateToneClip("conFlorQuiero", 659.26f, 0.09f);
+        if (_contraFlor == null) _contraFlor = CreateToneClip("contraFlor", 493.88f, 0.11f);
+        if (_mazo == null) _mazo = CreateToneClip("mazo", 146.83f, 0.14f);
+        if (_cardPlaced == null) _cardPlaced = CreateToneClip("cardPlaced", 880f, 0.05f);
+    }
+
+    static AudioClip CreateToneClip(string name, float freqHz, float durationSec)
+    {
+        int rate = 44100;
+        int n = Mathf.Max(256, Mathf.RoundToInt(rate * durationSec));
+        var samples = new float[n];
+        float vol = 0.22f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = (float)i / rate;
+            float env = 1f - (float)i / n;
+            samples[i] = Mathf.Sin(2f * Mathf.PI * freqHz * t) * vol * env;
+        }
+        var c = AudioClip.Create(name, n, 1, rate, false);
+        c.SetData(samples, 0);
+        return c;
     }
 
     public static void EnsureUnder(Transform parent)
