@@ -83,7 +83,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator)
         {
             if (UIMANAGER.Instance != null)
-                UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EspectandoAdmin);
+                UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EspectandoAdmin, 4.5f);
             return;
         }
         if (_turnTimeoutRoutine != null)
@@ -94,7 +94,6 @@ public class TurnManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.LocalPlayer.ActorNumber.ToString() == turnNumber)
         {
             Debug.Log("It's your turn: " + turnNumber);
-            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.TuTurno);
             GameManager.Instance.SetCanPlayCard(true);
             GameManager.Instance.SetMyTurn(true);
             UIMANAGER.Instance.EnableButtons();
@@ -103,7 +102,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
         else
         {
             Debug.Log("Waiting for player: " + turnNumber);
-            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.TurnoRival);
+            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.TurnoRival, 2.75f);
             GameManager.Instance.SetCanPlayCard(false);
             GameManager.Instance.SetMyTurn(false);
             UIMANAGER.Instance.DisableButtons();
@@ -128,7 +127,9 @@ public class TurnManager : MonoBehaviourPunCallbacks
             if (UIMANAGER.Instance != null)
             {
                 int sec = Mathf.CeilToInt(d);
-                UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.TuTurno + " — " + string.Format(TrucoTextosClient.CuentaRegresiva, sec));
+                if (sec < 0) sec = 0;
+                bool urgent = sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos;
+                UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerTuTurnoConSegundos(sec), -1f, urgent);
             }
             yield return null;
         }

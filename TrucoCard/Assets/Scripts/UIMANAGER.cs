@@ -32,6 +32,11 @@ public class UIMANAGER : MonoBehaviour
     public static UIMANAGER Instance { get; private set; }
     [SerializeField] private List<GameObject> allUiButtons;
     [SerializeField] private GameObject turnText;
+    [Tooltip("Creada en runtime si no existe: panel detrás del texto de turno (no bloquea clics).")]
+    [SerializeField] private RectTransform turnTextBackground;
+    static Sprite _cachedUiWhiteSprite;
+    static readonly Color TurnBannerBgNormal = new Color(0.07f, 0.09f, 0.12f, 0.88f);
+    static readonly Color TurnBannerBgUrgent = new Color(0.22f, 0.1f, 0.08f, 0.94f);
     public List<GameObject> myPlayerCards;
     [SerializeField] private List<GameObject> otherPlayersCards;
     [SerializeField] private List<Transform> myDisplayCardsPosition;
@@ -74,14 +79,70 @@ public class UIMANAGER : MonoBehaviour
         {
             otherPlayersCardsInitialPositions.Add(otherPlayersCards[i].transform.position);
         }
+        if (turnText != null)
+        {
+            var tmp = turnText.GetComponent<TMPro.TMP_Text>();
+            if (tmp != null) tmp.raycastTarget = false;
+        }
+        EnsureTurnBannerBackground();
     }
 
-    // This updates the text on screen indicating whose turn it is
-    public void UpdateTurnText(string message)
+    void OnDestroy()
     {
-        turnText.gameObject.SetActive(true);
-        turnText.GetComponent<TMPro.TMP_Text>().text = message;
-        Invoke(nameof(DisableTurnText),1);
+        CancelInvoke(nameof(DisableTurnText));
+    }
+
+    void EnsureTurnBannerBackground()
+    {
+        if (turnText == null) return;
+        if (turnTextBackground != null) return;
+        var textRt = turnText.GetComponent<RectTransform>();
+        if (textRt == null) return;
+        var t = textRt.parent;
+        if (t == null) return;
+        if (t.Find("TurnTimerBannerBg") != null) return;
+        var go = new GameObject("TurnTimerBannerBg");
+        go.transform.SetParent(t, false);
+        if (_cachedUiWhiteSprite == null)
+        {
+            var tex = Texture2D.whiteTexture;
+            _cachedUiWhiteSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+        }
+        var im = go.AddComponent<Image>();
+        im.sprite = _cachedUiWhiteSprite;
+        im.type = Image.Type.Simple;
+        im.raycastTarget = false;
+        im.color = TurnBannerBgNormal;
+        go.transform.SetSiblingIndex(textRt.GetSiblingIndex());
+        var bg = go.GetComponent<RectTransform>();
+        bg.anchorMin = textRt.anchorMin;
+        bg.anchorMax = textRt.anchorMax;
+        bg.pivot = textRt.pivot;
+        bg.anchoredPosition = textRt.anchoredPosition;
+        bg.sizeDelta = new Vector2(textRt.sizeDelta.x + 32f, textRt.sizeDelta.y + 24f);
+        turnTextBackground = bg;
+    }
+
+    /// <param name="autoHideSeconds">Si es &lt; 0, el banner queda visible hasta el próximo <see cref="UpdateTurnText"/> (p. ej. durante la cuenta de 30 s).</param>
+    /// <param name="turnCountdownUrgent">Panel del cronómetro ligeramente más cálido cuando quedan pocos segundos.</param>
+    public void UpdateTurnText(string message, float autoHideSeconds = 2.25f, bool turnCountdownUrgent = false)
+    {
+        if (turnText == null) return;
+        CancelInvoke(nameof(DisableTurnText));
+        turnText.SetActive(true);
+        if (turnTextBackground != null) turnTextBackground.gameObject.SetActive(true);
+        ApplyTurnBannerUrgency(turnCountdownUrgent);
+        var tmp = turnText.GetComponent<TMPro.TMP_Text>();
+        if (tmp != null) tmp.text = message;
+        if (autoHideSeconds >= 0f)
+            Invoke(nameof(DisableTurnText), autoHideSeconds);
+    }
+
+    void ApplyTurnBannerUrgency(bool urgent)
+    {
+        if (turnTextBackground == null) return;
+        var img = turnTextBackground.GetComponent<Image>();
+        if (img != null) img.color = urgent ? TurnBannerBgUrgent : TurnBannerBgNormal;
     }
 
     // Go Back to Main Menu
@@ -93,9 +154,10 @@ public class UIMANAGER : MonoBehaviour
         SceneManager.LoadScene("MainMenu");
     }
     
-    private void DisableTurnText()
+    void DisableTurnText()
     {
-        turnText.gameObject.SetActive(false);
+        if (turnText != null) turnText.SetActive(false);
+        if (turnTextBackground != null) turnTextBackground.gameObject.SetActive(false);
     }
     
     // This enables all the buttons in the UI Depending on the game state

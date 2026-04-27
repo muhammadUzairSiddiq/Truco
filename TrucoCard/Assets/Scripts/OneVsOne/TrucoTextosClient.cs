@@ -47,6 +47,24 @@ public static class TrucoTextosClient
     public const string CuentaRegresiva = "Tiempo: {0} s";
     public const string TuTurno = "Tu turno";
     public const string TurnoRival = "Turno del rival";
+
+    /// <summary>Desde 1s hasta este inclusive, el UI muestra aviso (color de urgencia).</summary>
+    public const int TurnoTimerUrgenteHastaSegundos = 5;
+
+    /// <summary>Formato de banner superior (TextMeshPro rich text) para el cronómetro de 30 s. Incluye color de aviso al quedar poco tiempo.</summary>
+    public static string FormatoBannerTuTurnoConSegundos(int sec)
+    {
+        if (sec < 0) sec = 0;
+        bool urgent = sec <= TurnoTimerUrgenteHastaSegundos;
+        // >5 s: gris-azul suave + dígitos blancos. ≤5 s: leve ámbar + dígitos ámbar/dorado (alta visibilidad).
+        string cLabel = urgent ? "#f0dcc0" : "#c8d4e0";
+        string cNum = urgent ? "#ffc24a" : "#ffffff";
+        string cSuf = urgent ? "#e8a060" : "#aeb8c4";
+        string szNum = urgent ? "86" : "80";
+        return "<align=center><line-height=76%><size=34><color=" + cLabel + ">" + TuTurno
+            + "</color></size><br><size=" + szNum + "><color=" + cNum + "><b>" + sec
+            + "</b></color></size><size=30><color=" + cSuf + "> s</color></size></line-height></align>";
+    }
     public const string GanaPorAbandono = "Ganaste: el rival dejó la partida.";
     public const string Reconectando = "Reconectando…";
     /// <summary>Overlay a pantalla completa (línea corta + número de segundos al lado).</summary>

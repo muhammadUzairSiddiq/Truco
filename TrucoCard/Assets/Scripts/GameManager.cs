@@ -192,7 +192,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
         if (IsInFinalBracket())
         {
-            UIMANAGER.Instance.UpdateTurnText("Tournament Champion!");
+            UIMANAGER.Instance.UpdateTurnText("Tournament Champion!", 5f);
             AppManager.Instance.DisplayNotification("Congratulations, you are the champion");
             MultiplayerController.FinalizeCurrentMatch(true);
 
@@ -203,7 +203,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         else
         {
-            UIMANAGER.Instance.UpdateTurnText("Waiting for next round...");
+            UIMANAGER.Instance.UpdateTurnText("Waiting for next round...", 4f);
 
             LeanTween.delayedCall(5, () =>
             {
@@ -784,7 +784,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             int scoreToAdd = 15 - score;
             myPlayerScoreHandler.UpdateScore(scoreToAdd);
             Debug.Log("You Win!");
-            UIMANAGER.Instance.UpdateTurnText("You Win!");
+            UIMANAGER.Instance.UpdateTurnText("You Win!", 3.5f);
             UIMANAGER.Instance.DisableButtons();
             GameWon();
         }
@@ -794,7 +794,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             int scoreToAdd = 15 - score;
             otherPlayerScoreHandler.UpdateScore(scoreToAdd, true);
             Debug.Log("You lose!");
-            UIMANAGER.Instance.UpdateTurnText("You lose!");
+            UIMANAGER.Instance.UpdateTurnText("You lose!", 3.5f);
             UIMANAGER.Instance.DisableButtons();
             GameLost();
         }
@@ -1074,7 +1074,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         else
         {
             Debug.Log("You lose!");
-            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.PerdisteMano);
+            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.PerdisteMano, 3.5f);
             otherPlayerScoreHandler.UpdateScore(points, true);
             UIMANAGER.Instance.DisableButtons();
             _gameEnded = true;
@@ -1143,7 +1143,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         Debug.Log("You won the game!");
         TryReport1v1MatchToBackend(ApiController.GetSessionUser?.Data?._id);
-        UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.GanastePartida);
+        UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.GanastePartida, 4.5f);
         UIMANAGER.Instance.DisableButtons();
 
         if (_isInTournament && !_tournamentMatchFinalized)

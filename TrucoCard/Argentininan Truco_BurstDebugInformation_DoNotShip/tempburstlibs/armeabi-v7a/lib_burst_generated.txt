@@ -1,4 +1,4 @@
-Library: E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
+Library: E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
 --platform=Android
 --minimum-os-version=
 --backend=burst-llvm-19
@@ -9,11 +9,11 @@ Library: E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\BurstOutput\tempbu
 --float-precision=Standard
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
---temp-folder=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\Burst
+--temp-folder=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Temp\Burst
 --debug=Full
 --key-folder=E:/UNITY GAME ENGINE/6000.4.4f1-x86_64/Editor/Data/PlaybackEngines/AndroidPlayer
---decode-folder=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Library\Burst
---output=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
+--decode-folder=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Library\Burst
+--output=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Burst.BurstCompiler+BurstCompilerHelper, Unity.Burst, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::IsBurstEnabled()--8c2be93e18276203cbd918daa2748a10
@@ -128,11 +128,11 @@ Library: E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\BurstOutput\tempbu
 --target-framework=NetFramework
 --float-mode=Fast
 --generate-link-xml=Temp\burst.link.xml
---temp-folder=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\Burst
+--temp-folder=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Temp\Burst
 --debug=Full
 --key-folder=E:/UNITY GAME ENGINE/6000.4.4f1-x86_64/Editor/Data/PlaybackEngines/AndroidPlayer
---decode-folder=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Library\Burst
---output=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
+--decode-folder=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Library\Burst
+--output=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobForExtensions+ForJobStruct`1[[UnityEngine.Rendering.Universal.ZBinningJob, Unity.RenderPipelines.Universal.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(UnityEngine.Rendering.Universal.ZBinningJob&, Unity.RenderPipelines.Universal.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--77fc393cb521ac129b1392d4eb94d29a
@@ -147,11 +147,11 @@ Library: E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\BurstOutput\tempbu
 --float-precision=Standard
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
---temp-folder=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\Burst
+--temp-folder=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Temp\Burst
 --debug=Full
 --key-folder=E:/UNITY GAME ENGINE/6000.4.4f1-x86_64/Editor/Data/PlaybackEngines/AndroidPlayer
---decode-folder=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Library\Burst
---output=E:\UNITY PROJECTS\TRUCO CARD V2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
+--decode-folder=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Library\Burst
+--output=E:\UNITY PROJECTS\TRUCOCARDV2\Truco\TrucoCard\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobParallelForExtensions+ParallelForJobStruct`1[[Unity.Collections.SortJob`2+SegmentSort[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089],[Unity.Collections.NativeSortExtension+DefaultComparer`1[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]], Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(Unity.Collections.SortJob`2+SegmentSort[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089],[Unity.Collections.NativeSortExtension+DefaultComparer`1[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]]&, Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--82ff8baa2abd920945d7abccccedb808
