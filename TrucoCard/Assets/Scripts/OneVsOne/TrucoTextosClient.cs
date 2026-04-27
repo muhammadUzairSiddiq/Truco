@@ -25,6 +25,8 @@ public static class TrucoTextosClient
     public const string EntradaMonedas = "Entrada (monedas)";
 
     public const string Unirse = "Unirse";
+    /// <summary>Short CTA on list rows (match compact list UI).</summary>
+    public const string Entrar = "ENTRAR";
     public const string SaldoInsuficiente = "No tenés saldo suficiente para la entrada. Revisá en la tienda o recargá.";
     public const string ErrorCrearSala = "No se pudo crear la sala. Intentá otra vez.";
     public const string ErrorUnirse = "No se pudo unir a la sala.";

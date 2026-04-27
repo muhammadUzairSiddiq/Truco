@@ -49,7 +49,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
         }
         if (_joinButtonLabel != null)
             _joinButtonLabel.text = string.IsNullOrEmpty(joinButtonOverride)
-                ? TrucoTextosClient.Unirse
+                ? TrucoTextosClient.Entrar
                 : joinButtonOverride;
     }
 }

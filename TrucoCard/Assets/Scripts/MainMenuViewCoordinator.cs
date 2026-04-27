@@ -1,4 +1,5 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -198,23 +199,54 @@ public static class MainMenuViewCoordinator
 
         var scroll = roomList.GetComponentInChildren<ScrollRect>(true);
         Transform content = scroll != null && scroll.content != null ? scroll.content : null;
+        Truco1v1SceneUiWiring.PolishRoomListShell(roomList, scroll);
+        if (content != null) Truco1v1SceneUiWiring.EnsureScrollContentLayout(content);
+
         var listCtrl = roomList.GetComponent<OneVsOneRoomListController>();
         if (listCtrl == null)
             listCtrl = roomList.AddComponent<OneVsOneRoomListController>();
 
+        Truco1v1SceneUiWiring.TryBorrowSpritesFromRoomList(roomList, out var woodPanelSprite, out var joinButtonSprite);
+        if (content != null)
+        {
+            var titleT = FindChildDeep(roomList.transform, "Title")?.GetComponent<TextMeshProUGUI>();
+            if (titleT != null && (string.IsNullOrEmpty(titleT.text) || titleT.text == "Mi perfil"))
+            {
+                titleT.text = TrucoTextosClient.SalasDisponibles;
+                titleT.color = new Color(0.98f, 0.97f, 0.95f, 1f);
+            }
+        }
+
+        if (content != null)
+        {
+            for (int i = content.childCount - 1; i >= 0; i--)
+            {
+                var ch = content.GetChild(i);
+                if (ch != null && ch.name == "RoomRow_Template")
+                    UnityEngine.Object.Destroy(ch.gameObject);
+            }
+        }
         OneVsOneRoomRowView rowTemplate = content != null
             ? content.GetComponentInChildren<OneVsOneRoomRowView>(true)
             : null;
         if (rowTemplate == null && content != null)
-            rowTemplate = TrucoRuntimeUiBuilders.CreateRoomRowTemplate(content);
+            rowTemplate = TrucoRuntimeUiBuilders.CreateRoomRowTemplate(
+                content, null, null, null);
 
         var createPanelGo = roomCreate;
         OneVsOneCreateRoomPanel createPanel = null;
         if (createPanelGo != null)
         {
-            createPanel = createPanelGo.GetComponent<OneVsOneCreateRoomPanel>();
-            if (createPanel == null)
-                createPanel = TrucoRuntimeUiBuilders.EnsureCreateRoomForm(createPanelGo.transform, 1.35f);
+            var rImg = createPanelGo.GetComponent<Image>();
+            if (rImg != null)
+            {
+                rImg.enabled = true;
+                rImg.color = TrucoUiTheme.TournamentListScreenBg;
+            }
+            var formHost = Truco1v1SceneUiWiring.GetOrCreateFormHost(createPanelGo.transform, 300f, 180f, 20f);
+            createPanel = TrucoRuntimeUiBuilders.EnsureCreateRoomForm(
+                createPanelGo.transform, 1.1f, formHost);
+            Truco1v1SceneUiWiring.PolishRoomCreationHeader(createPanelGo.transform, formHost);
         }
 
         var back = FindButtonDeep(roomList.transform, "Back Button");
@@ -251,7 +283,15 @@ public static class MainMenuViewCoordinator
             });
         }
 
-        if (roomCreate != null && !roomCreate.activeSelf) { }
+        if (roomCreate != null)
+        {
+            var backCreate = FindButtonDeep(roomCreate.transform, "Back Button (1)");
+            if (backCreate != null && createPanel != null)
+            {
+                backCreate.onClick.RemoveAllListeners();
+                backCreate.onClick.AddListener(() => { createPanel.TriggerCancelFromChrome(); });
+            }
+        }
     }
 
     public     static void EnsureBottomNavOnTop(GameObject bottomNav)

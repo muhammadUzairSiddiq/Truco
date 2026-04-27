@@ -14,6 +14,7 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
     [SerializeField] private Button _confirm;
     [SerializeField] private Button _cancel;
     bool _feeTogglesWired;
+    System.Action _onCancel;
 
     public void SetRuntimeBinding(
         TMP_InputField name,
@@ -36,6 +37,7 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
 
     public void Open(System.Action<OneVsOneCreateRoomPanel> onConfirm, System.Action onCancel = null)
     {
+        _onCancel = onCancel;
         gameObject.SetActive(true);
         if (_isPublicToggle != null) _isPublicToggle.isOn = true;
         if (_nameField != null) _nameField.text = "Sala " + (ApiController.GetSessionUser?.Data?.username ?? "jugador");
@@ -60,12 +62,18 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         if (_cancel != null)
         {
             _cancel.onClick.RemoveAllListeners();
-            _cancel.onClick.AddListener(() =>
-            {
-                gameObject.SetActive(false);
-                onCancel?.Invoke();
-            });
+            _cancel.onClick.AddListener(() => InvokeCancel());
         }
+    }
+
+    /// <summary>Used by scene back buttons (e.g. header) to mirror the cancel action.</summary>
+    public void TriggerCancelFromChrome() => InvokeCancel();
+
+    void InvokeCancel()
+    {
+        var cb = _onCancel;
+        gameObject.SetActive(false);
+        cb?.Invoke();
     }
 
     public void Close()
