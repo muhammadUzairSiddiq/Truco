@@ -27,6 +27,7 @@
     #endregion
 
     #region Tournaments
+    // Torneos: creación reservada al panel de administración (no hay flujo de jugador que cree torneos en esta app).
 
     public static string ListTournaments => BaseUrl + "/tournaments";
     public static string GetTournament(string id) => $"{BaseUrl}/tournaments/{id}";
@@ -41,6 +42,7 @@
     #endregion
 
     #region Matches
+    // 1v1: resultados y saldos normales = autoridad del backend; el cliente solo consume API (join, códigos, etc.).
 
     public static string ListMatches => BaseUrl + "/matches";
     public static string CreateMatchGlobal => BaseUrl + "/matches"; // same endpoint but global

@@ -6,6 +6,8 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
 {
     [SerializeField] private TMP_InputField _nameField;
     [SerializeField] private Toggle _isPublicToggle;
+    /// <summary>When set (two-option UI), paired with <see cref="_isPublicToggle"/> — only one is on; private = code required.</summary>
+    [SerializeField] private Toggle _isPrivateToggle;
     [SerializeField] private GameObject _passwordGroup;
     [SerializeField] private TMP_InputField _passwordField;
     [SerializeField] private Toggle _fee10;
@@ -22,10 +24,12 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         GameObject passwordGroup,
         TMP_InputField password,
         Toggle fee10, Toggle fee100, Toggle fee500,
-        Button confirm, Button cancel)
+        Button confirm, Button cancel,
+        Toggle privateAccessToggle = null)
     {
         _nameField = name;
         _isPublicToggle = isPublic;
+        _isPrivateToggle = privateAccessToggle;
         _passwordGroup = passwordGroup;
         _passwordField = password;
         _fee10 = fee10;
@@ -39,14 +43,38 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
     {
         _onCancel = onCancel;
         gameObject.SetActive(true);
-        if (_isPublicToggle != null) _isPublicToggle.isOn = true;
+        if (_isPrivateToggle != null)
+        {
+            if (_isPublicToggle != null) _isPublicToggle.SetIsOnWithoutNotify(true);
+            _isPrivateToggle.SetIsOnWithoutNotify(false);
+        }
+        else if (_isPublicToggle != null) _isPublicToggle.isOn = true;
         if (_nameField != null) _nameField.text = "Sala " + (ApiController.GetSessionUser?.Data?.username ?? "jugador");
+        if (_passwordField != null) _passwordField.text = string.Empty;
         SyncPasswordGroup();
         if (_fee10 != null) { _fee10.isOn = true; }
         if (_fee100 != null) _fee100.isOn = false;
         if (_fee500 != null) _fee500.isOn = false;
 
-        if (_isPublicToggle != null)
+        if (_isPrivateToggle != null)
+        {
+            if (_isPublicToggle != null)
+            {
+                _isPublicToggle.onValueChanged.RemoveAllListeners();
+                _isPrivateToggle.onValueChanged.RemoveAllListeners();
+                _isPublicToggle.onValueChanged.AddListener(v =>
+                {
+                    if (v) _isPrivateToggle.SetIsOnWithoutNotify(false);
+                    SyncPasswordGroup();
+                });
+                _isPrivateToggle.onValueChanged.AddListener(v =>
+                {
+                    if (v) _isPublicToggle.SetIsOnWithoutNotify(false);
+                    SyncPasswordGroup();
+                });
+            }
+        }
+        else if (_isPublicToggle != null)
         {
             _isPublicToggle.onValueChanged.RemoveAllListeners();
             _isPublicToggle.onValueChanged.AddListener(_ => SyncPasswordGroup());
@@ -66,7 +94,6 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         }
     }
 
-    /// <summary>Used by scene back buttons (e.g. header) to mirror the cancel action.</summary>
     public void TriggerCancelFromChrome() => InvokeCancel();
 
     void InvokeCancel()
@@ -76,16 +103,17 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         cb?.Invoke();
     }
 
-    public void Close()
-    {
-        gameObject.SetActive(false);
-    }
+    public void Close() => gameObject.SetActive(false);
 
     void SyncPasswordGroup()
     {
         if (_passwordGroup == null) return;
-        bool pub = _isPublicToggle == null || _isPublicToggle.isOn;
-        _passwordGroup.SetActive(!pub);
+        bool needCode;
+        if (_isPrivateToggle != null)
+            needCode = _isPrivateToggle.isOn;
+        else
+            needCode = _isPublicToggle != null && !_isPublicToggle.isOn;
+        _passwordGroup.SetActive(needCode);
     }
 
     public int GetEntryFee()
@@ -95,12 +123,13 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         return 10;
     }
 
-    public string GetRoomName()
-    {
-        return _nameField != null ? _nameField.text.Trim() : "Sala";
-    }
+    public string GetRoomName() => _nameField != null ? _nameField.text.Trim() : "Sala";
 
-    public bool IsPublic() => _isPublicToggle == null || _isPublicToggle.isOn;
+    public bool IsPublic()
+    {
+        if (_isPrivateToggle != null) return _isPublicToggle != null && _isPublicToggle.isOn;
+        return _isPublicToggle == null || _isPublicToggle.isOn;
+    }
 
     public string GetPassword() => _passwordField != null ? _passwordField.text : string.Empty;
 

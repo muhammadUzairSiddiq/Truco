@@ -212,7 +212,8 @@ public static class TrucoOneVsOneMainMenuFactory
             t100,
             t500,
             ok,
-            cancel);
+            cancel,
+            null);
 
         var list = root.AddComponent<OneVsOneRoomListController>();
         list.ApplyRuntimeWiring(

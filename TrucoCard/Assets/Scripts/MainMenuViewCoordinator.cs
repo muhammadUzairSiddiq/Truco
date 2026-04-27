@@ -256,6 +256,8 @@ public static class MainMenuViewCoordinator
         var flow = OneVsOnePhotonFlow.EnsureInstance();
         var mm = UnityEngine.Object.FindObjectOfType<MatchMakingPanel>(true);
 
+        if (content != null) Truco1v1SceneUiWiring.RemoveGlobalPrivateCodeBarIfAny(content);
+
         listCtrl.ApplyRuntimeWiring(
             roomList,
             content,

@@ -22,8 +22,8 @@ public static class TrucoRuntimeUiBuilders
         rowGo.SetActive(false);
         var rowLe = rowGo.AddComponent<LayoutElement>();
         // ~2x prior row height for large touch targets and legible type on mobile
-        rowLe.minHeight = 252f;
-        rowLe.preferredHeight = 264f;
+        rowLe.minHeight = 280f;
+        rowLe.preferredHeight = 300f;
         rowLe.flexibleHeight = 0f;
         var rowBg = rowGo.AddComponent<Image>();
         rowBg.raycastTarget = false;
@@ -65,6 +65,99 @@ public static class TrucoRuntimeUiBuilders
         var t2 = RoomRowTextLine(col.transform, f, "Meta", subSize, FontStyles.Bold, TrucoUiTheme.RoomListRowMeta);
         var t3 = RoomRowTextLine(col.transform, f, "Players", subSize, FontStyles.Bold, TrucoUiTheme.RoomListRowPlayers);
 
+        var codeStrip = new GameObject("CodeStrip", typeof(RectTransform));
+        codeStrip.transform.SetParent(rowRt, false);
+        var codeV = codeStrip.AddComponent<VerticalLayoutGroup>();
+        codeV.spacing = 4;
+        codeV.childAlignment = TextAnchor.MiddleCenter;
+        codeV.childControlWidth = true;
+        codeV.childControlHeight = true;
+        codeV.childForceExpandWidth = true;
+        codeV.childForceExpandHeight = false;
+        var csl = codeStrip.AddComponent<LayoutElement>();
+        csl.minWidth = 0f;
+        csl.minHeight = 72f;
+        csl.preferredWidth = 0f;
+        csl.preferredHeight = 120f;
+        csl.flexibleWidth = 0f;
+        csl.flexibleHeight = 0f;
+
+        var hostCodeGo = new GameObject("HostCode", typeof(RectTransform));
+        hostCodeGo.transform.SetParent(codeStrip.transform, false);
+        var hLe = hostCodeGo.AddComponent<LayoutElement>();
+        hLe.minHeight = 64f;
+        hLe.minWidth = 160f;
+        hLe.preferredWidth = 240f;
+        hLe.preferredHeight = 72f;
+        hLe.flexibleWidth = 1f;
+        var hostT = hostCodeGo.AddComponent<TextMeshProUGUI>();
+        hostT.alignment = TextAlignmentOptions.Center;
+        hostT.fontSize = 44f;
+        hostT.fontStyle = FontStyles.Bold;
+        hostT.color = TrucoUiTheme.RoomListRowCodeDisplay;
+        hostT.enableAutoSizing = false;
+        if (f != null) hostT.font = f;
+        hostT.raycastTarget = false;
+        hostT.gameObject.SetActive(false);
+
+        var joinInpRoot = new GameObject("JoinCodeInput", typeof(RectTransform));
+        joinInpRoot.transform.SetParent(codeStrip.transform, false);
+        var jLe2 = joinInpRoot.AddComponent<LayoutElement>();
+        jLe2.minHeight = 64f;
+        jLe2.minWidth = 180f;
+        jLe2.preferredWidth = 280f;
+        jLe2.preferredHeight = 70f;
+        jLe2.flexibleWidth = 1f;
+        var jImg = joinInpRoot.AddComponent<Image>();
+        jImg.raycastTarget = true;
+        jImg.type = Image.Type.Simple;
+        jImg.color = new Color(0.98f, 0.96f, 0.92f, 1f);
+        var jOutline = joinInpRoot.AddComponent<Outline>();
+        jOutline.effectColor = TrucoUiTheme.RoomListCodeInputBorder;
+        jOutline.effectDistance = new Vector2(1.2f, -1.2f);
+        var jInp = joinInpRoot.AddComponent<TMP_InputField>();
+        jInp.characterLimit = OneVsOnePrivateRoomCode.MaxPasswordLength;
+        var jtRt = new GameObject("JText", typeof(RectTransform));
+        jtRt.transform.SetParent(joinInpRoot.transform, false);
+        var jtr = jtRt.GetComponent<RectTransform>();
+        jtr.anchorMin = Vector2.zero; jtr.anchorMax = Vector2.one;
+        jtr.offsetMin = new Vector2(8, 4); jtr.offsetMax = new Vector2(-8, -4);
+        var jTcmp = jtRt.AddComponent<TextMeshProUGUI>();
+        jTcmp.fontSize = 36f;
+        jTcmp.fontStyle = FontStyles.Bold;
+        jTcmp.color = TrucoUiTheme.CreateFormSubLabelCream;
+        if (f != null) jTcmp.font = f;
+        var jPh = new GameObject("JPh", typeof(RectTransform));
+        jPh.transform.SetParent(joinInpRoot.transform, false);
+        var jpr = jPh.GetComponent<RectTransform>();
+        jpr.anchorMin = Vector2.zero; jpr.anchorMax = Vector2.one;
+        jpr.offsetMin = new Vector2(8, 4); jpr.offsetMax = new Vector2(-8, -4);
+        var jPht = jPh.AddComponent<TextMeshProUGUI>();
+        jPht.text = "mín. 6 car.";
+        jPht.fontSize = 24f;
+        jPht.color = new Color(0.4f, 0.35f, 0.3f, 0.6f);
+        if (f != null) jPht.font = f;
+        jInp.textViewport = jtr;
+        jInp.textComponent = jTcmp;
+        jInp.placeholder = jPht;
+        joinInpRoot.SetActive(false);
+
+        var capLabGo = new GameObject("CodeCaption", typeof(RectTransform));
+        capLabGo.transform.SetParent(codeStrip.transform, false);
+        capLabGo.transform.SetAsFirstSibling();
+        var ccap = capLabGo.AddComponent<TextMeshProUGUI>();
+        ccap.text = TrucoTextosClient.CodigoParaUnir;
+        ccap.fontSize = 20f;
+        ccap.color = new Color(0.85f, 0.8f, 0.7f, 0.95f);
+        if (f != null) ccap.font = f;
+        ccap.alignment = TextAlignmentOptions.Center;
+        ccap.raycastTarget = false;
+        var capLe = capLabGo.AddComponent<LayoutElement>();
+        capLe.minHeight = 22f;
+        capLe.flexibleWidth = 1f;
+        capLabGo.SetActive(false);
+
+        var codeStripRoot = codeStrip;
         var joinGo = new GameObject("Join", typeof(RectTransform));
         joinGo.transform.SetParent(rowRt, false);
         var joinImg = joinGo.AddComponent<Image>();
@@ -100,7 +193,7 @@ public static class TrucoRuntimeUiBuilders
         if (f != null) jtmp.font = f;
 
         var view = rowGo.AddComponent<OneVsOneRoomRowView>();
-        view.SetRuntimeBinding(t1, t2, t3, btn, jtmp);
+        view.SetRuntimeBinding(t1, t2, t3, btn, jtmp, codeStripRoot, ccap, hostT, jInp);
         return view;
     }
 
@@ -137,11 +230,13 @@ public static class TrucoRuntimeUiBuilders
         RectTransform formParent = null)
     {
         if (roomCreationRoot == null) return null;
-        if (HasNamedDescendant(roomCreationRoot, "Truco1v1CreateFormV3"))
+        if (HasNamedDescendant(roomCreationRoot, "Truco1v1CreateFormV5"))
             return roomCreationRoot.GetComponent<OneVsOneCreateRoomPanel>();
         DestroyLegacyFormIfAny(roomCreationRoot);
         DestroyTruco1v1CreateFormV1IfAny(roomCreationRoot);
         DestroyTruco1v1CreateFormV2IfAny(roomCreationRoot);
+        DestroyTruco1v1CreateFormV3IfAny(roomCreationRoot);
+        DestroyTruco1v1CreateFormV4IfAny(roomCreationRoot);
 
         var f = TMP_Settings.defaultFontAsset;
         var existing = roomCreationRoot.GetComponent<OneVsOneCreateRoomPanel>();
@@ -151,13 +246,12 @@ public static class TrucoRuntimeUiBuilders
         var useEmbeddedLayout = formParent != null;
         // ~2.4–2.5× base font scale vs first pass; no flexible spacer (keeps actions above bottom bar)
         const int kNameFont = 58;
-        const int kPassFont = 52;
         const int kLabel = 50;
         const int kPublic = 58;
         const int kBtnCaption = 44;
         const int kFeeAmt = 44;
 
-        var center = new GameObject("Truco1v1CreateFormV3", typeof(RectTransform));
+        var center = new GameObject("Truco1v1CreateFormV5", typeof(RectTransform));
         var cRt = center.GetComponent<RectTransform>();
         cRt.SetParent(parentForForm, false);
         if (useEmbeddedLayout)
@@ -220,13 +314,13 @@ public static class TrucoRuntimeUiBuilders
 
         AddFlexSpacer("FormSpacerTop");
         var nameIn = CreateFormInputField("RoomName", inner.transform, f, TrucoTextosClient.NombreSala, kNameFont);
-        var pubT = CreateFormPublicRow(inner.transform, f, kPublic, out var _);
+        var (pubT, privT) = CreateFormPublicPrivateAccessRow(inner.transform, f, kPublic);
 
         var passG = new GameObject("PassGroup", typeof(RectTransform));
         passG.transform.SetParent(inner.transform, false);
         var passGLe = passG.AddComponent<LayoutElement>();
-        passGLe.minHeight = 96f;
-        passGLe.preferredHeight = 96f;
+        passGLe.minHeight = 140f;
+        passGLe.preferredHeight = 160f;
         passGLe.flexibleHeight = 0f;
         passG.AddComponent<VerticalLayoutGroup>();
         var passGvl = passG.GetComponent<VerticalLayoutGroup>();
@@ -235,7 +329,20 @@ public static class TrucoRuntimeUiBuilders
         passGvl.childForceExpandHeight = false;
         passGvl.childForceExpandWidth = true;
         passG.SetActive(false);
-        var passIn = CreateFormInputField("Password", passG.transform, f, TrucoTextosClient.ContrasenaSala, kPassFont);
+        var codeLbl = new GameObject("CodeLabel", typeof(RectTransform));
+        codeLbl.transform.SetParent(passG.transform, false);
+        var cLe = codeLbl.AddComponent<LayoutElement>();
+        cLe.minHeight = 36f; cLe.flexibleWidth = 1f;
+        var cLtmp = codeLbl.AddComponent<TextMeshProUGUI>();
+        cLtmp.text = TrucoTextosClient.CodigoSala4;
+        cLtmp.fontSize = 38f;
+        cLtmp.fontStyle = FontStyles.Bold;
+        cLtmp.color = TrucoUiTheme.CreateFormLabel;
+        cLtmp.alignment = TextAlignmentOptions.MidlineLeft;
+        if (f != null) cLtmp.font = f;
+        cLtmp.raycastTarget = false;
+        var passIn = CreateFormInputField("PrivateCode", passG.transform, f, "mín. 6 caracteres", 44);
+        if (passIn != null) passIn.characterLimit = OneVsOnePrivateRoomCode.MaxPasswordLength;
 
         var feeLblGo = new GameObject("FeeLabel", typeof(RectTransform));
         feeLblGo.transform.SetParent(inner.transform, false);
@@ -296,14 +403,86 @@ public static class TrucoRuntimeUiBuilders
             t100,
             t500,
             ok,
-            cancel);
-
-        if (pubT != null)
-        {
-            pubT.onValueChanged.AddListener(_ => { passG.SetActive(!pubT.isOn); });
-        }
+            cancel,
+            privT);
 
         return panel;
+    }
+
+    /// <summary>Pública and Privada side by side; mutual exclusive via <see cref="OneVsOneCreateRoomPanel.Open"/>.</summary>
+    static (Toggle publicToggle, Toggle privateToggle) CreateFormPublicPrivateAccessRow(Transform parent, TMP_FontAsset font, int labelFont)
+    {
+        var rowGo = new GameObject("AccessTypeRow", typeof(RectTransform));
+        rowGo.transform.SetParent(parent, false);
+        var rel = rowGo.AddComponent<LayoutElement>();
+        rel.minHeight = 96f;
+        rel.preferredHeight = 104f;
+        rel.flexibleHeight = 0f;
+        var h = rowGo.AddComponent<HorizontalLayoutGroup>();
+        h.spacing = 28;
+        h.childAlignment = TextAnchor.MiddleLeft;
+        h.childControlWidth = true;
+        h.childControlHeight = true;
+        h.childForceExpandWidth = true;
+        h.childForceExpandHeight = false;
+        h.padding = new RectOffset(0, 0, 0, 0);
+        int boxPx = Mathf.Max(48, labelFont - 6);
+        var pubT = CreateFormAccessTogglePair(h.transform, "Pub", font, TrucoTextosClient.Publica, true, boxPx, labelFont);
+        var privT = CreateFormAccessTogglePair(h.transform, "Priv", font, TrucoTextosClient.Privada, false, boxPx, labelFont);
+        return (pubT, privT);
+    }
+
+    static Toggle CreateFormAccessTogglePair(Transform parent, string id, TMP_FontAsset font, string label, bool isOn, int boxPx, int labelFont)
+    {
+        var box = new GameObject("Tgl_" + id, typeof(RectTransform));
+        box.transform.SetParent(parent, false);
+        var row = box.AddComponent<HorizontalLayoutGroup>();
+        row.spacing = 14;
+        row.childAlignment = TextAnchor.MiddleLeft;
+        row.childControlWidth = false;
+        var boxLe = box.AddComponent<LayoutElement>();
+        boxLe.minWidth = 0f; boxLe.preferredWidth = 280f; boxLe.flexibleWidth = 1f;
+        var tglGo = new GameObject("Box", typeof(RectTransform));
+        tglGo.transform.SetParent(box.transform, false);
+        var tglRt = tglGo.GetComponent<RectTransform>();
+        tglRt.sizeDelta = new Vector2(boxPx, boxPx);
+        var bLe = tglGo.AddComponent<LayoutElement>();
+        bLe.minWidth = bLe.preferredWidth = boxPx;
+        bLe.minHeight = bLe.preferredHeight = boxPx;
+        var t = tglGo.AddComponent<Toggle>();
+        t.isOn = isOn;
+        var bgG = new GameObject("Bg", typeof(RectTransform));
+        bgG.transform.SetParent(tglGo.transform, false);
+        var br = bgG.GetComponent<RectTransform>();
+        br.anchorMin = Vector2.zero; br.anchorMax = Vector2.one;
+        br.offsetMin = br.offsetMax = Vector2.zero;
+        var bgI = bgG.AddComponent<Image>();
+        bgI.color = new Color(0.42f, 0.33f, 0.26f, 1f);
+        var ck = new GameObject("C", typeof(RectTransform));
+        ck.transform.SetParent(br, false);
+        StretchFull(ck.GetComponent<RectTransform>());
+        var ckI = ck.AddComponent<Image>();
+        ckI.color = new Color(0.25f, 0.55f, 0.32f, 1f);
+        t.graphic = ckI;
+        t.targetGraphic = bgI;
+        t.transition = Selectable.Transition.ColorTint;
+        var cb = t.colors;
+        cb.normalColor = Color.white; cb.highlightedColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+        cb.pressedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
+        t.colors = cb;
+        var lab = new GameObject("L", typeof(RectTransform));
+        lab.transform.SetParent(box.transform, false);
+        var ltmp = lab.AddComponent<TextMeshProUGUI>();
+        ltmp.text = label;
+        ltmp.fontSize = labelFont;
+        ltmp.fontStyle = FontStyles.Bold;
+        ltmp.alignment = TextAlignmentOptions.MidlineLeft;
+        ltmp.color = TrucoUiTheme.CreateFormSubLabelCream;
+        ltmp.raycastTarget = false;
+        if (font != null) ltmp.font = font;
+        var lLe = lab.AddComponent<LayoutElement>();
+        lLe.minHeight = 48f; lLe.flexibleWidth = 1f;
+        return t;
     }
 
     static Toggle CreateFormPublicRow(Transform parent, TMP_FontAsset font, int labelFont, out GameObject rowGo)
@@ -587,12 +766,49 @@ public static class TrucoRuntimeUiBuilders
             return;
         }
     }
+
+    static void DestroyTruco1v1CreateFormV3IfAny(Transform roomCreationRoot)
+    {
+        if (roomCreationRoot == null) return;
+        var trs = roomCreationRoot.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < trs.Length; i++)
+        {
+            if (trs[i] == null || trs[i].name != "Truco1v1CreateFormV3") continue;
+            UnityEngine.Object.DestroyImmediate(trs[i].gameObject, true);
+            return;
+        }
+    }
+
+    static void DestroyTruco1v1CreateFormV4IfAny(Transform roomCreationRoot)
+    {
+        if (roomCreationRoot == null) return;
+        var trs = roomCreationRoot.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < trs.Length; i++)
+        {
+            if (trs[i] == null || trs[i].name != "Truco1v1CreateFormV4") continue;
+            UnityEngine.Object.DestroyImmediate(trs[i].gameObject, true);
+            return;
+        }
+    }
 }
 
 /// <summary>Hooks MainMenu room list / room creation scene objects: layout, wood sprites, cream backgrounds.</summary>
 public static class Truco1v1SceneUiWiring
 {
     const string FormHostName = "1v1FormHost";
+    public const string PrivateCodeListBarName = "PrivateCodeListBar";
+
+    /// <summary>Removes legacy list-level code bar when rows carry per-room inputs.</summary>
+    public static void RemoveGlobalPrivateCodeBarIfAny(Transform scrollContent)
+    {
+        if (scrollContent == null) return;
+        for (int i = scrollContent.childCount - 1; i >= 0; i--)
+        {
+            var c = scrollContent.GetChild(i);
+            if (c != null && c.name == PrivateCodeListBarName)
+                UnityEngine.Object.Destroy(c.gameObject);
+        }
+    }
 
     public static void EnsureScrollContentLayout(Transform content)
     {
@@ -657,6 +873,87 @@ public static class Truco1v1SceneUiWiring
         rt.offsetMin = new Vector2(horizontalInset, bottomOffsetUp);
         rt.offsetMax = new Vector2(-horizontalInset, -topOffsetDown);
         return rt;
+    }
+
+    /// <summary>Legacy: min-6-chars field at list top; prefer per-row <see cref="TrucoRuntimeUiBuilders.CreateRoomRowTemplate"/> code strip.</summary>
+    public static TMP_InputField EnsureRoomListPrivateCodeInput(Transform roomListRoot)
+    {
+        if (roomListRoot == null) return null;
+        var existing = roomListRoot.Find(PrivateCodeListBarName);
+        if (existing != null) return existing.GetComponentInChildren<TMP_InputField>(true);
+        var scroll = roomListRoot.GetComponentInChildren<ScrollRect>(true);
+        if (scroll == null || scroll.content == null) return null;
+        var c = scroll.content;
+        var bar = new GameObject(PrivateCodeListBarName, typeof(RectTransform));
+        bar.transform.SetParent(c, false);
+        bar.transform.SetAsFirstSibling();
+        var leBar = bar.AddComponent<LayoutElement>();
+        leBar.minHeight = 88f;
+        leBar.preferredHeight = 92f;
+        leBar.flexibleHeight = 0f;
+        var h = bar.AddComponent<HorizontalLayoutGroup>();
+        h.padding = new RectOffset(12, 12, 10, 10);
+        h.spacing = 12;
+        h.childAlignment = TextAnchor.MiddleLeft;
+        h.childControlWidth = true;
+        h.childControlHeight = true;
+        h.childForceExpandWidth = true;
+        h.childForceExpandHeight = false;
+        var font = TMP_Settings.defaultFontAsset;
+        var lab = new GameObject("CodeLabel", typeof(RectTransform));
+        lab.transform.SetParent(bar.transform, false);
+        var ltmp = lab.AddComponent<TextMeshProUGUI>();
+        ltmp.text = TrucoTextosClient.CodigoSala4;
+        ltmp.fontSize = 24f;
+        ltmp.color = new Color(0.15f, 0.12f, 0.1f, 1f);
+        ltmp.raycastTarget = false;
+        if (font != null) ltmp.font = font;
+        var lLe = lab.AddComponent<LayoutElement>();
+        lLe.minWidth = 100f;
+        lLe.preferredWidth = 220f;
+        lLe.flexibleWidth = 0f;
+        lLe.minHeight = 36f;
+        var inpRoot = new GameObject("CodeInput", typeof(RectTransform));
+        inpRoot.transform.SetParent(bar.transform, false);
+        var inpLe = inpRoot.AddComponent<LayoutElement>();
+        inpLe.minWidth = 120f;
+        inpLe.minHeight = 52f;
+        inpLe.preferredWidth = 200f;
+        inpLe.preferredHeight = 56f;
+        inpLe.flexibleWidth = 1f;
+        var img = inpRoot.AddComponent<Image>();
+        img.raycastTarget = true;
+        img.color = TrucoUiTheme.InputBg;
+        var input = inpRoot.AddComponent<TMP_InputField>();
+        input.characterLimit = OneVsOnePrivateRoomCode.MaxPasswordLength;
+        var trt = new GameObject("Text", typeof(RectTransform));
+        trt.transform.SetParent(inpRoot.transform, false);
+        var tr = trt.GetComponent<RectTransform>();
+        tr.anchorMin = new Vector2(0, 0);
+        tr.anchorMax = new Vector2(1, 1);
+        tr.offsetMin = new Vector2(10, 6);
+        tr.offsetMax = new Vector2(-10, -6);
+        var tcomp = trt.AddComponent<TextMeshProUGUI>();
+        tcomp.fontSize = 28f;
+        tcomp.fontStyle = FontStyles.Bold;
+        if (font != null) tcomp.font = font;
+        tcomp.color = TrucoUiTheme.CreateFormSubLabelCream;
+        var ph = new GameObject("Ph", typeof(RectTransform));
+        ph.transform.SetParent(inpRoot.transform, false);
+        var prt = ph.GetComponent<RectTransform>();
+        prt.anchorMin = new Vector2(0, 0);
+        prt.anchorMax = new Vector2(1, 1);
+        prt.offsetMin = new Vector2(10, 6);
+        prt.offsetMax = new Vector2(-10, -6);
+        var pht = ph.AddComponent<TextMeshProUGUI>();
+        pht.text = "mín. 6";
+        pht.fontSize = 22f;
+        pht.color = new Color(0.45f, 0.4f, 0.36f, 0.8f);
+        if (font != null) pht.font = font;
+        input.textViewport = tr;
+        input.textComponent = tcomp;
+        input.placeholder = pht;
+        return input;
     }
 
     /// <summary>Draw order + back chevron: top wood bar on top; back vertically centered in the bar.</summary>

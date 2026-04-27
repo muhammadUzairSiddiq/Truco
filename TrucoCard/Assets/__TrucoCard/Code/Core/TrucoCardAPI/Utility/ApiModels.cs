@@ -302,6 +302,10 @@ public class Player1v1Match
     public int playerCount;
     public int currentPlayers;
     public string createdBy;
+    /// <summary>Some APIs send host id as <c>hostId</c> instead of <c>createdBy</c>.</summary>
+    public string hostId;
+    /// <summary>Only the host / creator should receive this; joiners never get it in list payloads (backend as authority).</summary>
+    public string joinCode;
     /// <summary>Opcional: "public" / "private" si el API no usa solo isPublic (bool).</summary>
     public string access;
     /// <summary>API: "public" | "private".</summary>

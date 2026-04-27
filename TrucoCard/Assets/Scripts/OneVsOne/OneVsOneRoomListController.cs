@@ -4,7 +4,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>Panel: lista de salas GET /matches, crear con player-create, unirse con join + Photon.</summary>
+/// <summary>Panel: lista de salas GET /matches, crear con player-create, unirse con join + Photon.
+/// Resultados de partida 1v1: el backend es la autoridad; el cliente envía/lee salas y códigos según el API.</summary>
 public class OneVsOneRoomListController : MonoBehaviour
 {
     [Header("UI")]
@@ -18,12 +19,11 @@ public class OneVsOneRoomListController : MonoBehaviour
     [Header("Crear")]
     [SerializeField] private OneVsOneCreateRoomPanel _createPanel;
 
-    [Header("Contraseña (privada)")]
+    [Header("Contraseña (privada) — mín. 6 caracteres (regla del servidor)")]
     [SerializeField] private GameObject _passwordOverlay;
     [SerializeField] private TMPro.TMP_InputField _passwordField;
     [SerializeField] private Button _passwordConfirm;
     [SerializeField] private Button _passwordCancel;
-
     [Header("Flujos")]
     [SerializeField] private OneVsOnePhotonFlow _photonFlow;
     [SerializeField] private GameObject _matchmakingScreen;
@@ -147,12 +147,20 @@ public class OneVsOneRoomListController : MonoBehaviour
             string joinTxt = null;
             if (!can)
             {
-                if (m.GetTrucoPlayerCount() >= 2) joinTxt = TrucoTextosClient.SalaLlena;
-                else if (m.IsCurrentUserHostOfRoom()) joinTxt = TrucoTextosClient.TuSalaEsperando;
+                if (m.IsCurrentUserHostOfRoom()) joinTxt = TrucoTextosClient.TuSalaEsperando;
+                else if (m.GetTrucoPlayerCount() >= 2) joinTxt = TrucoTextosClient.SalaLlena;
             }
-            row.Bind(m, OnClickJoin, can, joinTxt);
+            string hostCode = null;
+            if (m.IsPrivate() && m.IsCurrentUserHostOfRoom())
+            {
+                if (!string.IsNullOrEmpty(m.joinCode)) hostCode = m.joinCode.Trim();
+                if (string.IsNullOrEmpty(hostCode)) hostCode = OneVsOnePrivateRoomCode.TryGetRememberedForMatch(m._id);
+            }
+            row.Bind(m, OnClickJoin, can, joinTxt, hostCode);
             _spawned.Add(row);
         }
+
+        Truco1v1SceneUiWiring.RemoveGlobalPrivateCodeBarIfAny(_scrollContent);
     }
 
     void OnClickCreate()
@@ -172,6 +180,16 @@ public class OneVsOneRoomListController : MonoBehaviour
         int fee = panel.GetEntryFee();
         if (!ClientBalanceOk(fee, out _)) { AppManager.Instance.DisplayNotification(TrucoTextosClient.SaldoInsuficiente); return; }
         int stake = Mathf.Max(1, fee);
+        string privatePassword = null;
+        if (!panel.IsPublic())
+        {
+            privatePassword = panel.GetPassword().Trim();
+            if (!OneVsOnePrivateRoomCode.IsValidFormat(privatePassword))
+            {
+                AppManager.Instance.DisplayNotification(TrucoTextosClient.CodigoInvalido4);
+                return;
+            }
+        }
         var body = new PlayerCreateMatchRequest
         {
             name = panel.GetRoomName(),
@@ -179,12 +197,13 @@ public class OneVsOneRoomListController : MonoBehaviour
             cost = stake,
             prize = stake,
             maxPlayers = OneVsOneMatchSession.MaxPlayersPhoton,
-            password = panel.IsPublic() ? string.Empty : panel.GetPassword()
+            password = panel.IsPublic() ? string.Empty : privatePassword
         };
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
         var created = await ApiController.PlayerCreate1v1Match(body, err => AppManager.Instance.DisplayNotification(err));
         AppManager.Instance.HideLoadingUI();
         if (created == null || string.IsNullOrEmpty(created._id)) { AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorCrearSala); return; }
+        if (!string.IsNullOrEmpty(privatePassword)) OneVsOnePrivateRoomCode.RememberForMatch(created._id, privatePassword);
         string photon = created.ResolvePhotonRoomName();
         if (string.IsNullOrEmpty(photon)) photon = OneVsOneMatchSession.BuildDefaultPhotonRoomName(created._id);
         bool reg = await ApiController.RegisterPhotonRoomName(created._id, photon, err => Debug.LogWarning(err));
@@ -198,14 +217,18 @@ public class OneVsOneRoomListController : MonoBehaviour
         if (_photonFlow != null) _photonFlow.StartHostPhoton(OneVsOneMatchSession.MaxPlayersPhoton);
     }
 
-    void OnClickJoin(Player1v1Match m)
+    void OnClickJoin(Player1v1Match m, OneVsOneRoomRowView row)
     {
         if (m == null) return;
         if (m.IsPrivate())
         {
-            _pendingPrivateJoin = m;
-            if (_passwordOverlay != null) _passwordOverlay.SetActive(true);
-            if (_passwordField != null) _passwordField.text = string.Empty;
+            string c = row != null ? row.GetJoinerCodeText() : string.Empty;
+            if (!OneVsOnePrivateRoomCode.IsValidFormat(c))
+            {
+                AppManager.Instance.DisplayNotification(TrucoTextosClient.CodigoInvalido4);
+                return;
+            }
+            _ = TryJoin(m, c.Trim());
             return;
         }
         _ = TryJoin(m, string.Empty);
@@ -215,15 +238,26 @@ public class OneVsOneRoomListController : MonoBehaviour
     {
         if (_pendingPrivateJoin == null) { ClosePassword(); return; }
         string p = _passwordField != null ? _passwordField.text : string.Empty;
-        ClosePassword();
-        await TryJoin(_pendingPrivateJoin, p);
+        if (!OneVsOnePrivateRoomCode.IsValidFormat(p))
+        {
+            AppManager.Instance.DisplayNotification(TrucoTextosClient.CodigoInvalido4);
+            return;
+        }
+        var target = _pendingPrivateJoin;
         _pendingPrivateJoin = null;
+        ClosePassword();
+        await TryJoin(target, p.Trim());
     }
 
     void ClosePassword() { if (_passwordOverlay != null) _passwordOverlay.SetActive(false); }
 
     async System.Threading.Tasks.Task TryJoin(Player1v1Match m, string password)
     {
+        if (m != null && m.IsPrivate() && !OneVsOnePrivateRoomCode.IsValidFormat(password))
+        {
+            AppManager.Instance.DisplayNotification(TrucoTextosClient.CodigoInvalido4);
+            return;
+        }
         int stake = m.GetEntryStake();
         if (!ClientBalanceOk(stake, out _)) { AppManager.Instance.DisplayNotification(TrucoTextosClient.SaldoInsuficiente); return; }
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);

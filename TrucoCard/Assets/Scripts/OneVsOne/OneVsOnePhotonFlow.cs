@@ -23,6 +23,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public Purpose CurrentPurpose { get; private set; } = Purpose.None;
     public bool IsConnecting { get; private set; }
 
+    bool _deferredJoinAfterLeave;
+    bool _deferredCreateAfterLeave;
+    int _deferredCreateMaxPlayers;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -51,11 +55,19 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         IsConnecting = true;
         CurrentPurpose = Purpose.CreateHostedRoom;
         PhotonNetwork.AutomaticallySyncScene = true;
-        if (PhotonNetwork.IsConnected)
+        if (PhotonNetwork.InRoom)
+        {
+            _deferredCreateAfterLeave = true;
+            _deferredCreateMaxPlayers = maxPlayers;
+            PhotonNetwork.LeaveRoom();
+            return;
+        }
+        if (PhotonNetwork.IsConnected && PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
         {
             CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, maxPlayers);
             return;
         }
+        if (PhotonNetwork.IsConnected) return; // will continue in OnConnectedToMaster
         if (!PhotonNetwork.ConnectUsingSettings())
         {
             IsConnecting = false;
@@ -74,15 +86,38 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         IsConnecting = true;
         CurrentPurpose = Purpose.JoinHostedRoom;
         PhotonNetwork.AutomaticallySyncScene = true;
-        if (PhotonNetwork.IsConnected)
+        if (PhotonNetwork.InRoom)
         {
-            PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
+            _deferredJoinAfterLeave = true;
+            PhotonNetwork.LeaveRoom();
             return;
         }
+        if (PhotonNetwork.IsConnected && PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
+        {
+            if (!PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName)) IsConnecting = false;
+            return;
+        }
+        if (PhotonNetwork.IsConnected) return;
         if (!PhotonNetwork.ConnectUsingSettings())
         {
             IsConnecting = false;
             onError?.Invoke("No se pudo conectar a Photon.");
+        }
+    }
+
+    public override void OnLeftRoom()
+    {
+        if (_deferredJoinAfterLeave)
+        {
+            _deferredJoinAfterLeave = false;
+            if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
+                PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
+            return;
+        }
+        if (_deferredCreateAfterLeave)
+        {
+            _deferredCreateAfterLeave = false;
+            CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, _deferredCreateMaxPlayers);
         }
     }
 
@@ -119,6 +154,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     {
         IsConnecting = false;
         CurrentPurpose = Purpose.None;
+        _deferredCreateAfterLeave = false;
+        _deferredJoinAfterLeave = false;
         AppManager.Instance.DisplayNotification("No se pudo crear la sala en Photon: " + message);
     }
 
@@ -126,7 +163,14 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     {
         IsConnecting = false;
         CurrentPurpose = Purpose.None;
+        _deferredJoinAfterLeave = false;
         AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorUnirse + " " + message);
+    }
+
+    public override void OnDisconnected(DisconnectCause cause)
+    {
+        _deferredJoinAfterLeave = false;
+        _deferredCreateAfterLeave = false;
     }
 
     public override void OnJoinedRoom()

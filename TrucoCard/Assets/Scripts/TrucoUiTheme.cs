@@ -23,6 +23,9 @@ public static class TrucoUiTheme
     /// <summary>Compact “Entrar” (high contrast on bar).</summary>
     public static readonly Color RoomListJoinButtonBg = new Color(0.20f, 0.55f, 0.32f, 1f);
     public static readonly Color RoomListJoinButtonText = new Color(1f, 1f, 0.99f, 1f);
+    /// <summary>Host’s 4-digit code in-list (large, on wood bar).</summary>
+    public static readonly Color RoomListRowCodeDisplay = new Color(1f, 0.92f, 0.55f, 1f);
+    public static readonly Color RoomListCodeInputBorder = new Color(0.18f, 0.12f, 0.08f, 0.5f);
     public static readonly Color CreateFormBg = new Color(0.48f, 0.4f, 0.3f, 0.95f);
     /// <summary>Outer frame of create-room form (darker wood).</summary>
     public static readonly Color CreateFormPanelCard = new Color(0.36f, 0.26f, 0.18f, 1f);

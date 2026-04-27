@@ -24,6 +24,7 @@ EditorBuildSettings:
     path: Assets/__TrucoCard/Scenes/TempScene.unity
     guid: 0b59ac30ceb199b498a43e15bef82e71
   m_configObjects:
+    com.unity.adaptivePerformance.basic.provider_settings: {fileID: 11400000, guid: 456463d58b6832e45acc9341956f3236, type: 2}
     com.unity.adaptiveperformance.google.android.provider_settings: {fileID: 11400000, guid: cc9a33d4a07aa644f9ff1fae385dc560, type: 2}
     com.unity.adaptiveperformance.loader_settings: {fileID: 11400000, guid: 51f0eee75b88d3b439f21add1eb39db5, type: 2}
     com.unity.adaptiveperformance.simulator.provider_settings: {fileID: 11400000, guid: 4b3db2c3c3bd3444a85c2185ee5a1fee, type: 2}

@@ -10,18 +10,28 @@ public static class TrucoTextosClient
     public const string EntradaAbrev = "Entrada";
     public const string JugadoresEnSala = "Jugadores: {0}/{1}";
     public const string TuSalaEsperando = "Tu sala";
-    public const string SalaLlena = "Llena";
+    /// <summary>English: room is full. Short label for join button.</summary>
+    public const string SalaLlena = "Full";
     public const string CrearSala = "Crear sala";
     public const string ActualizarLista = "Actualizar";
     public const string Volver = "Volver";
     public const string BuscandoOponente = "Buscando oponente…";
+    public const string EsperandoRivalSala = "Esperando a otro jugador (2/2 para empezar)…";
     public const string PartidaEncontrada = "¡Oponente listo!";
+    public const string CargandoJuego = "Cargando partida…";
 
     public const string NombreSala = "Nombre de la sala";
     public const string TipoSala = "Tipo de sala";
     public const string Publica = "Pública";
     public const string Privada = "Privada";
     public const string ContrasenaSala = "Contraseña";
+    /// <summary>Must match server rule for <c>password</c> (min 6 characters).</summary>
+    public const string CodigoSala4 = "Código de sala (mín. 6 caracteres)";
+    public const string CodigoPrivadaInfo = "Sala privada: elegí un código (mín. 6 caracteres, igual que pide el servidor). Solo vos lo verás en la lista.";
+    public const string CodigoInvalido4 = "Ingresá al menos 6 caracteres (contraseña de la sala).";
+    public const string CodigoEtiqueta = "Cód.";
+    public const string TuCodigoSala = "Tu código";
+    public const string CodigoParaUnir = "Código";
     public const string EntradaMonedas = "Entrada (monedas)";
 
     public const string Unirse = "Unirse";

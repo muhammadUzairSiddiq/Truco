@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>Estado mínimo de la partida 1v1 frente a backend y Photon (para panel admin / correlación id).</summary>
@@ -49,5 +50,36 @@ public static class OneVsOneMatchSession
     {
         if (string.IsNullOrEmpty(matchId)) return "truco1v1_" + Random.Range(10000, 99999);
         return "tr1_" + matchId;
+    }
+}
+
+/// <summary>Private room password (API field <c>password</c>): server requires min length (6+). Host cache for list display.</summary>
+public static class OneVsOnePrivateRoomCode
+{
+    public const int MinPasswordLength = 6;
+    public const int MaxPasswordLength = 48;
+
+    static readonly Dictionary<string, string> MatchIdToCode = new Dictionary<string, string>();
+
+    public static string GenerateNewCode() => UnityEngine.Random.Range(100000, 1000000).ToString();
+
+    public static bool IsValidFormat(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return false;
+        s = s.Trim();
+        if (s.Length < MinPasswordLength || s.Length > MaxPasswordLength) return false;
+        return true;
+    }
+
+    public static void RememberForMatch(string matchId, string code)
+    {
+        if (string.IsNullOrEmpty(matchId) || !IsValidFormat(code)) return;
+        MatchIdToCode[matchId] = code.Trim();
+    }
+
+    public static string TryGetRememberedForMatch(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return null;
+        return MatchIdToCode.TryGetValue(matchId, out var c) ? c : null;
     }
 }

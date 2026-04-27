@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>Admin-only: crea torneos vía API; los jugadores no crean torneos desde el cliente.</summary>
 public class CreateTournamentOverlay : MonoBehaviour
 {
     [Header("Input Fields")]
