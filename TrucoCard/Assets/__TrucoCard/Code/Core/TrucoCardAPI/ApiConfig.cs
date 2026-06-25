@@ -2,6 +2,47 @@
 {
     public static string BaseUrl = "https://srv983121.hstgr.cloud/api";
 
+    // ───────────────────────── Central SO overrides ─────────────────────────
+    // All backend routes can be changed/added from Resources/TrucoApiEndpoints (TrucoApiEndpointsSO)
+    // WITHOUT touching this file. When the backend dev provides the match-end route, just add a row
+    // key=MatchEnd, path=/matches/{0}/end in that asset.
+
+    static System.Collections.Generic.Dictionary<string, string> _overrides;
+
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void AutoLoadEndpointsFromResources()
+    {
+        var so = UnityEngine.Resources.Load<TrucoApiEndpointsSO>("TrucoApiEndpoints");
+        if (so != null) ApplyEndpoints(so);
+    }
+
+    /// <summary>Apply base URL + endpoint overrides from the central ScriptableObject.</summary>
+    public static void ApplyEndpoints(TrucoApiEndpointsSO so)
+    {
+        if (so == null) return;
+        if (!string.IsNullOrEmpty(so.baseUrl)) BaseUrl = so.baseUrl.TrimEnd('/');
+        _overrides = new System.Collections.Generic.Dictionary<string, string>();
+        if (so.endpoints != null)
+            foreach (var e in so.endpoints)
+                if (e != null && !string.IsNullOrEmpty(e.key) && !string.IsNullOrEmpty(e.pathTemplate))
+                    _overrides[e.key] = e.pathTemplate;
+        UnityEngine.Debug.Log($"[ApiConfig] Endpoints loaded from SO. Base={BaseUrl}, overrides={_overrides.Count}");
+    }
+
+    static string PathOf(string key, string defaultPath)
+        => _overrides != null && _overrides.TryGetValue(key, out var t) && !string.IsNullOrEmpty(t) ? t : defaultPath;
+
+    static string Url(string key, string defaultPath) => BaseUrl + PathOf(key, defaultPath);
+    static string Url(string key, string defaultPath, string id) => BaseUrl + string.Format(PathOf(key, defaultPath), id);
+
+    /// <summary>Resolve a brand-new endpoint defined only in the SO (no code member). Returns null if missing.</summary>
+    public static string Custom(string key, params object[] args)
+    {
+        if (_overrides != null && _overrides.TryGetValue(key, out var t) && !string.IsNullOrEmpty(t))
+            return BaseUrl + (args != null && args.Length > 0 ? string.Format(t, args) : t);
+        return null;
+    }
+
     #region Auth
 
     public static string Login => $"{BaseUrl}/auth/login";
@@ -29,42 +70,48 @@
     #region Tournaments
     // Torneos: creación reservada al panel de administración (no hay flujo de jugador que cree torneos en esta app).
 
-    public static string ListTournaments => BaseUrl + "/tournaments";
-    public static string GetTournament(string id) => $"{BaseUrl}/tournaments/{id}";
-    public static string EnterTournament(string id) => $"{BaseUrl}/tournaments/{id}/join";
-    public static string ValidatePrivateTournament(string id) => $"{BaseUrl}/tournaments/{id}/validate-password";
-    public static string GetTournamentPlayers(string id) => $"{BaseUrl}/tournaments/{id}/players";
-    public static string FinalizeTournament(string id) => $"{BaseUrl}/tournaments/{id}/finalize";
-    public static string FinalizeMatch(string id) => $"{BaseUrl}/tournaments/{id}/finalize-match";
-    public static string CreateTournamentMatch(string id) => $"{BaseUrl}/tournaments/{id}/create-match";
-    public static string UpdateAwardPercentage(string id) => $"{BaseUrl}/tournaments/{id}/update-award-percentage";
+    public static string ListTournaments => Url("ListTournaments", "/tournaments");
+    public static string GetTournament(string id) => Url("GetTournament", "/tournaments/{0}", id);
+    public static string EnterTournament(string id) => Url("EnterTournament", "/tournaments/{0}/join", id);
+    public static string ValidatePrivateTournament(string id) => Url("ValidatePrivateTournament", "/tournaments/{0}/validate-password", id);
+    public static string GetTournamentPlayers(string id) => Url("GetTournamentPlayers", "/tournaments/{0}/players", id);
+    public static string FinalizeTournament(string id) => Url("FinalizeTournament", "/tournaments/{0}/finalize", id);
+    public static string FinalizeMatch(string id) => Url("FinalizeMatch", "/tournaments/{0}/finalize-match", id);
+    public static string CreateTournamentMatch(string id) => Url("CreateTournamentMatch", "/tournaments/{0}/create-match", id);
+    public static string UpdateAwardPercentage(string id) => Url("UpdateAwardPercentage", "/tournaments/{0}/update-award-percentage", id);
 
     #endregion
 
     #region Matches
     // 1v1: resultados y saldos normales = autoridad del backend; el cliente solo consume API (join, códigos, etc.).
 
-    public static string ListMatches => BaseUrl + "/matches";
+    public static string ListMatches => Url("MatchList", "/matches");
     public static string CreateMatchGlobal => BaseUrl + "/matches"; // same endpoint but global
-    public static string GetMatch(string id) => $"{BaseUrl}/matches/{id}";
-    public static string GetMyMatches => BaseUrl + "/matches/player/my-matches";
+    public static string GetMatch(string id) => Url("GetMatch", "/matches/{0}", id);
+    public static string GetMyMatches => Url("GetMyMatches", "/matches/player/my-matches");
 
     /// <summary>Player creates a 1v1 room: balance check + entry fee + match row (see Swagger).</summary>
-    public static string PlayerCreateMatch => BaseUrl + "/matches/player-create";
+    public static string PlayerCreateMatch => Url("PlayerCreateMatch", "/matches/player-create");
 
-    public static string PlayerJoinMatch(string id) => $"{BaseUrl}/matches/{id}/join";
+    public static string PlayerJoinMatch(string id) => Url("PlayerJoinMatch", "/matches/{0}/join", id);
 
     /// <summary>After Photon room is created, register name so admin panel can see it.</summary>
-    public static string MatchRegisterPhotonRoom(string id) => $"{BaseUrl}/matches/{id}/photon-room";
+    public static string MatchRegisterPhotonRoom(string id) => Url("MatchRegisterPhotonRoom", "/matches/{0}/photon-room", id);
 
     /// <summary>POST body typically { "winnerId": "…" } — confirm in Swagger; may require admin or player role.</summary>
-    public static string MatchSubmitResult(string id) => $"{BaseUrl}/matches/{id}/result";
+    public static string MatchSubmitResult(string id) => Url("MatchSubmitResult", "/matches/{0}/result", id);
 
     /// <summary>
     /// Player leaves match lobby / unregisters from active <c>players</c> (implement on server).
     /// Called when exiting gameplay so stale "full" rows clear; safe if match already completed (no-op).
     /// </summary>
-    public static string MatchPlayerLeave(string id) => $"{BaseUrl}/matches/{id}/leave";
+    public static string MatchPlayerLeave(string id) => Url("MatchPlayerLeave", "/matches/{0}/leave", id);
+
+    /// <summary>
+    /// End-of-match route. Default guesses <c>/matches/{id}/end</c>; override the exact path in the
+    /// TrucoApiEndpoints asset (key=MatchEnd) when the backend dev provides it — no code change needed.
+    /// </summary>
+    public static string MatchEnd(string id) => Url("MatchEnd", "/matches/{0}/end", id);
 
     #endregion
 

@@ -20,7 +20,7 @@ public class MainMenuManager : MonoBehaviour
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         MainMenuViewCoordinator.TryCompleteNavigationIfNeeded();
         WireLogoutButton();
-        AppManager.Instance.DisplayLoadingUI("Please Wait...");
+        AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.PleaseWait);
 
 
         MultiplayerController.LeaveTournamentMatchmaking(async () =>

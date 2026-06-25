@@ -10,7 +10,7 @@ public class CoinGetter : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        InvokeRepeating(nameof(GetCoins), 0.1f, 0.1f);
+        InvokeRepeating(nameof(GetCoins), 0.5f, 2f);
     }
 
     private void GetCoins()

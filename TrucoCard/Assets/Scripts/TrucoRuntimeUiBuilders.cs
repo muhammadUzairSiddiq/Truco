@@ -133,7 +133,7 @@ public static class TrucoRuntimeUiBuilders
         jpr.anchorMin = Vector2.zero; jpr.anchorMax = Vector2.one;
         jpr.offsetMin = new Vector2(8, 4); jpr.offsetMax = new Vector2(-8, -4);
         var jPht = jPh.AddComponent<TextMeshProUGUI>();
-        jPht.text = "mín. 6 car.";
+        jPht.text = "mín. 4 car.";
         jPht.fontSize = 24f;
         jPht.color = new Color(0.4f, 0.35f, 0.3f, 0.6f);
         if (f != null) jPht.font = f;
@@ -376,7 +376,7 @@ public static class TrucoRuntimeUiBuilders
         cLtmp.alignment = TextAlignmentOptions.MidlineLeft;
         if (f != null) cLtmp.font = f;
         cLtmp.raycastTarget = false;
-        var passIn = CreateFormInputField("PrivateCode", passG.transform, f, "mín. 6 caracteres", 44);
+        var passIn = CreateFormInputField("PrivateCode", passG.transform, f, TrucoLocalization.T(TrucoLocalization.Key.CodigoMinPlaceholder), 44);
         if (passIn != null) passIn.characterLimit = OneVsOnePrivateRoomCode.MaxPasswordLength;
 
         var feeLblGo = new GameObject("FeeLabel", typeof(RectTransform));
@@ -402,14 +402,33 @@ public static class TrucoRuntimeUiBuilders
         var feeH = feeRow.AddComponent<HorizontalLayoutGroup>();
         feeH.padding = new RectOffset(0, 0, 0, 0);
         feeH.spacing = 20;
-        feeH.childAlignment = TextAnchor.MiddleLeft;
+        feeH.childAlignment = TextAnchor.MiddleCenter;
         feeH.childControlWidth = true;
         feeH.childControlHeight = true;
-        feeH.childForceExpandWidth = false;
+        feeH.childForceExpandWidth = true;
         feeH.childForceExpandHeight = false;
-        var t10 = CreateFormFeeToggle(feeRow.transform, f, "10", true, kFeeAmt, out _);
-        var t100 = CreateFormFeeToggle(feeRow.transform, f, "100", false, kFeeAmt, out _);
-        var t500 = CreateFormFeeToggle(feeRow.transform, f, "500", false, kFeeAmt, out _);
+        var t5 = CreateFormFeeToggle(feeRow.transform, f, "5", true, kFeeAmt, out _);
+        var t10 = CreateFormFeeToggle(feeRow.transform, f, "10", false, kFeeAmt, out _);
+        var t15 = CreateFormFeeToggle(feeRow.transform, f, "15", false, kFeeAmt, out _);
+
+        var prizeGo = new GameObject("PrizePreview", typeof(RectTransform));
+        prizeGo.transform.SetParent(inner.transform, false);
+        var prizeLe = prizeGo.AddComponent<LayoutElement>();
+        prizeLe.minHeight = 48f;
+        prizeLe.preferredHeight = 48f;
+        prizeLe.flexibleHeight = 0f;
+        var prizeTmp = prizeGo.AddComponent<TextMeshProUGUI>();
+        prizeTmp.text = Player1v1MatchExtensions.FormatEntryPrizeLabel(5);
+        prizeTmp.fontSize = kLabel;
+        prizeTmp.fontStyle = FontStyles.Bold;
+        if (f != null) prizeTmp.font = f;
+        prizeTmp.color = TrucoUiTheme.EntryPrizeAccent;
+        prizeTmp.enableAutoSizing = true;
+        prizeTmp.fontSizeMin = 20f;
+        prizeTmp.fontSizeMax = kLabel;
+        prizeTmp.overflowMode = TextOverflowModes.Ellipsis;
+        prizeTmp.alignment = TextAlignmentOptions.MidlineLeft;
+        prizeTmp.raycastTarget = false;
 
         var btnRow = new GameObject("Btns", typeof(RectTransform));
         btnRow.transform.SetParent(inner.transform, false);
@@ -434,12 +453,13 @@ public static class TrucoRuntimeUiBuilders
             pubT,
             passG,
             passIn,
+            t5,
             t10,
-            t100,
-            t500,
+            t15,
             ok,
             cancel,
             privT);
+        panel.BindPrizePreview(prizeTmp);
 
         return panel;
     }
@@ -593,20 +613,21 @@ public static class TrucoRuntimeUiBuilders
         row = new GameObject("Fee_" + amount, typeof(RectTransform));
         row.transform.SetParent(parent, false);
         var rowLe = row.AddComponent<LayoutElement>();
-        rowLe.minWidth = 140f;
-        rowLe.preferredWidth = 156f;
+        rowLe.minWidth = 0f;
+        rowLe.preferredWidth = -1f;
+        rowLe.flexibleWidth = 1f;
         rowLe.minHeight = 68f;
         rowLe.preferredHeight = 68f;
-        rowLe.flexibleWidth = 0f;
         var hr = row.AddComponent<HorizontalLayoutGroup>();
-        hr.spacing = 10;
-        hr.childAlignment = TextAnchor.MiddleLeft;
-        hr.childControlWidth = true;
+        hr.spacing = 8;
+        hr.padding = new RectOffset(4, 4, 0, 0);
+        hr.childAlignment = TextAnchor.MiddleCenter;
+        hr.childControlWidth = false;
         hr.childControlHeight = true;
         hr.childForceExpandWidth = false;
         hr.childForceExpandHeight = false;
 
-        int boxPx = Mathf.Clamp(Mathf.RoundToInt(amountFont + 8f), 40, 56);
+        int boxPx = Mathf.Clamp(Mathf.RoundToInt(amountFont + 6f), 36, 48);
         var box = new GameObject("Box", typeof(RectTransform));
         box.transform.SetParent(row.transform, false);
         var t = box.AddComponent<Toggle>();
@@ -628,7 +649,7 @@ public static class TrucoRuntimeUiBuilders
         ck.transform.SetParent(br, false);
         StretchFull(ck.GetComponent<RectTransform>());
         var ckI = ck.AddComponent<Image>();
-        ckI.color = new Color(0.25f, 0.55f, 0.32f, 1f);
+        ckI.color = TrucoUiTheme.AccentGreen;
         t.graphic = ckI;
         t.targetGraphic = bgI;
 
@@ -636,16 +657,34 @@ public static class TrucoRuntimeUiBuilders
         lgo.transform.SetParent(row.transform, false);
         var ltmp = lgo.AddComponent<TextMeshProUGUI>();
         ltmp.text = amount;
-        ltmp.fontSize = amountFont;
+        ltmp.fontSize = Mathf.Min(amountFont, 36f);
         ltmp.fontStyle = FontStyles.Bold;
-        ltmp.alignment = TextAlignmentOptions.MidlineLeft;
+        ltmp.alignment = TextAlignmentOptions.Center;
         ltmp.color = TrucoUiTheme.CreateFormSubLabelCream;
         ltmp.raycastTarget = false;
+        ltmp.enableWordWrapping = false;
+        ltmp.overflowMode = TextOverflowModes.Overflow;
         if (font != null) ltmp.font = font;
         var lLe = lgo.AddComponent<LayoutElement>();
         lLe.flexibleWidth = 0f;
-        lLe.minWidth = 40f;
+        lLe.minWidth = 28f;
+        lLe.preferredWidth = 36f;
         return t;
+    }
+
+    internal static void SetFeeToggleAmountLabel(Toggle toggle, int entryStake)
+    {
+        if (toggle == null) return;
+        var row = toggle.transform.parent;
+        if (row == null) return;
+        for (int i = 0; i < row.childCount; i++)
+        {
+            var ch = row.GetChild(i);
+            if (ch.name != "L") continue;
+            var tmp = ch.GetComponent<TMPro.TextMeshProUGUI>();
+            if (tmp != null) tmp.text = entryStake.ToString();
+            return;
+        }
     }
 
     static TMP_InputField CreateFormInputField(string name, Transform parent, TMP_FontAsset font, string ph, int size)
@@ -981,7 +1020,7 @@ public static class Truco1v1SceneUiWiring
         prt.offsetMin = new Vector2(10, 6);
         prt.offsetMax = new Vector2(-10, -6);
         var pht = ph.AddComponent<TextMeshProUGUI>();
-        pht.text = "mín. 6";
+        pht.text = "mín. 4";
         pht.fontSize = 22f;
         pht.color = new Color(0.45f, 0.4f, 0.36f, 0.8f);
         if (font != null) pht.font = font;

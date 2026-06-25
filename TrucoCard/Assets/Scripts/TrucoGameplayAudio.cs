@@ -76,6 +76,9 @@ public class TrucoGameplayAudio : MonoBehaviour
 
     public static void PlayLocalRaise(byte eventCode)
     {
+        // Visual callout (shown regardless of audio/TTS path) so both players can read the canto.
+        if (UIMANAGER.Instance != null)
+            UIMANAGER.Instance.ShowChallengeCallout(TrucoCalloutPhrases.ForEventCode(eventCode), true);
         if (Instance == null) return;
 #if UNITY_ANDROID && !UNITY_EDITOR
         var phrase = TrucoCalloutPhrases.ForEventCode(eventCode);
@@ -106,6 +109,9 @@ public class TrucoGameplayAudio : MonoBehaviour
         {
             return;
         }
+        // Visual callout for the opponent's canto (shown regardless of audio/TTS path).
+        if (UIMANAGER.Instance != null)
+            UIMANAGER.Instance.ShowChallengeCallout(TrucoCalloutPhrases.ForEventCode(eventCode), false);
         if (Instance == null) return;
 #if UNITY_ANDROID && !UNITY_EDITOR
         var phrase = TrucoCalloutPhrases.ForEventCode(eventCode);

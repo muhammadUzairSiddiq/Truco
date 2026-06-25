@@ -70,7 +70,109 @@ public class UIMANAGER : MonoBehaviour
     private bool _isDoubleEnvido = false;
     private bool _isDoubleRealEnvido = false;
     public bool _isChallengepPending = false;
-    
+
+    /// <summary>True only on the player who currently must answer a canto (truco/envido/flor).</summary>
+    public bool _iOweChallengeResponse = false;
+    private Coroutine _challengeResponseRoutine;
+    const float ChallengeResponseSeconds = 30f;
+
+    /// <summary>Start the 30 s response countdown on the player who received a canto. Auto-declines on timeout (anti-freeze).</summary>
+    public void BeginChallengeResponseCountdown()
+    {
+        if (SpectatorContext.IsSpectator) return;
+        _iOweChallengeResponse = true;
+        if (_challengeResponseRoutine != null) StopCoroutine(_challengeResponseRoutine);
+        _challengeResponseRoutine = StartCoroutine(ChallengeResponseCountdown());
+    }
+
+    /// <summary>Cancel the response countdown (called whenever this player takes any action / buttons disabled).</summary>
+    public void CancelChallengeResponseCountdown()
+    {
+        _iOweChallengeResponse = false;
+        if (_challengeResponseRoutine != null) { StopCoroutine(_challengeResponseRoutine); _challengeResponseRoutine = null; }
+    }
+
+    System.Collections.IEnumerator ChallengeResponseCountdown()
+    {
+        float d = ChallengeResponseSeconds;
+        while (d > 0f)
+        {
+            if (!_iOweChallengeResponse) { _challengeResponseRoutine = null; yield break; }
+            if (GameManager.Instance != null && GameManager.Instance._gameEnded) { _challengeResponseRoutine = null; yield break; }
+            d -= Time.deltaTime;
+            int sec = Mathf.CeilToInt(d);
+            if (sec < 0) sec = 0;
+            bool urgent = sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos;
+            UpdateTurnText(TrucoTextosClient.FormatoBannerResponderConSegundos(sec), -1f, urgent);
+            yield return null;
+        }
+        _challengeResponseRoutine = null;
+        if (!_iOweChallengeResponse) yield break;
+        if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
+        _iOweChallengeResponse = false;
+        AppManager.Instance?.DisplayNotification(TrucoTextosClient.TiempoRespuestaAgotado);
+        // Safe auto-resolution: decline the canto so the hand never freezes.
+        ChallengeNoQueiro();
+    }
+
+    // ───────── Visual callout banner: shows which canto each player declared (truco/envido/flor/…) ─────────
+    private GameObject _calloutGo;
+    private TMPro.TMP_Text _calloutTmp;
+
+    /// <summary>Show a short banner with the canto/declaration so BOTH players can see it (not only hear it).</summary>
+    public void ShowChallengeCallout(string phrase, bool mine)
+    {
+        if (string.IsNullOrEmpty(phrase)) return;
+        EnsureCalloutLabel();
+        if (_calloutTmp == null || _calloutGo == null) return;
+        string who = mine ? "Vos" : "Rival";
+        string color = mine ? "#7CFC9B" : "#FFC24A";
+        _calloutTmp.text = $"<color={color}><b>{who}:</b></color> {phrase}";
+        _calloutGo.SetActive(true);
+        CancelInvoke(nameof(HideCallout));
+        Invoke(nameof(HideCallout), 2.4f);
+    }
+
+    /// <summary>Show a free-form declaration (e.g. "Tengo 31", "Son buenas", "Flor: 38").</summary>
+    public void ShowDeclarationCallout(string text, bool mine) => ShowChallengeCallout(text, mine);
+
+    void HideCallout()
+    {
+        if (_calloutGo != null) _calloutGo.SetActive(false);
+    }
+
+    void EnsureCalloutLabel()
+    {
+        if (_calloutTmp != null) return;
+        Canvas canvas = turnText != null ? turnText.GetComponentInParent<Canvas>() : FindObjectOfType<Canvas>();
+        if (canvas == null) return;
+        _calloutGo = new GameObject("ChallengeCallout", typeof(RectTransform));
+        _calloutGo.transform.SetParent(canvas.transform, false);
+        var rt = _calloutGo.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 1f);
+        rt.anchorMax = new Vector2(0.5f, 1f);
+        rt.pivot = new Vector2(0.5f, 1f);
+        rt.anchoredPosition = new Vector2(0f, -180f);
+        rt.sizeDelta = new Vector2(720f, 92f);
+        var bg = _calloutGo.AddComponent<Image>();
+        bg.color = new Color(0f, 0f, 0f, 0.58f);
+        bg.raycastTarget = false;
+        var txtGo = new GameObject("Text", typeof(RectTransform));
+        txtGo.transform.SetParent(_calloutGo.transform, false);
+        var trt = txtGo.GetComponent<RectTransform>();
+        trt.anchorMin = Vector2.zero;
+        trt.anchorMax = Vector2.one;
+        trt.offsetMin = new Vector2(18f, 8f);
+        trt.offsetMax = new Vector2(-18f, -8f);
+        _calloutTmp = txtGo.AddComponent<TMPro.TextMeshProUGUI>();
+        _calloutTmp.alignment = TMPro.TextAlignmentOptions.Center;
+        _calloutTmp.raycastTarget = false;
+        _calloutTmp.enableAutoSizing = true;
+        _calloutTmp.fontSizeMin = 26f;
+        _calloutTmp.fontSizeMax = 50f;
+        _calloutGo.SetActive(false);
+    }
+
     private void Awake()
     {
         Instance = this;
@@ -235,6 +337,9 @@ public class UIMANAGER : MonoBehaviour
     // This disables all the buttons in the UI
     public void DisableButtons()
     {
+        // Any local challenge action / button-disable means this player no longer "owes" a response.
+        // Safe failure mode: if we ever cancel too early we simply lose the auto-decline net (never wrong-decline).
+        CancelChallengeResponseCountdown();
         foreach (GameObject button in allUiButtons)
         {
             if (button != null)
@@ -280,6 +385,12 @@ public class UIMANAGER : MonoBehaviour
         t.LeanMove(otherPlayersDisplayCardsPosition[_otherPlayersDisplayCardIndex].position, 0.5f).setEaseInOutCubic();
         _otherPlayersDisplayCardIndex++;
         if (envido != null) envido.SetActive(false);
+    }
+
+    /// <summary>Shows cards revealed for envido/flor scoring (visible to both players in the trick area).</summary>
+    public void ShowRevealedScoringCard(CardSuit suit, int value)
+    {
+        ShowOtherPlayersCard(suit, value);
     }
 
     void PrepareTrickLayout(Transform t, bool lastSibling = true)

@@ -10,20 +10,88 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
     [SerializeField] private Toggle _isPrivateToggle;
     [SerializeField] private GameObject _passwordGroup;
     [SerializeField] private TMP_InputField _passwordField;
+    [SerializeField] private Toggle _fee5;
     [SerializeField] private Toggle _fee10;
-    [SerializeField] private Toggle _fee100;
-    [SerializeField] private Toggle _fee500;
+    [SerializeField] private Toggle _fee15;
     [SerializeField] private Button _confirm;
     [SerializeField] private Button _cancel;
+    [SerializeField] private TMP_Text _prizePreview;
     bool _feeTogglesWired;
     System.Action _onCancel;
+
+    /// <summary>Optional: a label that shows the prize the winner will get for the selected entry fee.</summary>
+    public void RefreshLocalizedLabels()
+    {
+        RefreshPrizePreview();
+        TrucoRuntimeUiBuilders.SetFeeToggleAmountLabel(_fee5, 5);
+        TrucoRuntimeUiBuilders.SetFeeToggleAmountLabel(_fee10, 10);
+        TrucoRuntimeUiBuilders.SetFeeToggleAmountLabel(_fee15, 15);
+        SetLabelInChild("FeeLabel", TrucoTextosClient.EntradaMonedas);
+        SetLabelInChild("CodeLabel", TrucoTextosClient.CodigoSala4);
+        SetAccessToggleLabel(_isPublicToggle, TrucoTextosClient.Publica);
+        SetAccessToggleLabel(_isPrivateToggle, TrucoTextosClient.Privada);
+        SetButtonLabel(_confirm, TrucoTextosClient.CrearSala);
+        SetButtonLabel(_cancel, TrucoTextosClient.Volver);
+        if (_nameField != null && _nameField.placeholder is TMP_Text ph)
+            ph.text = TrucoTextosClient.NombreSala;
+        if (_passwordField != null && _passwordField.placeholder is TMP_Text pph)
+            pph.text = TrucoLocalization.T(TrucoLocalization.Key.CodigoMinPlaceholder);
+        if (_prizePreview != null)
+            _prizePreview.color = TrucoUiTheme.EntryPrizeAccent;
+    }
+
+    void SetLabelInChild(string goName, string text)
+    {
+        foreach (var ch in GetComponentsInChildren<Transform>(true))
+        {
+            if (ch.name != goName) continue;
+            var tmp = ch.GetComponent<TMP_Text>();
+            if (tmp != null) tmp.text = text;
+            return;
+        }
+    }
+
+    static void SetAccessToggleLabel(Toggle tgl, string label)
+    {
+        if (tgl == null) return;
+        var row = tgl.transform.parent;
+        if (row == null) return;
+        for (int i = 0; i < row.childCount; i++)
+        {
+            var ch = row.GetChild(i);
+            if (ch == tgl.transform) continue;
+            var tmp = ch.GetComponent<TMP_Text>();
+            if (tmp != null) { tmp.text = label; return; }
+        }
+    }
+
+    static void SetButtonLabel(Button btn, string text)
+    {
+        if (btn == null) return;
+        var tmp = btn.GetComponentInChildren<TMP_Text>(true);
+        if (tmp != null) tmp.text = text;
+    }
+
+    public void BindPrizePreview(TMP_Text prizeLabel)
+    {
+        _prizePreview = prizeLabel;
+        RefreshPrizePreview();
+    }
+
+    void RefreshPrizePreview()
+    {
+        if (_prizePreview == null) return;
+        int entry = GetEntryFee();
+        int prize = Player1v1MatchExtensions.ComputeOneVsOnePrize(entry);
+        _prizePreview.text = Player1v1MatchExtensions.FormatEntryPrizeLabel(entry);
+    }
 
     public void SetRuntimeBinding(
         TMP_InputField name,
         Toggle isPublic,
         GameObject passwordGroup,
         TMP_InputField password,
-        Toggle fee10, Toggle fee100, Toggle fee500,
+        Toggle fee5, Toggle fee10, Toggle fee15,
         Button confirm, Button cancel,
         Toggle privateAccessToggle = null)
     {
@@ -32,9 +100,9 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         _isPrivateToggle = privateAccessToggle;
         _passwordGroup = passwordGroup;
         _passwordField = password;
+        _fee5 = fee5;
         _fee10 = fee10;
-        _fee100 = fee100;
-        _fee500 = fee500;
+        _fee15 = fee15;
         _confirm = confirm;
         _cancel = cancel;
     }
@@ -49,12 +117,17 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
             _isPrivateToggle.SetIsOnWithoutNotify(false);
         }
         else if (_isPublicToggle != null) _isPublicToggle.isOn = true;
-        if (_nameField != null) _nameField.text = "Sala " + (ApiController.GetSessionUser?.Data?.username ?? "jugador");
+        if (_nameField != null)
+        {
+            string prefix = TrucoLocalization.IsEnglish ? "Room " : "Sala ";
+            string fallback = TrucoLocalization.IsEnglish ? "player" : "jugador";
+            _nameField.text = prefix + (ApiController.GetSessionUser?.Data?.username ?? fallback);
+        }
         if (_passwordField != null) _passwordField.text = string.Empty;
         SyncPasswordGroup();
-        if (_fee10 != null) { _fee10.isOn = true; }
-        if (_fee100 != null) _fee100.isOn = false;
-        if (_fee500 != null) _fee500.isOn = false;
+        if (_fee5 != null) { _fee5.isOn = true; }
+        if (_fee10 != null) _fee10.isOn = false;
+        if (_fee15 != null) _fee15.isOn = false;
 
         if (_isPrivateToggle != null)
         {
@@ -81,6 +154,7 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         }
 
         if (!_feeTogglesWired) { _feeTogglesWired = true; WireFeeTogglesForExclusive(); }
+        RefreshLocalizedLabels();
 
         if (_confirm != null)
         {
@@ -118,12 +192,16 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
 
     public int GetEntryFee()
     {
-        if (_fee500 != null && _fee500.isOn) return 500;
-        if (_fee100 != null && _fee100.isOn) return 100;
-        return 10;
+        if (_fee15 != null && _fee15.isOn) return 15;
+        if (_fee10 != null && _fee10.isOn) return 10;
+        return 5;
     }
 
-    public string GetRoomName() => _nameField != null ? _nameField.text.Trim() : "Sala";
+    public string GetRoomName()
+    {
+        if (_nameField == null) return TrucoLocalization.IsEnglish ? "Room" : "Sala";
+        return _nameField.text.Trim();
+    }
 
     public bool IsPublic()
     {
@@ -135,11 +213,11 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
 
     void WireFeeTogglesForExclusive()
     {
+        if (_fee5 != null)
+            _fee5.onValueChanged.AddListener(v => { if (v) { if (_fee10) _fee10.isOn = false; if (_fee15) _fee15.isOn = false; } RefreshPrizePreview(); });
         if (_fee10 != null)
-            _fee10.onValueChanged.AddListener(v => { if (v) { if (_fee100) _fee100.isOn = false; if (_fee500) _fee500.isOn = false; } });
-        if (_fee100 != null)
-            _fee100.onValueChanged.AddListener(v => { if (v) { if (_fee10) _fee10.isOn = false; if (_fee500) _fee500.isOn = false; } });
-        if (_fee500 != null)
-            _fee500.onValueChanged.AddListener(v => { if (v) { if (_fee10) _fee10.isOn = false; if (_fee100) _fee100.isOn = false; } });
+            _fee10.onValueChanged.AddListener(v => { if (v) { if (_fee5) _fee5.isOn = false; if (_fee15) _fee15.isOn = false; } RefreshPrizePreview(); });
+        if (_fee15 != null)
+            _fee15.onValueChanged.AddListener(v => { if (v) { if (_fee5) _fee5.isOn = false; if (_fee10) _fee10.isOn = false; } RefreshPrizePreview(); });
     }
 }

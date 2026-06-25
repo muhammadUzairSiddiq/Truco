@@ -10,6 +10,8 @@ public static class TrucoUiTheme
     public static readonly Color TextPrimary = new Color(0.2f, 0.12f, 0.08f, 1f);
     public static readonly Color TextSecondary = new Color(0.35f, 0.25f, 0.18f, 1f);
     public static readonly Color AccentGreen = new Color(0.25f, 0.55f, 0.32f, 1f);
+    /// <summary>Entry → prize preview on cream form (readable green-brown).</summary>
+    public static readonly Color EntryPrizeAccent = new Color(0.18f, 0.48f, 0.28f, 1f);
     public static readonly Color RoomRowPanel = new Color(0.55f, 0.45f, 0.32f, 0.4f);
     public static readonly Color RoomRowJoin = new Color(0.62f, 0.5f, 0.32f, 1f);
     /// <summary>1v1 room list — wood/brown bar (matches header feel).</summary>

@@ -20,7 +20,7 @@ public class OneVsOneRoomListController : MonoBehaviour
     [Header("Crear")]
     [SerializeField] private OneVsOneCreateRoomPanel _createPanel;
 
-    [Header("Contraseña (privada) — mín. 6 caracteres (regla del servidor)")]
+    [Header("Contraseña (privada) — mín. 4 caracteres")]
     [SerializeField] private GameObject _passwordOverlay;
     [SerializeField] private TMPro.TMP_InputField _passwordField;
     [SerializeField] private Button _passwordConfirm;
@@ -29,8 +29,8 @@ public class OneVsOneRoomListController : MonoBehaviour
     [SerializeField] private OneVsOnePhotonFlow _photonFlow;
     [SerializeField] private GameObject _matchmakingScreen;
 
-    [Tooltip("Cada cuántos segundos vuelve a consultar el backend (0 = desactiva).")]
-    [SerializeField] private float _autoRefreshSeconds = 8f;
+    [Tooltip("Cada cuántos segundos vuelve a consultar el backend (0 = desactiva; usar botón Actualizar).")]
+    [SerializeField] private float _autoRefreshSeconds = 0f;
     [SerializeField] private float _minSecondsBetweenRefreshes = 2.5f;
 
     private float _nextAutoRefresh;
@@ -81,19 +81,19 @@ public class OneVsOneRoomListController : MonoBehaviour
     {
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         OneVsOnePhotonFlow.OnLobbyRoomCountsChanged += OnPhotonLobbyCountsChanged;
-        if (_buttonRefresh != null) _buttonRefresh.onClick.AddListener(Refresh);
+        if (_buttonRefresh != null) _buttonRefresh.onClick.AddListener(() => Refresh(showLoading: true));
         if (_buttonCreate != null) _buttonCreate.onClick.AddListener(OnClickCreate);
         if (_buttonBack != null) _buttonBack.onClick.AddListener(Close);
         if (_passwordConfirm != null) _passwordConfirm.onClick.AddListener(ConfirmPasswordAndJoin);
         if (_passwordCancel != null) _passwordCancel.onClick.AddListener(() => { ClosePassword(); });
         _nextAutoRefresh = Time.unscaledTime + 1f;
-        Refresh();
+        Refresh(showLoading: true);
     }
 
     void OnDisable()
     {
         OneVsOnePhotonFlow.OnLobbyRoomCountsChanged -= OnPhotonLobbyCountsChanged;
-        if (_buttonRefresh != null) _buttonRefresh.onClick.RemoveListener(Refresh);
+        if (_buttonRefresh != null) _buttonRefresh.onClick.RemoveAllListeners();
         if (_buttonCreate != null) _buttonCreate.onClick.RemoveListener(OnClickCreate);
         if (_buttonBack != null) _buttonBack.onClick.RemoveListener(Close);
         if (_passwordConfirm != null) _passwordConfirm.onClick.RemoveListener(ConfirmPasswordAndJoin);
@@ -106,7 +106,7 @@ public class OneVsOneRoomListController : MonoBehaviour
         if (_root != null && !_root.activeInHierarchy) return;
         _nextAutoRefresh = Time.unscaledTime + _autoRefreshSeconds;
         if (Time.unscaledTime - _lastRefreshTime < _minSecondsBetweenRefreshes) return;
-        Refresh();
+        Refresh(showLoading: false);
     }
 
     public void Open()
@@ -124,7 +124,7 @@ public class OneVsOneRoomListController : MonoBehaviour
             }
         }
         _nextAutoRefresh = Time.unscaledTime + 1f;
-        Refresh();
+        Refresh(showLoading: true);
     }
 
     public void Close()
@@ -141,22 +141,24 @@ public class OneVsOneRoomListController : MonoBehaviour
         }
     }
 
-    public async void Refresh()
+    public async void Refresh(bool showLoading = false)
     {
         _lastRefreshTime = Time.unscaledTime;
         if (_scrollContent == null || _rowPrefab == null) return;
         if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.EnsureInstance();
         _photonFlow.EnsureLobbyForRoomList();
-        AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
+        if (showLoading)
+            AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
         var list = await ApiController.FetchPlayer1v1MatchList();
-        AppManager.Instance.HideLoadingUI();
+        if (showLoading)
+            AppManager.Instance.HideLoadingUI();
         foreach (var v in _spawned)
             if (v != null) Destroy(v.gameObject);
         _spawned.Clear();
         if (list == null) return;
         foreach (var m in list.OrderBy(m => m.name ?? string.Empty))
         {
-            if (!m.IsLobbyLikeStatus() && m.status != null) continue;
+            if (!m.ShouldShowInLobbyList()) continue;
             var row = Instantiate(_rowPrefab, _scrollContent);
             row.gameObject.SetActive(true);
             bool can = m.CanClickJoinOnRoom();
@@ -212,7 +214,7 @@ public class OneVsOneRoomListController : MonoBehaviour
             name = panel.GetRoomName(),
             type = panel.IsPublic() ? "public" : "private",
             cost = stake,
-            prize = stake,
+            prize = Player1v1MatchExtensions.ComputeOneVsOnePrize(stake),
             maxPlayers = OneVsOneMatchSession.MaxPlayersPhoton,
             password = panel.IsPublic() ? string.Empty : privatePassword
         };
@@ -224,12 +226,12 @@ public class OneVsOneRoomListController : MonoBehaviour
         string photon = created.ResolvePhotonRoomName();
         if (string.IsNullOrEmpty(photon)) photon = OneVsOneMatchSession.BuildDefaultPhotonRoomName(created._id);
         bool reg = await ApiController.RegisterPhotonRoomName(created._id, photon, err => Debug.LogWarning(err));
-        if (!reg) AppManager.Instance.DisplayNotification("No se pudo sincronizar el nombre de la sala con el servidor, pero se puede jugar. El admin puede no ver el nombre todavía.");
+        if (!reg) AppManager.Instance.DisplayNotification(TrucoTextosClient.PhotonSyncWarning);
         OneVsOneMatchSession.SetHostContext(created._id, photon, fee);
         panel.Close();
         if (_matchmakingScreen != null) _matchmakingScreen.SetActive(false);
         if (_root != null) _root.SetActive(true);
-        Refresh();
+        Refresh(showLoading: false);
         if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.Instance;
         if (_photonFlow != null) _photonFlow.StartHostPhoton(OneVsOneMatchSession.MaxPlayersPhoton);
     }
@@ -280,6 +282,15 @@ public class OneVsOneRoomListController : MonoBehaviour
             AppManager.Instance.DisplayNotification(TrucoTextosClient.SalaExpiradaAviso);
             return;
         }
+        // Re-fetch this exact match from backend so we never join a stale row ("Match is full" on a new room).
+        var fresh = await ApiController.GetMatch1v1(m._id);
+        if (fresh != null) m = fresh;
+        if (m == null || !m.ShouldShowInLobbyList())
+        {
+            AppManager.Instance.DisplayNotification(TrucoTextosClient.SalaExpiradaAviso);
+            Refresh(showLoading: false);
+            return;
+        }
         int stake = m.GetEntryStake();
         if (!ClientBalanceOk(stake, out _)) { AppManager.Instance.DisplayNotification(TrucoTextosClient.SaldoInsuficiente); return; }
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
@@ -290,6 +301,9 @@ public class OneVsOneRoomListController : MonoBehaviour
         {
             if (string.IsNullOrEmpty(joinApiMessage))
                 AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorUnirse);
+            // Wallet may have changed even on failure — refresh balance from server.
+            _ = ApiController.GetCurrentUserProfile();
+            Refresh(showLoading: false);
             return;
         }
         string photon = result.ResolvePhotonRoomName();

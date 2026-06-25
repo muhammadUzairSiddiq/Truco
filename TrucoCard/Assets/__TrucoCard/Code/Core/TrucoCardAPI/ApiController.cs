@@ -355,7 +355,7 @@ public static class ApiController
                     continue;
                 }
 
-                onErrorAction?.Invoke("Tournament entry failed: Invalid response");
+                onErrorAction?.Invoke("No se pudo entrar al torneo (respuesta inválida del servidor).");
 
                 Debug.Log("[ApiController] - Tournament entry failed: Invalid response");
                 return false;
@@ -374,7 +374,7 @@ public static class ApiController
                     }
                     else
                     {
-                        onErrorAction?.Invoke("Enter Tournament Failed after retries: " + ex.Message);
+                        onErrorAction?.Invoke("No se pudo entrar al torneo: " + ex.Message);
                         Debug.Log("[ApiController] - Enter Tournament Failed after retries: " + ex.Message);
                         return false;
                     }
@@ -388,7 +388,7 @@ public static class ApiController
                     return true;
                 }
 
-                onErrorAction?.Invoke("Enter Tournament Failed: " + ex.Message);
+                onErrorAction?.Invoke("No se pudo entrar al torneo: " + ex.Message);
 
                 Debug.Log("[ApiController] - Enter Tournament Failed: " + ex.Message);
                 return false;
@@ -396,7 +396,7 @@ public static class ApiController
         }
 
         // If we exhausted retries
-        onErrorAction?.Invoke("Enter Tournament Failed: Maximum retry attempts reached.");
+        onErrorAction?.Invoke("No se pudo entrar al torneo: demasiados intentos. Probá de nuevo.");
         Debug.Log("[ApiController] - Enter Tournament Failed: Maximum retry attempts reached.");
         return false;
     }
@@ -781,7 +781,11 @@ public static class ApiController
                 return null;
             }
             var match = TryParsePlayerJoinMatchJson(response, listRowHint, out string apiMsg);
-            if (match != null) return match;
+            if (match != null)
+            {
+                await GetCurrentUserProfile();
+                return match;
+            }
             if (!string.IsNullOrEmpty(apiMsg))
                 onError?.Invoke(apiMsg);
             else
@@ -793,6 +797,41 @@ public static class ApiController
             onError?.Invoke(ex.Message);
             return null;
         }
+    }
+
+    /// <summary>Fresh match row from backend before join (avoids stale list / "Match is full").</summary>
+    public static async Task<Player1v1Match> GetMatch1v1(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return null;
+        try
+        {
+            string response = await HttpApiClient.GetAsync(ApiConfig.GetMatch(matchId));
+            Debug.Log("[ApiController] - GET match: " + response);
+            if (string.IsNullOrEmpty(response) || !response.Contains("{")) return null;
+            var direct = JsonUtility.FromJson<Player1v1Match>(response);
+            if (direct != null && !string.IsNullOrEmpty(direct._id)) return direct;
+            var wrapped = JsonUtility.FromJson<PlayerJoinMatchFlattenedDataRoot>(response);
+            if (wrapped?.data != null && !string.IsNullOrEmpty(wrapped.data._id)) return wrapped.data;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[ApiController] - GetMatch1v1: " + ex.Message);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Reports winner, asks backend to end/leave match, then refreshes wallet from /auth/me.
+    /// Backend is the authority for coin settlement; the client must re-fetch profile to show the prize.
+    /// </summary>
+    public static async System.Threading.Tasks.Task Finalize1v1MatchClient(string matchId, string winnerUserId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        if (!string.IsNullOrEmpty(winnerUserId))
+            await SubmitMatchResult1v1(matchId, winnerUserId, null);
+        await TryEndMatch1v1(matchId);
+        await TryNotifyPlayerLeftMatch1v1(matchId);
+        await GetCurrentUserProfile();
     }
 
     public static async Task<List<Player1v1Match>> FetchLiveActiveMatchesForDashboard()
@@ -879,6 +918,25 @@ public static class ApiController
         catch (Exception ex)
         {
             Debug.LogWarning("[ApiController] - TryNotifyPlayerLeftMatch1v1 (add POST /matches/:id/leave on server if needed): " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Asks the backend to END/close the match so the room disappears from the joinable list.
+    /// Route is read from the central SO (key=MatchEnd). Until the backend dev provides it, this
+    /// fails quietly (the client also reports the result via <see cref="SubmitMatchResult1v1"/>).
+    /// </summary>
+    public static async System.Threading.Tasks.Task TryEndMatch1v1(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        try
+        {
+            await HttpApiClient.PostAsync(ApiConfig.MatchEnd(matchId), "{}");
+            Debug.Log("[ApiController] - match end requested: " + matchId);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[ApiController] - TryEndMatch1v1 (set MatchEnd path in TrucoApiEndpoints when backend is ready): " + ex.Message);
         }
     }
 

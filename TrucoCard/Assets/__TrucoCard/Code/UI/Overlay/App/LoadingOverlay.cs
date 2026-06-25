@@ -12,8 +12,13 @@ public class LoadingOverlay : MonoBehaviour
 
     void Awake()
     {
+        TrucoLocalization.OnLanguageChanged += OnLanguageChanged;
         ApplyTheme();
     }
+
+    void OnDestroy() => TrucoLocalization.OnLanguageChanged -= OnLanguageChanged;
+
+    void OnLanguageChanged() => ApplyTheme();
 
     public void DisplayLoadingUI(string msgStr = "")
     {
@@ -26,6 +31,8 @@ public class LoadingOverlay : MonoBehaviour
     {
         if (_contentHolder != null) _contentHolder.SetActive(false);
     }
+
+    public void ReapplyTheme() => ApplyTheme();
 
     void ApplyTheme()
     {

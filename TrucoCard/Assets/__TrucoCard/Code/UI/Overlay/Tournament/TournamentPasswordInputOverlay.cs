@@ -41,21 +41,35 @@ public class TournamentPasswordInputOverlay : MonoBehaviour
         string passwordInput = _passwordInputField.text.Trim();
         if (passwordInput.Length < 1)
         {
-            AppManager.Instance.DisplayNotification("Please enter a valid password.");
+            AppManager.Instance.DisplayNotification(TrucoTextosClient.ContrasenaInvalida);
             return;
         }
 
-        AppManager.Instance.DisplayLoadingUI("Validating Password");
+        AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.ValidandoContrasena);
 
-        bool validated = await ApiController.ValidatePrivateTournament(_targetTournamentId, passwordInput);
+        bool validated = false;
+        try
+        {
+            validated = await ApiController.ValidatePrivateTournament(_targetTournamentId, passwordInput);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[TournamentPassword] validate failed: " + ex.Message);
+        }
+        finally
+        {
+            // Always clear the loading UI so the screen never stays stuck on "Validando contraseña…".
+            AppManager.Instance.HideLoadingUI();
+        }
 
         if (validated)
         {
+            _contentHolder.SetActive(false);
             _onValidationAction?.Invoke();
         }
         else
         {
-            AppManager.Instance.DisplayNotification("Invalid password. Please try again.");
+            AppManager.Instance.DisplayNotification(TrucoTextosClient.ContrasenaIncorrecta);
         }
     }
 

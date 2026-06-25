@@ -57,7 +57,7 @@ public static class OneVsOneMatchSession
 /// <summary>Private room password (API field <c>password</c>): server requires min length (6+). Host cache for list display.</summary>
 public static class OneVsOnePrivateRoomCode
 {
-    public const int MinPasswordLength = 6;
+    public const int MinPasswordLength = 4;
     public const int MaxPasswordLength = 48;
 
     static readonly Dictionary<string, string> MatchIdToCode = new Dictionary<string, string>();

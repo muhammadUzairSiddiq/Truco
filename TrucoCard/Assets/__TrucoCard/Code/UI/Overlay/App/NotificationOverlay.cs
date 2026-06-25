@@ -13,7 +13,15 @@ public class NotificationOverlay : MonoBehaviour
 
     #endregion
 
-    void Awake() => ApplyTheme();
+    void Awake()
+    {
+        TrucoLocalization.OnLanguageChanged += OnLanguageChanged;
+        ApplyTheme();
+    }
+
+    void OnDestroy() => TrucoLocalization.OnLanguageChanged -= OnLanguageChanged;
+
+    void OnLanguageChanged() => ApplyTheme();
 
     public void DisplayNotification(string msgStr = "", Action onCloseAction = null)
     {
@@ -28,10 +36,10 @@ public class NotificationOverlay : MonoBehaviour
             HideNotification();
         });
     }
-    public void HideNotification()
-    {
-        _contentHolder.SetActive(false);
-    }
+
+    public void HideNotification() => _contentHolder.SetActive(false);
+
+    public void ReapplyTheme() => ApplyTheme();
 
     void ApplyTheme()
     {

@@ -214,11 +214,24 @@ public static class TrucoOneVsOneMainMenuFactory
         var feeLe = feeRow.gameObject.AddComponent<LayoutElement>();
         feeLe.minHeight = 52;
         var feeHl = feeRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-        feeHl.spacing = 12;
-        feeHl.childAlignment = TextAnchor.MiddleLeft;
-        var t10 = ToggleField("T10", feeRow, font, "10", true);
-        var t100 = ToggleField("T100", feeRow, font, "100", false);
-        var t500 = ToggleField("T500", feeRow, font, "500", false);
+        feeHl.spacing = 16;
+        feeHl.childAlignment = TextAnchor.MiddleCenter;
+        feeHl.childControlWidth = true;
+        feeHl.childForceExpandWidth = true;
+        var t5 = ToggleField("T5", feeRow, font, "5", true);
+        var t10 = ToggleField("T10", feeRow, font, "10", false);
+        var t15 = ToggleField("T15", feeRow, font, "15", false);
+
+        var prizePreview = TmpText("PrizePreview", center, font, Player1v1MatchExtensions.FormatEntryPrizeLabel(5), 22);
+        var prizeLe = prizePreview.gameObject.AddComponent<LayoutElement>();
+        prizeLe.minHeight = 44f;
+        var prizeTmp = prizePreview;
+        prizeTmp.color = TrucoUiTheme.EntryPrizeAccent;
+        prizeTmp.fontStyle = FontStyles.Bold;
+        prizeTmp.enableAutoSizing = true;
+        prizeTmp.fontSizeMin = 18f;
+        prizeTmp.fontSizeMax = 22f;
+        prizeTmp.overflowMode = TextOverflowModes.Ellipsis;
 
         var btns = CreateRect("Btns", center);
         var btnRowLe = btns.gameObject.AddComponent<LayoutElement>();
@@ -239,12 +252,13 @@ public static class TrucoOneVsOneMainMenuFactory
             pub,
             passGroup,
             passIn,
+            t5,
             t10,
-            t100,
-            t500,
+            t15,
             ok,
             cancel,
             null);
+        createPanel.BindPrizePreview(prizeTmp);
 
         var list = root.AddComponent<OneVsOneRoomListController>();
         list.ApplyRuntimeWiring(
@@ -482,13 +496,17 @@ public static class TrucoOneVsOneMainMenuFactory
         t.graphic = ck.GetComponent<Image>();
         t.targetGraphic = bg.GetComponent<Image>();
 
-        var lbl = TmpText("Lbl", r, font, label, 15);
+        var lbl = TmpText("Lbl", r, font, label, 22);
         var lr = lbl.GetComponent<RectTransform>();
         SetAnchors(lr, new Vector2(0, 0), new Vector2(1, 1), new Vector2(28, 0), new Vector2(0, 0));
+        lbl.fontStyle = FontStyles.Bold;
+        lbl.alignment = TextAlignmentOptions.Center;
+        lbl.enableWordWrapping = false;
 
         var le = go.AddComponent<LayoutElement>();
-        le.minWidth = 80;
-        le.minHeight = 28;
+        le.minWidth = 72;
+        le.flexibleWidth = 1f;
+        le.minHeight = 36;
         return t;
     }
 }

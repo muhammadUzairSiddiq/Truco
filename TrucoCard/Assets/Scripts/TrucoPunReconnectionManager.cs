@@ -11,8 +11,11 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
     [SerializeField] private float _rejoinWindowSeconds = 55f;
     [SerializeField] private float _retryStepSeconds = 2f;
     [SerializeField] private float _fallbackPhaseSeconds = 15f;
+    [Tooltip("How long the player who stayed waits for the opponent to reconnect before winning by walkover.")]
+    [SerializeField] private float _opponentReconnectWindowSeconds = 60f;
 
     Coroutine _routine;
+    Coroutine _opponentWatch;
     TrucoReconnectionUi _ui;
 
     public override void OnDisconnected(DisconnectCause cause)
@@ -29,6 +32,56 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
     }
 
     bool IsGameplayScene() => SceneManager.GetActiveScene().name == "Gameplay";
+
+    // ───────── Opponent dropped: the player who STAYED sees a 60 s wait, then wins by walkover ─────────
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        base.OnPlayerLeftRoom(otherPlayer);
+        if (!IsGameplayScene()) return;
+        if (SpectatorContext.IsSpectator) return;
+        if (GameManager.Instance != null && GameManager.Instance._gameEnded) return;
+        // With PlayerTtl > 0 a disconnected player is marked inactive (can still rejoin within the TTL window).
+        if (otherPlayer != null && otherPlayer.IsInactive && _opponentWatch == null)
+            _opponentWatch = StartCoroutine(WaitForOpponentReconnect());
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        base.OnPlayerEnteredRoom(newPlayer);
+        // Opponent came back in time — cancel the walkout countdown.
+        if (_opponentWatch != null)
+        {
+            StopCoroutine(_opponentWatch);
+            _opponentWatch = null;
+            _ui?.Hide();
+            AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
+        }
+    }
+
+    IEnumerator WaitForOpponentReconnect()
+    {
+        _ui = TrucoReconnectionUi.Ensure(transform);
+        float deadline = Time.unscaledTime + _opponentReconnectWindowSeconds;
+        while (Time.unscaledTime < deadline)
+        {
+            if (GameManager.Instance != null && GameManager.Instance._gameEnded) { _ui?.Hide(); _opponentWatch = null; yield break; }
+            // If the opponent is active again, stop (OnPlayerEnteredRoom usually handles this first).
+            bool opponentBack = false;
+            foreach (var p in PhotonNetwork.PlayerListOthers)
+                if (p != null && !p.IsInactive) { opponentBack = true; break; }
+            if (opponentBack) { _ui?.Hide(); _opponentWatch = null; AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk); yield break; }
+
+            int rem = Mathf.Max(0, Mathf.CeilToInt(deadline - Time.unscaledTime));
+            _ui?.Show(TrucoTextosClient.RivalReconectando, rem);
+            yield return null;
+        }
+        _ui?.Hide();
+        _opponentWatch = null;
+        // Opponent never returned within the window → the player who stayed wins by walkover.
+        if (GameManager.Instance != null)
+            GameManager.Instance.WinByOpponentWalkover();
+    }
 
     IEnumerator TryReconnectAndRejoin()
     {

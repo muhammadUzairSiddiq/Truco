@@ -79,7 +79,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         if (!PhotonNetwork.ConnectUsingSettings())
         {
             IsConnecting = false;
-            onError?.Invoke("No se pudo conectar a Photon.");
+            onError?.Invoke(TrucoTextosClient.PhotonConnectFailed);
         }
     }
 
@@ -109,7 +109,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         if (!PhotonNetwork.ConnectUsingSettings())
         {
             IsConnecting = false;
-            onError?.Invoke("No se pudo conectar a Photon.");
+            onError?.Invoke(TrucoTextosClient.PhotonConnectFailed);
         }
     }
 
@@ -162,11 +162,23 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnCreateRoomFailed(short returnCode, string message)
     {
+        // Photon room name collision (previous match room still alive) — join it instead of failing.
+        if (CurrentPurpose == Purpose.CreateHostedRoom
+            && !string.IsNullOrEmpty(message)
+            && message.IndexOf("already exist", StringComparison.OrdinalIgnoreCase) >= 0
+            && !string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName))
+        {
+            Debug.LogWarning("[OneVsOnePhoton] Room exists — joining instead: " + OneVsOneMatchSession.PhotonRoomName);
+            CurrentPurpose = Purpose.JoinHostedRoom;
+            if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
+                PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
+            return;
+        }
         IsConnecting = false;
         CurrentPurpose = Purpose.None;
         _deferredCreateAfterLeave = false;
         _deferredJoinAfterLeave = false;
-        AppManager.Instance.DisplayNotification("No se pudo crear la sala en Photon: " + message);
+        AppManager.Instance.DisplayNotification(string.Format(TrucoTextosClient.PhotonCreateFailed, message));
     }
 
     public override void OnJoinRoomFailed(short returnCode, string message)

@@ -72,9 +72,10 @@ public class OneVsOneRoomRowView : MonoBehaviour
             _titleText.text = string.IsNullOrEmpty(m.name) ? m._id : m.name;
 
         int cost = m.GetEntryStake();
+        int prize = m.GetPrizeForDisplay();
         string typeStr = m.GetTypeLabel();
         if (_metaText != null)
-            _metaText.text = $"{typeStr}  ·  {TrucoTextosClient.EntradaAbrev}: {cost}";
+            _metaText.text = $"{typeStr}  ·  {TrucoTextosClient.EntradaAbrev}: {cost}  ·  {TrucoTextosClient.PremioAbrev}: {prize}";
 
         int count = m.GetTrucoPlayerCountForUi();
         if (_playersText != null)

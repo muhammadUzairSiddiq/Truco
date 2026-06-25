@@ -1,66 +1,62 @@
 /// <summary>
-/// Textos de interfaz en español (estilo paraguayo / Río de la Plata, sin muletillas argentinas forzadas).
-/// Ajustar copy con el cliente según reglas locales del Truco en Paraguay.
+/// UI copy for 1v1 / gameplay (Spanish default, English via <see cref="TrucoLocalization"/>).
 /// </summary>
 public static class TrucoTextosClient
 {
-    public const string Partida1v1 = "Partida 1 vs 1";
-    public const string SalasDisponibles = "Salas disponibles";
-    public const string SeleccionarMesa = "Seleccionar mesa";
-    public const string EntradaAbrev = "Entrada";
-    public const string JugadoresEnSala = "Jugadores: {0}/{1}";
-    public const string TuSalaEsperando = "Tu sala";
-    /// <summary>English: room is full. Short label for join button.</summary>
-    public const string SalaLlena = "Full";
-    /// <summary>Short label under join button when API says full but Photon shows an empty room.</summary>
-    public const string SalaExpiradaEtiqueta = "Expirado";
-    /// <summary>Toast / IMPORTANT when user tries to join an expired row.</summary>
-    public const string SalaExpiradaAviso = "La sala expiró. Creá o unite a otra sala.";
-    public const string CrearSala = "Crear sala";
-    public const string ActualizarLista = "Actualizar";
-    public const string Volver = "Volver";
-    public const string BuscandoOponente = "Buscando oponente…";
-    public const string EsperandoRivalSala = "Esperando a otro jugador (2/2 para empezar)…";
-    public const string PartidaEncontrada = "¡Oponente listo!";
-    public const string CargandoJuego = "Cargando partida…";
+    public static string ImportantTitle => TrucoLocalization.T(TrucoLocalization.Key.ImportantTitle);
+    public static string Ok => TrucoLocalization.T(TrucoLocalization.Key.Ok);
+    public static string Espere => TrucoLocalization.T(TrucoLocalization.Key.Espere);
 
-    public const string NombreSala = "Nombre de la sala";
-    public const string TipoSala = "Tipo de sala";
-    public const string Publica = "Pública";
-    public const string Privada = "Privada";
-    public const string ContrasenaSala = "Contraseña";
-    /// <summary>Must match server rule for <c>password</c> (min 6 characters).</summary>
-    public const string CodigoSala4 = "Código de sala (mín. 6 caracteres)";
-    public const string CodigoPrivadaInfo = "Sala privada: elegí un código (mín. 6 caracteres, igual que pide el servidor). Solo vos lo verás en la lista.";
-    public const string CodigoInvalido4 = "Ingresá al menos 6 caracteres (contraseña de la sala).";
-    public const string CodigoEtiqueta = "Cód.";
-    public const string TuCodigoSala = "Tu código";
-    public const string CodigoParaUnir = "Código";
-    public const string EntradaMonedas = "Entrada (monedas)";
+    public static string Partida1v1 => TrucoLocalization.T(TrucoLocalization.Key.Partida1v1);
+    public static string SalasDisponibles => TrucoLocalization.T(TrucoLocalization.Key.SalasDisponibles);
+    public static string SeleccionarMesa => TrucoLocalization.T(TrucoLocalization.Key.SeleccionarMesa);
+    public static string EntradaAbrev => TrucoLocalization.T(TrucoLocalization.Key.EntradaAbrev);
+    public static string PremioAbrev => TrucoLocalization.T(TrucoLocalization.Key.PremioAbrev);
+    public static string JugadoresEnSala => TrucoLocalization.T(TrucoLocalization.Key.JugadoresEnSala);
+    public static string TuSalaEsperando => TrucoLocalization.T(TrucoLocalization.Key.TuSalaEsperando);
+    public static string SalaLlena => TrucoLocalization.T(TrucoLocalization.Key.SalaLlena);
+    public static string SalaExpiradaEtiqueta => TrucoLocalization.T(TrucoLocalization.Key.SalaExpiradaEtiqueta);
+    public static string SalaExpiradaAviso => TrucoLocalization.T(TrucoLocalization.Key.SalaExpiradaAviso);
+    public static string CrearSala => TrucoLocalization.T(TrucoLocalization.Key.CrearSala);
+    public static string ActualizarLista => TrucoLocalization.T(TrucoLocalization.Key.ActualizarLista);
+    public static string Volver => TrucoLocalization.T(TrucoLocalization.Key.Volver);
+    public static string BuscandoOponente => TrucoLocalization.T(TrucoLocalization.Key.BuscandoOponente);
+    public static string EsperandoRivalSala => TrucoLocalization.T(TrucoLocalization.Key.EsperandoRivalSala);
+    public static string PartidaEncontrada => TrucoLocalization.T(TrucoLocalization.Key.PartidaEncontrada);
+    public static string CargandoJuego => TrucoLocalization.T(TrucoLocalization.Key.CargandoJuego);
 
-    public const string Unirse = "Unirse";
-    /// <summary>Short CTA on list rows (match compact list UI).</summary>
-    public const string Entrar = "ENTRAR";
-    public const string SaldoInsuficiente = "No tenés saldo suficiente para la entrada. Revisá en la tienda o recargá.";
-    public const string ErrorCrearSala = "No se pudo crear la sala. Intentá otra vez.";
-    public const string ErrorUnirse = "No se pudo unir a la sala.";
-    public const string Conectando = "Conectando al servidor de partida…";
-    public const string IngresaContrasena = "Ingresá la contraseña de la sala.";
+    public static string NombreSala => TrucoLocalization.T(TrucoLocalization.Key.NombreSala);
+    public static string TipoSala => TrucoLocalization.T(TrucoLocalization.Key.TipoSala);
+    public static string Publica => TrucoLocalization.T(TrucoLocalization.Key.Publica);
+    public static string Privada => TrucoLocalization.T(TrucoLocalization.Key.Privada);
+    public static string ContrasenaSala => TrucoLocalization.T(TrucoLocalization.Key.ContrasenaSala);
+    public static string CodigoSala4 => TrucoLocalization.T(TrucoLocalization.Key.CodigoSala4);
+    public static string CodigoPrivadaInfo => TrucoLocalization.T(TrucoLocalization.Key.CodigoPrivadaInfo);
+    public static string CodigoInvalido4 => TrucoLocalization.T(TrucoLocalization.Key.CodigoInvalido4);
+    public static string CodigoEtiqueta => TrucoLocalization.T(TrucoLocalization.Key.CodigoEtiqueta);
+    public static string TuCodigoSala => TrucoLocalization.T(TrucoLocalization.Key.TuCodigoSala);
+    public static string CodigoParaUnir => TrucoLocalization.T(TrucoLocalization.Key.CodigoParaUnir);
+    public static string EntradaMonedas => TrucoLocalization.T(TrucoLocalization.Key.EntradaMonedas);
 
-    public const string TiempoEsgotadoJugada = "Se acabó el tiempo. Se juega la carta automáticamente (regla local de espera).";
-    public const string CuentaRegresiva = "Tiempo: {0} s";
-    public const string TuTurno = "Tu turno";
-    public const string TurnoRival = "Turno del rival";
+    public static string Unirse => TrucoLocalization.T(TrucoLocalization.Key.Unirse);
+    public static string Entrar => TrucoLocalization.T(TrucoLocalization.Key.Entrar);
+    public static string SaldoInsuficiente => TrucoLocalization.T(TrucoLocalization.Key.SaldoInsuficiente);
+    public static string ErrorCrearSala => TrucoLocalization.T(TrucoLocalization.Key.ErrorCrearSala);
+    public static string ErrorUnirse => TrucoLocalization.T(TrucoLocalization.Key.ErrorUnirse);
+    public static string Conectando => TrucoLocalization.T(TrucoLocalization.Key.Conectando);
+    public static string IngresaContrasena => TrucoLocalization.T(TrucoLocalization.Key.IngresaContrasena);
 
-    /// <summary>Desde 1s hasta este inclusive, el UI muestra aviso (color de urgencia).</summary>
+    public static string TiempoEsgotadoJugada => TrucoLocalization.T(TrucoLocalization.Key.TiempoEsgotadoJugada);
+    public static string CuentaRegresiva => TrucoLocalization.T(TrucoLocalization.Key.CuentaRegresiva);
+    public static string TuTurno => TrucoLocalization.T(TrucoLocalization.Key.TuTurno);
+    public static string TurnoRival => TrucoLocalization.T(TrucoLocalization.Key.TurnoRival);
+
     public const int TurnoTimerUrgenteHastaSegundos = 5;
 
-    /// <summary>Formato de banner superior (TextMeshPro rich text) para el cronómetro de 30 s. Incluye color de aviso al quedar poco tiempo.</summary>
     public static string FormatoBannerTuTurnoConSegundos(int sec)
     {
         if (sec < 0) sec = 0;
         bool urgent = sec <= TurnoTimerUrgenteHastaSegundos;
-        // >5 s: gris-azul suave + dígitos blancos. ≤5 s: leve ámbar + dígitos ámbar/dorado (alta visibilidad).
         string cLabel = urgent ? "#f0dcc0" : "#c8d4e0";
         string cNum = urgent ? "#ffc24a" : "#ffffff";
         string cSuf = urgent ? "#e8a060" : "#aeb8c4";
@@ -69,14 +65,63 @@ public static class TrucoTextosClient
             + "</color></size><br><size=" + szNum + "><color=" + cNum + "><b>" + sec
             + "</b></color></size><size=30><color=" + cSuf + "> s</color></size></line-height></align>";
     }
-    public const string GanaPorAbandono = "Ganaste: el rival dejó la partida.";
-    public const string Reconectando = "Reconectando…";
-    /// <summary>Overlay a pantalla completa (línea corta + número de segundos al lado).</summary>
-    public const string ReconectandoOverlay = "Reconectando…";
-    public const string ReconectarFallo = "No se pudo reconectar. Volviendo al menú.";
-    public const string ReconexOk = "Reconexión correcta. Seguís en la partida.";
-    public const string ReconexionPerdida1v1 = "Se cortó la conexión. Perdiste la partida; gana el rival.";
-    public const string EspectandoAdmin = "Modo espectador (admin).";
+
+    public static string FormatoBannerTurnoRivalConSegundos(int sec)
+    {
+        if (sec < 0) sec = 0;
+        bool urgent = sec <= TurnoTimerUrgenteHastaSegundos;
+        string cLabel = urgent ? "#f0dcc0" : "#c8d4e0";
+        string cNum = urgent ? "#ffc24a" : "#ffffff";
+        string cSuf = urgent ? "#e8a060" : "#aeb8c4";
+        string szNum = urgent ? "86" : "80";
+        return "<align=center><line-height=76%><size=34><color=" + cLabel + ">" + TurnoRival
+            + "</color></size><br><size=" + szNum + "><color=" + cNum + "><b>" + sec
+            + "</b></color></size><size=30><color=" + cSuf + "> s</color></size></line-height></align>";
+    }
+
+    public static string FormatoBannerResponderConSegundos(int sec)
+    {
+        if (sec < 0) sec = 0;
+        bool urgent = sec <= TurnoTimerUrgenteHastaSegundos;
+        string cLabel = urgent ? "#f0dcc0" : "#ffe2b0";
+        string cNum = urgent ? "#ffc24a" : "#ffd166";
+        string cSuf = urgent ? "#e8a060" : "#c9a96a";
+        string szNum = urgent ? "86" : "80";
+        return "<align=center><line-height=76%><size=34><color=" + cLabel + ">" + Responde
+            + "</color></size><br><size=" + szNum + "><color=" + cNum + "><b>" + sec
+            + "</b></color></size><size=30><color=" + cSuf + "> s</color></size></line-height></align>";
+    }
+
+    public static string Responde => TrucoLocalization.T(TrucoLocalization.Key.Responde);
+    public static string EsperandoRespuestaRival => TrucoLocalization.T(TrucoLocalization.Key.EsperandoRespuestaRival);
+    public static string EsperandoJugadaRival => TrucoLocalization.T(TrucoLocalization.Key.EsperandoJugadaRival);
+    public static string TiempoRespuestaAgotado => TrucoLocalization.T(TrucoLocalization.Key.TiempoRespuestaAgotado);
+
+    public static string GanastePremio => TrucoLocalization.T(TrucoLocalization.Key.GanastePremio);
+    public static string GanaPorAbandono => TrucoLocalization.T(TrucoLocalization.Key.GanaPorAbandono);
+    public static string RivalReconectando => TrucoLocalization.T(TrucoLocalization.Key.RivalReconectando);
+    public static string Reconectando => TrucoLocalization.T(TrucoLocalization.Key.Reconectando);
+    public static string ReconectandoOverlay => TrucoLocalization.T(TrucoLocalization.Key.ReconectandoOverlay);
+    public static string ReconectarFallo => TrucoLocalization.T(TrucoLocalization.Key.ReconectarFallo);
+    public static string ReconexOk => TrucoLocalization.T(TrucoLocalization.Key.ReconexOk);
+    public static string ReconexionPerdida1v1 => TrucoLocalization.T(TrucoLocalization.Key.ReconexionPerdida1v1);
+    public static string EspectandoAdmin => TrucoLocalization.T(TrucoLocalization.Key.EspectandoAdmin);
+
+    public static string GanastePartida => TrucoLocalization.T(TrucoLocalization.Key.GanastePartida);
+    public static string PerdistePartida => TrucoLocalization.T(TrucoLocalization.Key.PerdistePartida);
+    public static string PerdisteMano => TrucoLocalization.T(TrucoLocalization.Key.PerdisteMano);
+    public static string FaltaPanelCrear => TrucoLocalization.T(TrucoLocalization.Key.FaltaPanelCrear);
+    public static string ValidandoContrasena => TrucoLocalization.T(TrucoLocalization.Key.ValidandoContrasena);
+    public static string ContrasenaInvalida => TrucoLocalization.T(TrucoLocalization.Key.ContrasenaInvalida);
+    public static string ContrasenaIncorrecta => TrucoLocalization.T(TrucoLocalization.Key.ContrasenaIncorrecta);
+    public static string EntryPrizeFormat => TrucoLocalization.T(TrucoLocalization.Key.EntryPrizeFormat);
+    public static string PleaseWait => TrucoLocalization.T(TrucoLocalization.Key.PleaseWait);
+    public static string PhotonCreateFailed => TrucoLocalization.T(TrucoLocalization.Key.PhotonCreateFailed);
+    public static string PhotonSyncWarning => TrucoLocalization.T(TrucoLocalization.Key.PhotonSyncWarning);
+    public static string PhotonConnectFailed => TrucoLocalization.T(TrucoLocalization.Key.PhotonConnectFailed);
+    public static string ChampionCongrats => TrucoLocalization.T(TrucoLocalization.Key.ChampionCongrats);
+
+    // Admin / live dashboard (English-only labels kept for admin tooling)
     public const string LiveDashboardTitle = "Panel en vivo — partidas 1v1";
     public const string LiveDashboardButton = "Live Dashboard";
     public const string AdminVolver = "Volver";
@@ -88,9 +133,4 @@ public static class TrucoTextosClient
     public const string Spectate = "Ver / espectar";
     public const string ForceCloseMatch = "Cerrar partida (admin)";
     public const string VolverMenuAdmin = "Volver al menú de admin";
-
-    public const string GanastePartida = "¡Ganaste la partida!";
-    public const string PerdistePartida = "Perdiste la partida.";
-    public const string PerdisteMano = "Perdiste la mano.";
-    public const string FaltaPanelCrear = "No se pudo abrir el panel de crear (error interno).";
 }

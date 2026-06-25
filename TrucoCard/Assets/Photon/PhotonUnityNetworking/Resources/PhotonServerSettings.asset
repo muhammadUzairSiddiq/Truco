@@ -68,6 +68,9 @@ MonoBehaviour:
   - ReceiveTournamentFullBracket
   - CreateTournamentMatch
   - JoinTournamentMatch
+  - AnnounceEnvidoPoints
+  - AnnounceFlorPoints
+  - RevealScoringCardsRpc
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

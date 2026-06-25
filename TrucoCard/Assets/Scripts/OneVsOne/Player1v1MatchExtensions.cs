@@ -42,6 +42,55 @@ public static class Player1v1MatchExtensions
         return 0;
     }
 
+    /// <summary>
+    /// Prize for a 1v1 = total pot (entry × 2) minus the 10% house fee.
+    /// e.g. entry 10 → 18, entry 100 → 180, entry 500 → 900. Backend is the final authority.
+    /// </summary>
+    public static int ComputeOneVsOnePrize(int entryStake)
+    {
+        if (entryStake <= 0) return 0;
+        return Mathf.FloorToInt(entryStake * 2 * 0.9f);
+    }
+
+    public static string FormatEntryPrizeLabel(int entryStake)
+    {
+        int prize = ComputeOneVsOnePrize(entryStake);
+        return string.Format(TrucoTextosClient.EntryPrizeFormat, entryStake, ComputeOneVsOnePrize(entryStake));
+    }
+
+    /// <summary>True if the logged-in user is already listed in this match's players array.</summary>
+    public static bool IsCurrentUserParticipant(this Player1v1Match m)
+    {
+        var uid = ApiController.GetSessionUser?.Data?._id;
+        if (m == null || string.IsNullOrEmpty(uid) || m.players == null) return false;
+        for (int i = 0; i < m.players.Length; i++)
+        {
+            var p = m.players[i];
+            if (p != null && p._id == uid) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Should this row appear in the joinable lobby list?</summary>
+    public static bool ShouldShowInLobbyList(this Player1v1Match m)
+    {
+        if (m == null) return false;
+        if (!m.IsLobbyLikeStatus()) return false;
+        if (m.GetTrucoPlayerCount() >= 2) return false;
+        if (m.IsStaleFullVersusPhoton()) return false;
+        // Guest already registered in this match — don't offer join again (prevents double-charge / "Match is full").
+        if (m.IsCurrentUserParticipant() && !m.IsCurrentUserHostOfRoom()) return false;
+        return true;
+    }
+
+    /// <summary>Prize to show on a room row: trust the API value if present, else compute from entry.</summary>
+    public static int GetPrizeForDisplay(this Player1v1Match m)
+    {
+        if (m == null) return 0;
+        if (m.prize > 0) return m.prize;
+        return ComputeOneVsOnePrize(m.GetEntryStake());
+    }
+
     /// <summary>Players as reported by GET /matches payload (not merged with Photon).</summary>
     public static int GetApiReportedPlayerCount(this Player1v1Match m)
     {

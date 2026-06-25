@@ -25,6 +25,7 @@ public static class MainMenuViewCoordinator
         _showTournamentTab = null;
         _showMenuTab = null;
         _bottomNav = null;
+        TrucoLanguageToggleUi.ResetForLeavingMainMenu();
     }
 
     /// <summary>
@@ -192,6 +193,7 @@ public static class MainMenuViewCoordinator
         ShowMenuTab();
         AvatarUiBinder.HookProfileAndMainMenu(main);
         UsernameMainMenuBinder.ApplyToScene();
+        TrucoLanguageToggleUi.EnsureOnMainMenu(main);
     }
 
     static void WireOneVsOneRoomFlow(Transform main, GameObject roomList, GameObject roomCreate, GameObject bottomNav, Action onExitToMenu)
@@ -366,7 +368,11 @@ public static class MainMenuViewCoordinator
     /// <summary>Call from <c>Start</c> if the first <see cref="Initialize"/> ran before MAIN was findable, or a nav <see cref="Button"/> was missing.</summary>
     public static void TryCompleteNavigationIfNeeded()
     {
-        if (_navWired) return;
+        if (_navWired)
+        {
+            if (_mainRoot != null) TrucoLanguageToggleUi.EnsureOnMainMenu(_mainRoot);
+            return;
+        }
         if (SceneManager.GetActiveScene().name != "MainMenu") return;
         if (!_done)
         {
@@ -375,6 +381,7 @@ public static class MainMenuViewCoordinator
         }
         if (_mainRoot == null) return;
         RetryBottomNavWiring();
+        TrucoLanguageToggleUi.EnsureOnMainMenu(_mainRoot);
     }
 
     static void Deactivate1v1OverlaysInMain(Transform main)

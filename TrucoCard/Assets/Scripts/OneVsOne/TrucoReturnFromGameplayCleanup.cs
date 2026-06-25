@@ -23,7 +23,10 @@ public static class TrucoReturnFromGameplayCleanup
         string matchId = OneVsOneMatchSession.CurrentMatchId;
         if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
         if (!string.IsNullOrEmpty(matchId))
+        {
             _ = ApiController.TryNotifyPlayerLeftMatch1v1(matchId);
+            _ = ApiController.GetCurrentUserProfile();
+        }
         OneVsOneMatchSession.Clear();
         if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
         if (PhotonNetwork.IsConnectedAndReady && !PhotonNetwork.InRoom && !PhotonNetwork.InLobby)
