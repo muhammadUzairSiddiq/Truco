@@ -113,6 +113,9 @@
     /// </summary>
     public static string MatchEnd(string id) => Url("MatchEnd", "/matches/{0}/end", id);
 
+    /// <summary>Initialize backend game state when both players enter gameplay (master client).</summary>
+    public static string MatchStartGame(string id) => Url("MatchStartGame", "/matches/{0}/start-game", id);
+
     #endregion
 
     #region Alerts

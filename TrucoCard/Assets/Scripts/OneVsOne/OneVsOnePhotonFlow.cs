@@ -27,6 +27,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     bool _deferredJoinAfterLeave;
     bool _deferredCreateAfterLeave;
     int _deferredCreateMaxPlayers;
+    bool _matchFoundFired;
 
     /// <summary>Salas visibles en el lobby de Photon (nombre → jugadores en tiempo real).</summary>
     readonly Dictionary<string, int> _lobbyRoomPlayerCount = new Dictionary<string, int>(32, StringComparer.Ordinal);
@@ -61,6 +62,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             return;
         }
         IsConnecting = true;
+        _matchFoundFired = false;
         CurrentPurpose = Purpose.CreateHostedRoom;
         PhotonNetwork.AutomaticallySyncScene = true;
         if (PhotonNetwork.InRoom)
@@ -92,6 +94,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             return;
         }
         IsConnecting = true;
+        _matchFoundFired = false;
         CurrentPurpose = Purpose.JoinHostedRoom;
         PhotonNetwork.AutomaticallySyncScene = true;
         if (PhotonNetwork.InRoom)
@@ -270,9 +273,19 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         TrucoRoomPersistence.SaveCurrentRoom();
         TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         if (PhotonNetwork.CurrentRoom == null) return;
-        if (_sessionUi == null) _sessionUi = FindObjectOfType<OneVsOnePhotonSessionUi>(true);
-        if (_sessionUi != null) _sessionUi.Initialize();
-        else if (_matchMakingPanel != null) _matchMakingPanel.Initialize();
+
+        if (TrucoLobbyMatchmakingUi.IsRoomListWaitingMode())
+        {
+            TrucoLobbyMatchmakingUi.HideWaitingOverlay();
+            OnLobbyRoomCountsChanged?.Invoke();
+        }
+        else
+        {
+            if (_sessionUi == null) _sessionUi = FindObjectOfType<OneVsOnePhotonSessionUi>(true);
+            if (_sessionUi != null) _sessionUi.Initialize();
+            else if (_matchMakingPanel != null) _matchMakingPanel.Initialize();
+        }
+
         if (PhotonNetwork.CurrentRoom.PlayerCount >= OneVsOneMatchSession.MaxPlayersGameplay)
             FireMatchFound();
     }
@@ -286,14 +299,33 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     void FireMatchFound()
     {
+        if (_matchFoundFired) return;
+        _matchFoundFired = true;
+        TrucoLobbyMatchmakingUi.ShowMatchFoundOverlay();
         if (_sessionUi == null) _sessionUi = FindObjectOfType<OneVsOnePhotonSessionUi>(true);
-        if (_sessionUi != null) _sessionUi.MatchFound();
-        else _matchMakingPanel?.MatchFound();
+        if (_sessionUi != null)
+        {
+            if (_sessionUi.gameObject != null && !_sessionUi.gameObject.activeInHierarchy)
+                _sessionUi.gameObject.SetActive(true);
+            _sessionUi.MatchFound();
+        }
+        else
+        {
+            if (_matchMakingPanel == null)
+                _matchMakingPanel = FindObjectOfType<MatchMakingPanel>(true);
+            if (_matchMakingPanel != null)
+            {
+                if (_matchMakingPanel.gameObject != null && !_matchMakingPanel.gameObject.activeInHierarchy)
+                    _matchMakingPanel.gameObject.SetActive(true);
+                _matchMakingPanel.MatchFound();
+            }
+        }
     }
 
     public void ResetPurpose()
     {
         CurrentPurpose = Purpose.None;
+        _matchFoundFired = false;
     }
 
     /// <summary>Creates a DontDestroyOnLoad flow if none exists (1v1 lobby / join without scene wiring).</summary>

@@ -12,6 +12,7 @@ public class MainMenuManager : MonoBehaviour
 
     void Awake()
     {
+        TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         MainMenuViewCoordinator.Initialize();
     }
 
@@ -29,7 +30,9 @@ public class MainMenuManager : MonoBehaviour
 
             AppManager.Instance.HideLoadingUI();
             UsernameMainMenuBinder.ApplyToScene();
+            TrucoWalletHudRefresh.Apply();
             MainMenuViewCoordinator.TryCompleteNavigationIfNeeded();
+            MainMenuViewCoordinator.EnsureBottomNavVisible();
             RegisterButtonEvents();
 
         });
@@ -38,9 +41,25 @@ public class MainMenuManager : MonoBehaviour
 
     public void StopMatchMaking()
     {
+        if (OneVsOneMatchLifecycle.IsWaitingInPreGameLobby())
+        {
+            TrucoLobbyLeaveConfirm.RunIfNeeded(() =>
+            {
+                PhotonNetwork.Disconnect();
+                if (matchMakingPanel != null) matchMakingPanel.SetActive(false);
+            });
+            return;
+        }
+
+        string matchId = OneVsOneMatchSession.CurrentMatchId;
         PhotonNetwork.LeaveRoom(false);
         PhotonNetwork.Disconnect();
-        matchMakingPanel.SetActive(false);
+        if (!string.IsNullOrEmpty(matchId))
+            _ = OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
+        OneVsOneMatchSession.Clear();
+        if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
+        TrucoLobbyMatchmakingUi.HideWaitingOverlay();
+        if (matchMakingPanel != null) matchMakingPanel.SetActive(false);
     }
 
     const string LoginSceneName = "LoginScreen";
@@ -56,7 +75,7 @@ public class MainMenuManager : MonoBehaviour
         if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
         ApiController.ClearClientSessionState();
         MainMenuViewCoordinator.DestroyBottomNavIfPresent();
-        SceneManager.LoadScene(LoginSceneName, LoadSceneMode.Single);
+        TrucoSceneTransition.Go(LoginSceneName);
     }
 
     [System.Obsolete("Use LogoutToLogin — build index 0 is Init, not the login form.")]

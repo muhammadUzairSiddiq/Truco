@@ -23,7 +23,11 @@ public static class TrucoLocalization
     public static event Action OnLanguageChanged;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    static void AutoLoad() => Load();
+    static void AutoLoad()
+    {
+        Load();
+        ForceSpanish();
+    }
 
     public static void Load()
     {
@@ -33,12 +37,22 @@ public static class TrucoLocalization
 
     public static void SetLanguage(Lang lang)
     {
+        lang = Lang.Spanish;
         if (!_loaded) Load();
         if (_current == lang) return;
         _current = lang;
         PlayerPrefs.SetInt(PrefKey, (int)lang);
         PlayerPrefs.Save();
         OnLanguageChanged?.Invoke();
+    }
+
+    /// <summary>UI is Spanish-only; clears any saved English preference.</summary>
+    public static void ForceSpanish()
+    {
+        _loaded = true;
+        _current = Lang.Spanish;
+        PlayerPrefs.SetInt(PrefKey, (int)Lang.Spanish);
+        PlayerPrefs.Save();
     }
 
     public static bool IsEnglish => Current == Lang.English;
@@ -122,6 +136,23 @@ public static class TrucoLocalization
             case Key.ChampionCongrats: return "¡Felicitaciones, sos el campeón!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
+            case Key.ModoJuego: return "Modo de juego";
+            case Key.ConFlor: return "Con Flor";
+            case Key.SinFlor: return "Sin Flor";
+            case Key.ConfirmLeaveLobbyTitle: return "¿Salir de la sala?";
+            case Key.ConfirmLeaveLobbyBody: return "Si salís ahora, perderás la sala y se reembolsará la entrada.";
+            case Key.ConfirmNoQuedarme: return "NO";
+            case Key.ConfirmSiSalir: return "SÍ, SALIR";
+            case Key.SalaCanceladaReembolso: return "Sala cancelada. Entrada reembolsada.";
+            case Key.NotificacionesTitulo: return "Notificaciones";
+            case Key.NotificacionesVacio: return "No hay eventos todavía.";
+            case Key.LogExito: return "Éxito";
+            case Key.LogPendiente: return "Pendiente";
+            case Key.LogAviso: return "Aviso";
+            case Key.LogInfo: return "Info";
+            case Key.LogSalaCreada: return "Sala creada. Esperando rival…";
+            case Key.LogUnidoSala: return "Te uniste a una sala. Esperando inicio…";
+            case Key.LogSalasActualizadas: return "Lista de salas actualizada ({0} disponibles).";
             default: return k.ToString();
         }
     }
@@ -203,6 +234,23 @@ public static class TrucoLocalization
             case Key.ChampionCongrats: return "Congratulations, you are the champion!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
+            case Key.ModoJuego: return "Game mode";
+            case Key.ConFlor: return "w/ Flor";
+            case Key.SinFlor: return "No Flor";
+            case Key.ConfirmLeaveLobbyTitle: return "Leave the room?";
+            case Key.ConfirmLeaveLobbyBody: return "If you leave now, you will lose the room and your entry will be refunded.";
+            case Key.ConfirmNoQuedarme: return "NO";
+            case Key.ConfirmSiSalir: return "YES, LEAVE";
+            case Key.SalaCanceladaReembolso: return "Room cancelled. Entry refunded.";
+            case Key.NotificacionesTitulo: return "Notifications";
+            case Key.NotificacionesVacio: return "No events yet.";
+            case Key.LogExito: return "Success";
+            case Key.LogPendiente: return "Pending";
+            case Key.LogAviso: return "Warning";
+            case Key.LogInfo: return "Info";
+            case Key.LogSalaCreada: return "Room created. Waiting for opponent…";
+            case Key.LogUnidoSala: return "You joined a room. Waiting to start…";
+            case Key.LogSalasActualizadas: return "Room list updated ({0} available).";
             default: return k.ToString();
         }
     }
@@ -223,6 +271,10 @@ public static class TrucoLocalization
         GanastePartida, PerdistePartida, PerdisteMano, FaltaPanelCrear,
         ValidandoContrasena, ContrasenaInvalida, ContrasenaIncorrecta, EntryPrizeFormat,
         CodigoMinPlaceholder, PleaseWait, PhotonCreateFailed, PhotonSyncWarning, PhotonConnectFailed, ChampionCongrats,
-        LangEng, LangSpn
+        LangEng, LangSpn,
+        ModoJuego, ConFlor, SinFlor,
+        ConfirmLeaveLobbyTitle, ConfirmLeaveLobbyBody, ConfirmNoQuedarme, ConfirmSiSalir, SalaCanceladaReembolso,
+        NotificacionesTitulo, NotificacionesVacio, LogExito, LogPendiente, LogAviso, LogInfo,
+        LogSalaCreada, LogUnidoSala, LogSalasActualizadas
     }
 }

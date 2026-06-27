@@ -13,16 +13,13 @@ public class CoinGetter : MonoBehaviour
         InvokeRepeating(nameof(GetCoins), 0.5f, 2f);
     }
 
-    private void GetCoins()
+    private void GetCoins() => RefreshNow();
+
+    public void RefreshNow()
     {
-        if (ApiController.GetSessionUser.Data.wallet != null)
-        {
-            coins.text = ApiController.GetSessionUser.Data.wallet.balance.ToString();
-        }
-        else
-        {
-            coins.text = "0";
-        }
+        if (coins == null) return;
+        var wallet = ApiController.GetSessionUser?.Data?.wallet;
+        coins.text = wallet != null ? wallet.balance.ToString() : "0";
     }
     
     // Update is called once per frame

@@ -10,34 +10,43 @@ public class MatchMakingPanel : MonoBehaviour
     [SerializeField] private GameObject lookingForMatch;
     [SerializeField] private GameObject matchFoundText;
 
+    public void ResetState()
+    {
+        CancelInvoke(nameof(LoadGame));
+        if (panel != null) panel.SetActive(false);
+        if (playerAImage != null) playerAImage.SetActive(false);
+        if (playerBImage != null) playerBImage.SetActive(false);
+        if (lookingForMatch != null) lookingForMatch.SetActive(false);
+        if (matchFoundText != null) matchFoundText.SetActive(false);
+    }
+
     public void Initialize()
     {
-        panel.SetActive(true);
-        playerAImage.SetActive(true);
-        playerBImage.SetActive(false);
-        lookingForMatch.SetActive(true);
-        matchFoundText.SetActive(false);
+        CancelInvoke(nameof(LoadGame));
+        if (panel != null) panel.SetActive(true);
+        if (playerAImage != null) playerAImage.SetActive(true);
+        if (playerBImage != null) playerBImage.SetActive(false);
+        if (lookingForMatch != null) lookingForMatch.SetActive(true);
+        if (matchFoundText != null) matchFoundText.SetActive(false);
     }
-    
+
     public void MatchFound()
     {
-        playerBImage.SetActive(true);
-        lookingForMatch.SetActive(false);
-        matchFoundText.SetActive(true);
-        
-        Invoke(nameof(LoadGame),3);
-        
+        CancelInvoke(nameof(LoadGame));
+        if (panel != null) panel.SetActive(true);
+        if (playerAImage != null) playerAImage.SetActive(true);
+        if (playerBImage != null) playerBImage.SetActive(true);
+        if (lookingForMatch != null) lookingForMatch.SetActive(false);
+        if (matchFoundText != null) matchFoundText.SetActive(true);
+        Invoke(nameof(LoadGame), 3f);
     }
-    
-    private void LoadGame()
+
+    void LoadGame()
     {
+        if (!PhotonNetwork.InRoom) return;
         if (PhotonNetwork.IsMasterClient)
-        {
-            //ApiController.GetSessionUser.Data.stats.matchesPlayed++;
-            //DataHandler.Instance.SaveData();
-            //PlayfabDataManager.Instance.SetUserData();
-            PhotonNetwork.LoadLevel("Gameplay");
-        }
+            TrucoSceneTransition.GoPhoton("Gameplay");
+        else if (SceneManager.GetActiveScene().name != "Gameplay")
+            TrucoSceneTransition.Go("Gameplay");
     }
-    
 }

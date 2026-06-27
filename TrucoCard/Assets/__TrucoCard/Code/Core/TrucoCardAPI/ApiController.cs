@@ -156,6 +156,7 @@ public static class ApiController
                 //userProfile.username += $"{Random.Range(1111, 9999)}";
 
                 GetSessionUser.UpdateUserData(userProfile.user);
+                TrucoWalletHudRefresh.Apply();
 
                 Debug.Log("[ApiController] - User Profile fetched: " + userProfile.user.username);
                 return true;
@@ -821,17 +822,65 @@ public static class ApiController
     }
 
     /// <summary>
-    /// Reports winner, asks backend to end/leave match, then refreshes wallet from /auth/me.
-    /// Backend is the authority for coin settlement; the client must re-fetch profile to show the prize.
+    /// Master client: POST /result (rake + prize), POST /leave, GET /auth/me.
+    /// Only one client should submit the result to avoid double settlement.
     /// </summary>
-    public static async System.Threading.Tasks.Task Finalize1v1MatchClient(string matchId, string winnerUserId)
+    public static async System.Threading.Tasks.Task Finalize1v1MatchAsMaster(string matchId, string winnerUserId, System.Action onSettled = null)
     {
         if (string.IsNullOrEmpty(matchId)) return;
+        bool resultOk = false;
         if (!string.IsNullOrEmpty(winnerUserId))
-            await SubmitMatchResult1v1(matchId, winnerUserId, null);
-        await TryEndMatch1v1(matchId);
+            resultOk = await SubmitMatchResult1v1(matchId, winnerUserId, msg =>
+                Debug.LogWarning("[ApiController] - match result failed: " + msg));
         await TryNotifyPlayerLeftMatch1v1(matchId);
+        TrucoActiveHostMatchStore.Clear();
         await GetCurrentUserProfile();
+        onSettled?.Invoke();
+        if (!string.IsNullOrEmpty(winnerUserId) && !resultOk)
+        {
+            AppManager.Instance?.DisplayNotification(
+                TrucoLocalization.IsEnglish
+                    ? "Match finished, but the server did not confirm the prize. Check POST /matches/{id}/result."
+                    : "Partida terminada, pero el servidor no confirmó el premio. Revisá POST /matches/{id}/result.");
+        }
+    }
+
+    /// <summary>Non-master client after a match: leave row + refresh wallet (no /result).</summary>
+    public static async System.Threading.Tasks.Task Finalize1v1MatchAsGuest(string matchId, System.Action onSettled = null)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        await TryNotifyPlayerLeftMatch1v1(matchId);
+        TrucoActiveHostMatchStore.Clear();
+        await GetCurrentUserProfile();
+        onSettled?.Invoke();
+    }
+
+    /// <summary>Pre-game cancel: full entry refund via POST /leave.</summary>
+    public static async System.Threading.Tasks.Task CancelPreGameMatch1v1(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        await TryNotifyPlayerLeftMatch1v1(matchId);
+        if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
+            TrucoActiveHostMatchStore.Clear();
+        await GetCurrentUserProfile();
+    }
+
+    /// <summary>Backward-compatible alias — prefer <see cref="Finalize1v1MatchAsMaster"/>.</summary>
+    public static System.Threading.Tasks.Task Finalize1v1MatchClient(string matchId, string winnerUserId)
+        => Finalize1v1MatchAsMaster(matchId, winnerUserId);
+
+    public static async System.Threading.Tasks.Task TryStartMatchGame1v1(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        try
+        {
+            await HttpApiClient.PostAsync(ApiConfig.MatchStartGame(matchId), "{}");
+            Debug.Log("[ApiController] - start-game: " + matchId);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[ApiController] - TryStartMatchGame1v1: " + ex.Message);
+        }
     }
 
     public static async Task<List<Player1v1Match>> FetchLiveActiveMatchesForDashboard()

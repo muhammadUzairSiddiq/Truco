@@ -250,10 +250,17 @@ public class UIMANAGER : MonoBehaviour
     // Go Back to Main Menu
     public void GoToHome()
     {
-        OneVsOneMatchSession.Clear();
-        PhotonNetwork.LeaveRoom(false);
+        bool forfeit = GameManager.Instance != null
+            && !GameManager.Instance._gameEnded
+            && OneVsOneMatchSession.GameStarted
+            && !string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId);
+        if (forfeit)
+            _ = OneVsOneMatchLifecycle.ForfeitActiveMatchAsync(OneVsOneMatchSession.CurrentMatchId);
+        TrucoReturnFromGameplayCleanup.MarkLeavingGameplay(
+            forfeit || (GameManager.Instance != null && GameManager.Instance._gameEnded));
+        if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
         PhotonNetwork.Disconnect();
-        SceneManager.LoadScene("MainMenu");
+        TrucoSceneTransition.Go("MainMenu");
     }
     
     void DisableTurnText()
@@ -322,7 +329,8 @@ public class UIMANAGER : MonoBehaviour
                     realEnvido.SetActive(true);
                     faltaEnvido.SetActive(true);
                 }
-                if (GameManager.Instance.PlayerHasFlor() && !invokedChallenges.Contains(ChallengeType.Flor) 
+                if (OneVsOneMatchSession.WithFlor
+                                                         && GameManager.Instance.PlayerHasFlor() && !invokedChallenges.Contains(ChallengeType.Flor) 
                                                          && !invokedChallenges.Contains(ChallengeType.Envido)
                                                          && !invokedChallenges.Contains(ChallengeType.FaltaEnvido)
                                                          && !invokedChallenges.Contains(ChallengeType.RealEnvido)

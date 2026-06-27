@@ -28,6 +28,9 @@ public static class TrucoTextosClient
     public static string NombreSala => TrucoLocalization.T(TrucoLocalization.Key.NombreSala);
     public static string TipoSala => TrucoLocalization.T(TrucoLocalization.Key.TipoSala);
     public static string Publica => TrucoLocalization.T(TrucoLocalization.Key.Publica);
+    public static string ModoJuego => TrucoLocalization.T(TrucoLocalization.Key.ModoJuego);
+    public static string ConFlor => TrucoLocalization.T(TrucoLocalization.Key.ConFlor);
+    public static string SinFlor => TrucoLocalization.T(TrucoLocalization.Key.SinFlor);
     public static string Privada => TrucoLocalization.T(TrucoLocalization.Key.Privada);
     public static string ContrasenaSala => TrucoLocalization.T(TrucoLocalization.Key.ContrasenaSala);
     public static string CodigoSala4 => TrucoLocalization.T(TrucoLocalization.Key.CodigoSala4);
@@ -120,6 +123,21 @@ public static class TrucoTextosClient
     public static string PhotonSyncWarning => TrucoLocalization.T(TrucoLocalization.Key.PhotonSyncWarning);
     public static string PhotonConnectFailed => TrucoLocalization.T(TrucoLocalization.Key.PhotonConnectFailed);
     public static string ChampionCongrats => TrucoLocalization.T(TrucoLocalization.Key.ChampionCongrats);
+
+    public static string ConfirmLeaveLobbyTitle => TrucoLocalization.T(TrucoLocalization.Key.ConfirmLeaveLobbyTitle);
+    public static string ConfirmLeaveLobbyBody => TrucoLocalization.T(TrucoLocalization.Key.ConfirmLeaveLobbyBody);
+    public static string ConfirmNoQuedarme => TrucoLocalization.T(TrucoLocalization.Key.ConfirmNoQuedarme);
+    public static string ConfirmSiSalir => TrucoLocalization.T(TrucoLocalization.Key.ConfirmSiSalir);
+    public static string SalaCanceladaReembolso => TrucoLocalization.T(TrucoLocalization.Key.SalaCanceladaReembolso);
+    public static string NotificacionesTitulo => TrucoLocalization.T(TrucoLocalization.Key.NotificacionesTitulo);
+    public static string NotificacionesVacio => TrucoLocalization.T(TrucoLocalization.Key.NotificacionesVacio);
+    public static string LogExito => TrucoLocalization.T(TrucoLocalization.Key.LogExito);
+    public static string LogPendiente => TrucoLocalization.T(TrucoLocalization.Key.LogPendiente);
+    public static string LogAviso => TrucoLocalization.T(TrucoLocalization.Key.LogAviso);
+    public static string LogInfo => TrucoLocalization.T(TrucoLocalization.Key.LogInfo);
+    public static string LogSalaCreada => TrucoLocalization.T(TrucoLocalization.Key.LogSalaCreada);
+    public static string LogUnidoSala => TrucoLocalization.T(TrucoLocalization.Key.LogUnidoSala);
+    public static string LogSalasActualizadas => TrucoLocalization.T(TrucoLocalization.Key.LogSalasActualizadas);
 
     // Admin / live dashboard (English-only labels kept for admin tooling)
     public const string LiveDashboardTitle = "Panel en vivo — partidas 1v1";

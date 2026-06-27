@@ -8,29 +8,39 @@ public static class OneVsOneMatchSession
     public static string PhotonRoomName { get; private set; }
     public static bool IsHost { get; private set; }
     public static int EntryFee { get; private set; }
+    /// <summary>Game variant for this table: true = Con Flor, false = Sin Flor. Backend stores it; gameplay reads it.</summary>
+    public static bool WithFlor { get; private set; } = true;
     /// <summary>Opponent’s backend user id (from Photon custom properties), cached while in-room for forfeit on reconnect failure.</summary>
     public static string CachedOpponentUserId { get; private set; }
+    /// <summary>True after POST /start-game (cards dealt). Lobby cancel must not refund after this.</summary>
+    public static bool GameStarted { get; private set; }
     public const int MaxPlayersGameplay = 2;
     /// <summary>1v1 real: dos jugadores (sin hueco “reservado” extra).</summary>
     public const int MaxPlayersPhoton = 2;
 
-    public static void SetHostContext(string matchId, string photonName, int entryFee)
+    public static void SetHostContext(string matchId, string photonName, int entryFee, bool withFlor = true)
     {
         CurrentMatchId = matchId;
         PhotonRoomName = photonName;
         IsHost = true;
         EntryFee = entryFee;
-        Debug.Log($"[OneVsOne] Contexto anfitrión: match={matchId} room={photonName} entrada={entryFee}");
+        WithFlor = withFlor;
+        Debug.Log($"[OneVsOne] Contexto anfitrión: match={matchId} room={photonName} entrada={entryFee} flor={withFlor}");
     }
 
-    public static void SetGuestContext(string matchId, string photonName, int entryFee)
+    public static void SetGuestContext(string matchId, string photonName, int entryFee, bool withFlor = true)
     {
         CurrentMatchId = matchId;
         PhotonRoomName = photonName;
         IsHost = false;
         EntryFee = entryFee;
-        Debug.Log($"[OneVsOne] Contexto invitado: match={matchId} room={photonName}");
+        WithFlor = withFlor;
+        Debug.Log($"[OneVsOne] Contexto invitado: match={matchId} room={photonName} flor={withFlor}");
     }
+
+    public static void SetWithFlor(bool withFlor) => WithFlor = withFlor;
+
+    public static void MarkGameStarted() => GameStarted = true;
 
     public static void Clear()
     {
@@ -38,6 +48,8 @@ public static class OneVsOneMatchSession
         PhotonRoomName = null;
         IsHost = false;
         EntryFee = 0;
+        WithFlor = true;
+        GameStarted = false;
         CachedOpponentUserId = null;
         TrucoRoomPersistence.Clear();
     }

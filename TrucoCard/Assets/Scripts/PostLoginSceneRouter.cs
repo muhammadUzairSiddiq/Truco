@@ -33,6 +33,6 @@ public static class PostLoginSceneRouter
         if (AppManager.Instance != null)
             AppManager.Instance.HideLoadingUI();
 
-        SceneManager.LoadScene(IsAdminCredentials(email, password) ? AdminSceneName : MainMenuSceneName);
+        TrucoSceneTransition.Go(IsAdminCredentials(email, password) ? AdminSceneName : MainMenuSceneName);
     }
 }

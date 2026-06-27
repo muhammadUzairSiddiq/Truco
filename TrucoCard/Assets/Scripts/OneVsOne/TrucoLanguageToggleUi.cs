@@ -21,15 +21,8 @@ public static class TrucoLanguageToggleUi
 
     public static void EnsureOnMainMenu(Transform mainRoot)
     {
-        if (mainRoot == null) return;
-        var menuPanel = FindDeep(mainRoot, "Main Menu Panel");
-        if (menuPanel == null) return;
-
-        if (_root == null || _root.scene != menuPanel.gameObject.scene)
-            Build(menuPanel);
-
-        RefreshHighlight();
-        TrucoLocalizedUiRefresh.ApplyAll();
+        ResetForLeavingMainMenu();
+        TrucoLocalization.ForceSpanish();
     }
 
     static void Build(Transform menuPanel)

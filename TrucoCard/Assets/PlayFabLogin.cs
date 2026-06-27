@@ -24,6 +24,8 @@ public class PlayFabLogin : MonoBehaviour
         //LoginWithCustomID();
 
         AppManager.Instance.HideLoadingUI();
+        TrucoLocalization.ForceSpanish();
+        TrucoLoginScreenUiPolish.Apply();
         ApplySavedCredentialsToLoginFields();
     }
 
@@ -40,7 +42,7 @@ public class PlayFabLogin : MonoBehaviour
     {
         if (!ValidEmailPassword(loginEmailField.text, loginPasswordField.text))
         {
-            AppManager.Instance.DisplayNotification("Invalid email or password.");
+            AppManager.Instance.DisplayNotification("Correo o contraseña inválidos.");
 
             return;
         }
@@ -51,7 +53,7 @@ public class PlayFabLogin : MonoBehaviour
             password = loginPasswordField.text.Trim()
         };
 
-        AppManager.Instance.DisplayLoadingUI("Logging in...");
+        AppManager.Instance.DisplayLoadingUI("Iniciando sesión…");
      
         ApiController.Init(loginRequestData, () =>
         {
@@ -61,7 +63,7 @@ public class PlayFabLogin : MonoBehaviour
             }
             else
             {
-                AppManager.Instance.DisplayNotification("Please verify your email address.\nCheck your inbox for a verification link.!");
+                AppManager.Instance.DisplayNotification("Verificá tu correo. Revisá tu bandeja de entrada.");
 
                 otpVerificationPanel.gameObject.SetActive(true);
                 otpVerificationPanel.SetRequestData(loginRequestData);
@@ -69,7 +71,7 @@ public class PlayFabLogin : MonoBehaviour
         },
         (ERR) =>
         {
-           AppManager.Instance.DisplayNotification("Login failed: " + ERR);
+           AppManager.Instance.DisplayNotification("Error al iniciar sesión: " + ERR);
         });
     }
 
@@ -77,7 +79,7 @@ public class PlayFabLogin : MonoBehaviour
     {
         if (string.IsNullOrEmpty(forgotLoginEmailField.text) || !forgotLoginEmailField.text.Contains("@") || !forgotLoginEmailField.text.Contains(".com"))
         {
-            AppManager.Instance.DisplayNotification("Invalid email address.");
+            AppManager.Instance.DisplayNotification("Correo inválido.");
             return;
         }
         var request = new SendAccountRecoveryEmailRequest
@@ -86,7 +88,7 @@ public class PlayFabLogin : MonoBehaviour
 
         };
 
-        AppManager.Instance.DisplayLoadingUI("Sending recovery email...");
+        AppManager.Instance.DisplayLoadingUI("Enviando correo de recuperación…");
 
         sendForgotEmailBtn.interactable = false;
 
@@ -97,13 +99,13 @@ public class PlayFabLogin : MonoBehaviour
                 forgotLoginEmailField.text = string.Empty;
                 forgotPasswordPanel.SetActive(false);
 
-                AppManager.Instance.DisplayNotification("Recovery email sent, please check your inbox.");
+                AppManager.Instance.DisplayNotification("Correo de recuperación enviado. Revisá tu bandeja.");
 
             },
             (ERR) =>
             {
                 sendForgotEmailBtn.interactable = true;
-                AppManager.Instance.DisplayNotification("Failed to send recovery email: " + ERR);
+                AppManager.Instance.DisplayNotification("No se pudo enviar el correo: " + ERR);
             });
     }
 
@@ -126,12 +128,12 @@ public class PlayFabLogin : MonoBehaviour
     {
         if (!ValidEmailPassword(registerEmailField.text, registerPasswordField.text))
         {
-            AppManager.Instance.DisplayNotification("Invalid email or password.");
+            AppManager.Instance.DisplayNotification("Correo o contraseña inválidos.");
             return;
         }
         if (registerUsernameField.text.Trim().Length < 5)
         {
-            AppManager.Instance.DisplayNotification("Invalid username - length must be equal or greater than 5!");
+            AppManager.Instance.DisplayNotification("El nombre de usuario debe tener al menos 5 caracteres.");
 
             return;
         }
@@ -144,7 +146,7 @@ public class PlayFabLogin : MonoBehaviour
         };
 
 
-        AppManager.Instance.DisplayLoadingUI("Validating Credientials...");
+        AppManager.Instance.DisplayLoadingUI("Validando datos…");
 
 
         await ApiController.RegisterAsync(registerRequest,
@@ -164,7 +166,7 @@ public class PlayFabLogin : MonoBehaviour
     
     void OnRegisterSuccess()
     {
-        AppManager.Instance.DisplayNotification("Registered Successfully, Please verify your email address.\nCheck your inbox for a verification link.!");
+        AppManager.Instance.DisplayNotification("Registro exitoso. Verificá tu correo electrónico.");
 
 
 

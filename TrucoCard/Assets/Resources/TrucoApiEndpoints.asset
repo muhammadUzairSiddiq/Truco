@@ -16,3 +16,5 @@ MonoBehaviour:
   endpoints:
   - key: MatchEnd
     pathTemplate: /matches/{0}/end
+  - key: MatchStartGame
+    pathTemplate: /matches/{0}/start-game

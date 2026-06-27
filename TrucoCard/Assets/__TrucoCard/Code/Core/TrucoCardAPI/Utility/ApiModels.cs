@@ -263,6 +263,8 @@ public class PlayerCreateMatchRequest
     public int prize;
     public int maxPlayers;
     public string password;
+    /// <summary>Game variant: true = Con Flor, false = Sin Flor.</summary>
+    public bool withFlor = true;
 }
 
 [Serializable]
@@ -312,6 +314,8 @@ public class Player1v1Match
     public string type;
     public int cost;
     public int prize;
+    /// <summary>Game variant from backend: true = Con Flor, false = Sin Flor.</summary>
+    public bool withFlor = true;
     public User[] players;
 }
 

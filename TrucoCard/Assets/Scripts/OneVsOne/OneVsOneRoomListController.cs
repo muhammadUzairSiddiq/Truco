@@ -83,7 +83,6 @@ public class OneVsOneRoomListController : MonoBehaviour
         OneVsOnePhotonFlow.OnLobbyRoomCountsChanged += OnPhotonLobbyCountsChanged;
         if (_buttonRefresh != null) _buttonRefresh.onClick.AddListener(() => Refresh(showLoading: true));
         if (_buttonCreate != null) _buttonCreate.onClick.AddListener(OnClickCreate);
-        if (_buttonBack != null) _buttonBack.onClick.AddListener(Close);
         if (_passwordConfirm != null) _passwordConfirm.onClick.AddListener(ConfirmPasswordAndJoin);
         if (_passwordCancel != null) _passwordCancel.onClick.AddListener(() => { ClosePassword(); });
         _nextAutoRefresh = Time.unscaledTime + 1f;
@@ -95,7 +94,6 @@ public class OneVsOneRoomListController : MonoBehaviour
         OneVsOnePhotonFlow.OnLobbyRoomCountsChanged -= OnPhotonLobbyCountsChanged;
         if (_buttonRefresh != null) _buttonRefresh.onClick.RemoveAllListeners();
         if (_buttonCreate != null) _buttonCreate.onClick.RemoveListener(OnClickCreate);
-        if (_buttonBack != null) _buttonBack.onClick.RemoveListener(Close);
         if (_passwordConfirm != null) _passwordConfirm.onClick.RemoveListener(ConfirmPasswordAndJoin);
     }
 
@@ -112,10 +110,12 @@ public class OneVsOneRoomListController : MonoBehaviour
     public void Open()
     {
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
+        TrucoLobbyMatchmakingUi.HideWaitingOverlay();
         if (_root != null)
         {
             _root.SetActive(true);
             _root.transform.SetAsLastSibling();
+            _root.transform.localScale = Vector3.one;
             var topCanvas = _root.GetComponent<Canvas>();
             if (topCanvas != null)
             {
@@ -130,7 +130,10 @@ public class OneVsOneRoomListController : MonoBehaviour
     public void Close()
     {
         if (_root != null) _root.SetActive(false);
+        TrucoLobbyMatchmakingUi.HideWaitingOverlay();
     }
+
+    public bool IsLobbyVisible => _root != null && _root.activeInHierarchy;
 
     void OnPhotonLobbyCountsChanged()
     {
@@ -156,6 +159,7 @@ public class OneVsOneRoomListController : MonoBehaviour
             if (v != null) Destroy(v.gameObject);
         _spawned.Clear();
         if (list == null) return;
+        OneVsOneMatchLifecycle.ClearStaleHostMemory(list);
         foreach (var m in list.OrderBy(m => m.name ?? string.Empty))
         {
             if (!m.ShouldShowInLobbyList()) continue;
@@ -180,6 +184,8 @@ public class OneVsOneRoomListController : MonoBehaviour
         }
 
         Truco1v1SceneUiWiring.RemoveGlobalPrivateCodeBarIfAny(_scrollContent);
+        if (showLoading)
+            TrucoNotificationLog.Info(string.Format(TrucoTextosClient.LogSalasActualizadas, _spawned.Count));
     }
 
     void OnClickCreate()
@@ -209,6 +215,7 @@ public class OneVsOneRoomListController : MonoBehaviour
                 return;
             }
         }
+        bool withFlor = panel.WithFlor();
         var body = new PlayerCreateMatchRequest
         {
             name = panel.GetRoomName(),
@@ -216,7 +223,8 @@ public class OneVsOneRoomListController : MonoBehaviour
             cost = stake,
             prize = Player1v1MatchExtensions.ComputeOneVsOnePrize(stake),
             maxPlayers = OneVsOneMatchSession.MaxPlayersPhoton,
-            password = panel.IsPublic() ? string.Empty : privatePassword
+            password = panel.IsPublic() ? string.Empty : privatePassword,
+            withFlor = withFlor
         };
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
         var created = await ApiController.PlayerCreate1v1Match(body, err => AppManager.Instance.DisplayNotification(err));
@@ -227,13 +235,15 @@ public class OneVsOneRoomListController : MonoBehaviour
         if (string.IsNullOrEmpty(photon)) photon = OneVsOneMatchSession.BuildDefaultPhotonRoomName(created._id);
         bool reg = await ApiController.RegisterPhotonRoomName(created._id, photon, err => Debug.LogWarning(err));
         if (!reg) AppManager.Instance.DisplayNotification(TrucoTextosClient.PhotonSyncWarning);
-        OneVsOneMatchSession.SetHostContext(created._id, photon, fee);
+        OneVsOneMatchSession.SetHostContext(created._id, photon, fee, withFlor);
+        TrucoActiveHostMatchStore.Remember(created._id);
         panel.Close();
-        if (_matchmakingScreen != null) _matchmakingScreen.SetActive(false);
+        PrepareMatchmakingUi();
         if (_root != null) _root.SetActive(true);
         Refresh(showLoading: false);
         if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.Instance;
         if (_photonFlow != null) _photonFlow.StartHostPhoton(OneVsOneMatchSession.MaxPlayersPhoton);
+        TrucoNotificationLog.Success(TrucoTextosClient.LogSalaCreada);
     }
 
     void OnClickJoin(Player1v1Match m, OneVsOneRoomRowView row)
@@ -311,11 +321,19 @@ public class OneVsOneRoomListController : MonoBehaviour
         if (string.IsNullOrEmpty(photon)) { AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorUnirse); return; }
         int fee = result.entryFee > 0 ? result.entryFee : (m.GetEntryStake() > 0 ? m.GetEntryStake() : m.entryFee);
         string id = !string.IsNullOrEmpty(result._id) ? result._id : m._id;
-        OneVsOneMatchSession.SetGuestContext(id, photon, fee);
-        if (_matchmakingScreen != null) _matchmakingScreen.SetActive(false);
+        bool withFlor = result != null ? result.withFlor : m.withFlor;
+        OneVsOneMatchSession.SetGuestContext(id, photon, fee, withFlor);
+        PrepareMatchmakingUi();
         if (_root != null) _root.SetActive(true);
         if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.Instance;
         if (_photonFlow != null) _photonFlow.StartJoinPhoton();
+        TrucoNotificationLog.Success(TrucoTextosClient.LogUnidoSala);
+    }
+
+    void PrepareMatchmakingUi()
+    {
+        // Room list is the waiting UI — hide legacy "Buscando partida" / Volver overlays.
+        TrucoLobbyMatchmakingUi.HideWaitingOverlay();
     }
 
     static bool ClientBalanceOk(int required, out int balance)

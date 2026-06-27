@@ -2,6 +2,7 @@ using System.Collections;
 using Photon.Pun;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>Reemplaza al panel clásico "Looking for match" en el flujo 1v1: espera y cuenta 3-2-1 antes de Gameplay (solo el master carga la escena).</summary>
@@ -28,13 +29,14 @@ public class OneVsOnePhotonSessionUi : MonoBehaviour
     /// <summary>Llamado al entrar a la sala Photon (1 jugador aún).</summary>
     public void Initialize()
     {
+        StopAllCoroutines();
         if (_overlayRoot == null) return;
         _overlayRoot.SetActive(true);
         if (_countdownText != null) _countdownText.text = string.Empty;
         if (_statusText != null)
         {
             _statusText.text = TrucoTextosClient.EsperandoRivalSala;
-            _statusText.color = new Color(0.95f, 0.95f, 0.98f, 1f);
+            _statusText.color = Color.white;
         }
         ApplyPanelStyle(waiting: true);
     }
@@ -42,10 +44,12 @@ public class OneVsOnePhotonSessionUi : MonoBehaviour
     /// <summary>Segundo jugador listo: cuenta y carga partida.</summary>
     public void MatchFound()
     {
+        StopAllCoroutines();
+        if (_overlayRoot != null) _overlayRoot.SetActive(true);
         if (_statusText != null)
         {
             _statusText.text = TrucoTextosClient.CargandoJuego + "\n" + TrucoTextosClient.PartidaEncontrada;
-            _statusText.color = new Color(0.12f, 0.12f, 0.14f, 1f);
+            _statusText.color = Color.white;
         }
         if (_countdownText != null)
         {
@@ -53,19 +57,44 @@ public class OneVsOnePhotonSessionUi : MonoBehaviour
             _countdownText.color = new Color(0.1f, 0.1f, 0.12f, 1f);
         }
         ApplyPanelStyle(waiting: false);
+        if (_panelBackground != null) TrucoUiMotion.PopIn(_panelBackground.transform, 0.3f, 0.85f);
         StartCoroutine(CountdownRoutine());
     }
 
     void ApplyPanelStyle(bool waiting)
     {
+        if (_panelBackground == null && _overlayRoot != null)
+            _panelBackground = _overlayRoot.GetComponent<Image>();
         if (_panelBackground == null) return;
-        if (waiting)
+
+        var panel = TrucoUiAssetLoader.Panel;
+        if (panel != null)
         {
-            _panelBackground.color = new Color(0.08f, 0.08f, 0.1f, 0.95f);
-            return;
+            _panelBackground.sprite = panel;
+            _panelBackground.type = Image.Type.Sliced;
+            _panelBackground.color = new Color(1f, 1f, 1f, 0.97f);
         }
-        // Clear “loading / starting” card
-        _panelBackground.color = new Color(0.98f, 0.99f, 1f, 0.98f);
+        else
+        {
+            _panelBackground.color = waiting
+                ? new Color(0.1f, 0.22f, 0.14f, 0.95f)
+                : new Color(0.12f, 0.32f, 0.2f, 0.96f);
+        }
+
+        if (_statusText != null)
+        {
+            _statusText.color = Color.white;
+            _statusText.fontStyle = FontStyles.Bold;
+            _statusText.enableAutoSizing = true;
+            _statusText.fontSizeMin = 20f;
+            _statusText.fontSizeMax = 32f;
+        }
+        if (_countdownText != null)
+        {
+            _countdownText.color = TrucoUiTheme.EntryPrizeAccent;
+            _countdownText.fontStyle = FontStyles.Bold;
+            _countdownText.fontSize = 64f;
+        }
     }
 
     IEnumerator CountdownRoutine()
@@ -75,11 +104,27 @@ public class OneVsOnePhotonSessionUi : MonoBehaviour
         yield return new WaitForSeconds(1f);
         if (_countdownText != null) _countdownText.text = "1";
         yield return new WaitForSeconds(1f);
-        if (PhotonNetwork.IsMasterClient) PhotonNetwork.LoadLevel("Gameplay");
+        LoadGameplayScene();
+    }
+
+    static void LoadGameplayScene()
+    {
+        if (!PhotonNetwork.InRoom) return;
+        if (PhotonNetwork.IsMasterClient)
+            TrucoSceneTransition.GoPhoton("Gameplay");
+        else if (SceneManager.GetActiveScene().name != "Gameplay")
+            TrucoSceneTransition.Go("Gameplay");
     }
 
     public void HideOverlay()
     {
+        StopAllCoroutines();
         if (_overlayRoot != null) _overlayRoot.SetActive(false);
+    }
+
+    public void ResetState()
+    {
+        StopAllCoroutines();
+        HideOverlay();
     }
 }

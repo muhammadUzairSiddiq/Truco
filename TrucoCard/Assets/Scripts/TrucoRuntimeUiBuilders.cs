@@ -272,6 +272,7 @@ public static class TrucoRuntimeUiBuilders
         DestroyTruco1v1CreateFormV2IfAny(roomCreationRoot);
         DestroyTruco1v1CreateFormV3IfAny(roomCreationRoot);
         DestroyTruco1v1CreateFormV4IfAny(roomCreationRoot);
+        DestroyTruco1v1CreateFormV6IfAny(roomCreationRoot);
 
         var f = TMP_Settings.defaultFontAsset;
         var existing = roomCreationRoot.GetComponent<OneVsOneCreateRoomPanel>();
@@ -279,12 +280,10 @@ public static class TrucoRuntimeUiBuilders
 
         var parentForForm = formParent != null ? (Transform)formParent : roomCreationRoot;
         var useEmbeddedLayout = formParent != null;
-        // ~2.4–2.5× base font scale vs first pass; no flexible spacer (keeps actions above bottom bar)
         const int kNameFont = 58;
         const int kLabel = 50;
-        const int kPublic = 58;
+        const int kSegment = 34;
         const int kBtnCaption = 44;
-        const int kFeeAmt = 44;
 
         var center = new GameObject("Truco1v1CreateFormV5", typeof(RectTransform));
         var cRt = center.GetComponent<RectTransform>();
@@ -308,8 +307,7 @@ public static class TrucoRuntimeUiBuilders
 
         var bg = center.AddComponent<Image>();
         bg.raycastTarget = true;
-        bg.sprite = null;
-        bg.color = TrucoUiTheme.CreateFormPanelCard;
+        TrucoFormUiPolish.ApplyWoodCard(bg, inner: false);
         var frSh = center.AddComponent<Shadow>();
         frSh.effectColor = new Color(0f, 0f, 0f, 0.45f);
         frSh.effectDistance = new Vector2(3f, -3f);
@@ -327,7 +325,7 @@ public static class TrucoRuntimeUiBuilders
         irt.offsetMax = new Vector2(-12, -12);
         var innerImg = inner.AddComponent<Image>();
         innerImg.raycastTarget = false;
-        innerImg.color = TrucoUiTheme.CreateFormPanelInner;
+        TrucoFormUiPolish.ApplyWoodCard(innerImg, inner: true);
 
         var v = inner.AddComponent<VerticalLayoutGroup>();
         v.padding = new RectOffset(32, 32, 28, 32);
@@ -349,7 +347,9 @@ public static class TrucoRuntimeUiBuilders
 
         AddFlexSpacer("FormSpacerTop");
         var nameIn = CreateFormInputField("RoomName", inner.transform, f, TrucoTextosClient.NombreSala, kNameFont);
-        var (pubT, privT) = CreateFormPublicPrivateAccessRow(inner.transform, f, kPublic);
+        TrucoFormUiPolish.CreateSectionHeader(inner.transform, f, TrucoTextosClient.TipoSala, kLabel);
+        var (pubT, privT) = TrucoFormUiPolish.CreateSegmentedPair(
+            inner.transform, f, "Access", TrucoTextosClient.Publica, TrucoTextosClient.Privada, true, kSegment);
 
         var passG = new GameObject("PassGroup", typeof(RectTransform));
         passG.transform.SetParent(inner.transform, false);
@@ -379,37 +379,12 @@ public static class TrucoRuntimeUiBuilders
         var passIn = CreateFormInputField("PrivateCode", passG.transform, f, TrucoLocalization.T(TrucoLocalization.Key.CodigoMinPlaceholder), 44);
         if (passIn != null) passIn.characterLimit = OneVsOnePrivateRoomCode.MaxPasswordLength;
 
-        var feeLblGo = new GameObject("FeeLabel", typeof(RectTransform));
-        feeLblGo.transform.SetParent(inner.transform, false);
-        var feeLE = feeLblGo.AddComponent<LayoutElement>();
-        feeLE.minHeight = 56f;
-        feeLE.preferredHeight = 56f;
-        feeLE.flexibleHeight = 0f;
-        var feeTmp = feeLblGo.AddComponent<TextMeshProUGUI>();
-        feeTmp.text = TrucoTextosClient.EntradaMonedas;
-        feeTmp.fontSize = kLabel;
-        feeTmp.fontStyle = FontStyles.Bold;
-        if (f != null) feeTmp.font = f;
-        feeTmp.color = TrucoUiTheme.CreateFormLabel;
-        feeTmp.alignment = TextAlignmentOptions.MidlineLeft;
-        feeTmp.raycastTarget = false;
-        var feeRow = new GameObject("Fees", typeof(RectTransform));
-        feeRow.transform.SetParent(inner.transform, false);
-        var feeRowLe = feeRow.AddComponent<LayoutElement>();
-        feeRowLe.minHeight = 76f;
-        feeRowLe.preferredHeight = 76f;
-        feeRowLe.flexibleHeight = 0f;
-        var feeH = feeRow.AddComponent<HorizontalLayoutGroup>();
-        feeH.padding = new RectOffset(0, 0, 0, 0);
-        feeH.spacing = 20;
-        feeH.childAlignment = TextAnchor.MiddleCenter;
-        feeH.childControlWidth = true;
-        feeH.childControlHeight = true;
-        feeH.childForceExpandWidth = true;
-        feeH.childForceExpandHeight = false;
-        var t5 = CreateFormFeeToggle(feeRow.transform, f, "5", true, kFeeAmt, out _);
-        var t10 = CreateFormFeeToggle(feeRow.transform, f, "10", false, kFeeAmt, out _);
-        var t15 = CreateFormFeeToggle(feeRow.transform, f, "15", false, kFeeAmt, out _);
+        TrucoFormUiPolish.CreateSectionHeader(inner.transform, f, TrucoTextosClient.EntradaMonedas, kLabel);
+        var (t5, t10, t15) = TrucoFormUiPolish.CreateFeePillRow(inner.transform, f, kSegment + 2);
+
+        TrucoFormUiPolish.CreateSectionHeader(inner.transform, f, TrucoTextosClient.ModoJuego, kLabel);
+        var (conFlorT, sinFlorT) = TrucoFormUiPolish.CreateSegmentedPair(
+            inner.transform, f, "Flor", TrucoTextosClient.ConFlor, TrucoTextosClient.SinFlor, true, kSegment);
 
         var prizeGo = new GameObject("PrizePreview", typeof(RectTransform));
         prizeGo.transform.SetParent(inner.transform, false);
@@ -460,6 +435,7 @@ public static class TrucoRuntimeUiBuilders
             cancel,
             privT);
         panel.BindPrizePreview(prizeTmp);
+        panel.BindFlorToggle(conFlorT);
 
         return panel;
     }
@@ -675,16 +651,8 @@ public static class TrucoRuntimeUiBuilders
     internal static void SetFeeToggleAmountLabel(Toggle toggle, int entryStake)
     {
         if (toggle == null) return;
-        var row = toggle.transform.parent;
-        if (row == null) return;
-        for (int i = 0; i < row.childCount; i++)
-        {
-            var ch = row.GetChild(i);
-            if (ch.name != "L") continue;
-            var tmp = ch.GetComponent<TMPro.TextMeshProUGUI>();
-            if (tmp != null) tmp.text = entryStake.ToString();
-            return;
-        }
+        var tmp = toggle.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
+        if (tmp != null) tmp.text = entryStake.ToString();
     }
 
     static TMP_InputField CreateFormInputField(string name, Transform parent, TMP_FontAsset font, string ph, int size)
@@ -749,8 +717,18 @@ public static class TrucoRuntimeUiBuilders
         le.flexibleWidth = 1f;
         var img = go.AddComponent<Image>();
         img.raycastTarget = true;
-        img.sprite = null;
-        img.color = primary ? TrucoUiTheme.CreateFormButtonPrimary : TrucoUiTheme.CreateFormButtonSecondary;
+        var green = TrucoUiAssetLoader.GreenButton;
+        if (primary && green != null)
+        {
+            img.sprite = green;
+            img.type = Image.Type.Sliced;
+            img.color = Color.white;
+        }
+        else
+        {
+            img.sprite = null;
+            img.color = primary ? TrucoUiTheme.CreateFormButtonPrimary : TrucoUiTheme.CreateFormButtonSecondary;
+        }
         var b = go.AddComponent<Button>();
         b.targetGraphic = img;
         b.transition = Selectable.Transition.ColorTint;
@@ -860,6 +838,30 @@ public static class TrucoRuntimeUiBuilders
         for (int i = 0; i < trs.Length; i++)
         {
             if (trs[i] == null || trs[i].name != "Truco1v1CreateFormV4") continue;
+            UnityEngine.Object.DestroyImmediate(trs[i].gameObject, true);
+            return;
+        }
+    }
+
+    static void DestroyTruco1v1CreateFormV5IfAny(Transform roomCreationRoot)
+    {
+        if (roomCreationRoot == null) return;
+        var trs = roomCreationRoot.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < trs.Length; i++)
+        {
+            if (trs[i] == null || trs[i].name != "Truco1v1CreateFormV5") continue;
+            UnityEngine.Object.DestroyImmediate(trs[i].gameObject, true);
+            return;
+        }
+    }
+
+    static void DestroyTruco1v1CreateFormV6IfAny(Transform roomCreationRoot)
+    {
+        if (roomCreationRoot == null) return;
+        var trs = roomCreationRoot.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < trs.Length; i++)
+        {
+            if (trs[i] == null || trs[i].name != "Truco1v1CreateFormV6") continue;
             UnityEngine.Object.DestroyImmediate(trs[i].gameObject, true);
             return;
         }
@@ -1034,6 +1036,7 @@ public static class Truco1v1SceneUiWiring
     public static void PolishRoomCreationHeader(Transform roomCreationRoot, RectTransform formHost = null)
     {
         if (roomCreationRoot == null) return;
+        TrucoFormUiPolish.PolishFormSectionHeaders(roomCreationRoot);
         if (formHost != null) formHost.SetAsFirstSibling();
         var top = roomCreationRoot.Find("Top Panel (1)");
         if (top == null) return;
@@ -1068,6 +1071,135 @@ public static class Truco1v1SceneUiWiring
             // Warm grey list area so wood-brown rows contrast
             if (vp != null) vp.color = new Color(0.75f, 0.71f, 0.66f, 0.92f);
         }
+    }
+
+    /// <summary>Centered refresh strip between the wood header and the room list.</summary>
+    public static Button EnsureRoomListRefreshButton(Transform roomListRoot)
+    {
+        if (roomListRoot == null) return null;
+
+        var toolbar = FindDeep(roomListRoot, "RoomListToolbar");
+        if (toolbar == null)
+        {
+            var toolbarGo = new GameObject("RoomListToolbar", typeof(RectTransform));
+            toolbar = toolbarGo.transform;
+            toolbar.SetParent(roomListRoot, false);
+            var tRt = toolbar.GetComponent<RectTransform>();
+            var header = FindDeep(roomListRoot, "Top Panel (1)") ?? FindDeep(roomListRoot, "Top Panel");
+            if (header is RectTransform hRt)
+            {
+                tRt.anchorMin = new Vector2(0.5f, 1f);
+                tRt.anchorMax = new Vector2(0.5f, 1f);
+                tRt.pivot = new Vector2(0.5f, 1f);
+                float headerBottomY = hRt.anchoredPosition.y - hRt.rect.height * (1f - hRt.pivot.y);
+                tRt.anchoredPosition = new Vector2(0f, headerBottomY - 6f);
+                tRt.sizeDelta = new Vector2(Mathf.Min(hRt.sizeDelta.x * 0.94f, 980f), 76f);
+            }
+            else
+            {
+                tRt.anchorMin = new Vector2(0.5f, 1f);
+                tRt.anchorMax = new Vector2(0.5f, 1f);
+                tRt.pivot = new Vector2(0.5f, 1f);
+                tRt.anchoredPosition = new Vector2(0f, -310f);
+                tRt.sizeDelta = new Vector2(920f, 76f);
+            }
+
+            var scroll = roomListRoot.GetComponentInChildren<ScrollRect>(true);
+            if (scroll != null && scroll.transform is RectTransform sRt)
+            {
+                float toolbarH = tRt.sizeDelta.y + 10f;
+                sRt.offsetMax = new Vector2(sRt.offsetMax.x, sRt.offsetMax.y - toolbarH);
+            }
+
+            int headerIdx = header != null ? header.GetSiblingIndex() : 0;
+            toolbar.SetSiblingIndex(headerIdx + 1);
+        }
+
+        var existing = toolbar.Find("Refresh");
+        Transform refreshTr;
+        if (existing != null)
+        {
+            refreshTr = existing;
+            if (refreshTr.parent != toolbar)
+            {
+                refreshTr.SetParent(toolbar, false);
+                refreshTr.localScale = Vector3.one;
+            }
+        }
+        else
+        {
+            var go = new GameObject("Refresh", typeof(RectTransform));
+            go.transform.SetParent(toolbar, false);
+            refreshTr = go.transform;
+            go.AddComponent<Button>();
+        }
+
+        var rt = refreshTr.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(24f, 6f);
+        rt.offsetMax = new Vector2(-24f, -6f);
+
+        var btn = refreshTr.GetComponent<Button>();
+        PolishToolbarButton(btn, TrucoTextosClient.ActualizarLista, compact: true);
+        return btn;
+    }
+
+    static void PolishToolbarButton(Button btn, string label, bool compact = false)
+    {
+        if (btn == null) return;
+        var img = btn.GetComponent<Image>();
+        if (img == null) img = btn.gameObject.AddComponent<Image>();
+        var green = TrucoUiAssetLoader.GreenButton;
+        if (green != null)
+        {
+            img.sprite = green;
+            img.type = Image.Type.Sliced;
+            img.color = Color.white;
+        }
+        else
+        {
+            img.sprite = null;
+            img.color = TrucoUiTheme.CreateFormButtonPrimary;
+        }
+        btn.targetGraphic = img;
+        btn.transition = Selectable.Transition.ColorTint;
+
+        var capTr = btn.transform.Find("Caption");
+        if (capTr == null)
+        {
+            var capGo = new GameObject("Caption", typeof(RectTransform));
+            capGo.transform.SetParent(btn.transform, false);
+            var cr = capGo.GetComponent<RectTransform>();
+            cr.anchorMin = Vector2.zero;
+            cr.anchorMax = Vector2.one;
+            cr.offsetMin = new Vector2(10f, 6f);
+            cr.offsetMax = new Vector2(-10f, -6f);
+            capTr = capGo.transform;
+        }
+
+        foreach (Transform ch in btn.transform)
+        {
+            if (ch == capTr) continue;
+            var cImg = ch.GetComponent<Image>();
+            if (cImg != null && cImg != img) cImg.enabled = false;
+            var oldTmp = ch.GetComponent<TextMeshProUGUI>();
+            if (oldTmp != null) oldTmp.enabled = false;
+        }
+
+        var f = TMP_Settings.defaultFontAsset;
+        var cap = capTr.GetComponent<TextMeshProUGUI>();
+        if (cap == null) cap = capTr.gameObject.AddComponent<TextMeshProUGUI>();
+        cap.text = label.ToUpperInvariant();
+        cap.fontSize = compact ? 28f : 30f;
+        cap.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
+        cap.alignment = TextAlignmentOptions.Center;
+        cap.color = Color.white;
+        cap.enableAutoSizing = true;
+        cap.fontSizeMin = 16f;
+        cap.fontSizeMax = compact ? 28f : 30f;
+        cap.raycastTarget = false;
+        if (f != null) cap.font = f;
     }
 
     static Transform FindDeep(Transform t, string name)

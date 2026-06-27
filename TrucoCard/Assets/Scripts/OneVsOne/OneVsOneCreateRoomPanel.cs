@@ -13,6 +13,8 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
     [SerializeField] private Toggle _fee5;
     [SerializeField] private Toggle _fee10;
     [SerializeField] private Toggle _fee15;
+    [Tooltip("Optional Con Flor / Sin Flor selector. When unset, defaults to Con Flor.")]
+    [SerializeField] private Toggle _withFlorToggle;
     [SerializeField] private Button _confirm;
     [SerializeField] private Button _cancel;
     [SerializeField] private TMP_Text _prizePreview;
@@ -28,8 +30,10 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         TrucoRuntimeUiBuilders.SetFeeToggleAmountLabel(_fee15, 15);
         SetLabelInChild("FeeLabel", TrucoTextosClient.EntradaMonedas);
         SetLabelInChild("CodeLabel", TrucoTextosClient.CodigoSala4);
-        SetAccessToggleLabel(_isPublicToggle, TrucoTextosClient.Publica);
-        SetAccessToggleLabel(_isPrivateToggle, TrucoTextosClient.Privada);
+        SetPillLabel(_isPublicToggle, TrucoTextosClient.Publica);
+        SetPillLabel(_isPrivateToggle, TrucoTextosClient.Privada);
+        SetPillLabel(_withFlorToggle, TrucoTextosClient.ConFlor);
+        SetFlorSegmentLabels();
         SetButtonLabel(_confirm, TrucoTextosClient.CrearSala);
         SetButtonLabel(_cancel, TrucoTextosClient.Volver);
         if (_nameField != null && _nameField.placeholder is TMP_Text ph)
@@ -48,6 +52,26 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
             var tmp = ch.GetComponent<TMP_Text>();
             if (tmp != null) tmp.text = text;
             return;
+        }
+    }
+
+    static void SetPillLabel(Toggle tgl, string label)
+    {
+        if (tgl == null) return;
+        var tmp = tgl.GetComponentInChildren<TMP_Text>(true);
+        if (tmp != null) tmp.text = label;
+    }
+
+    void SetFlorSegmentLabels()
+    {
+        if (_withFlorToggle == null) return;
+        var row = _withFlorToggle.transform.parent;
+        if (row == null) return;
+        foreach (var t in row.GetComponentsInChildren<Toggle>(true))
+        {
+            if (t == _withFlorToggle) SetPillLabel(t, TrucoTextosClient.ConFlor);
+            else if (t.name.Contains("SinFlor") || t.name.Contains("FlorB"))
+                SetPillLabel(t, TrucoTextosClient.SinFlor);
         }
     }
 
@@ -210,6 +234,15 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
     }
 
     public string GetPassword() => _passwordField != null ? _passwordField.text : string.Empty;
+
+    /// <summary>true = Con Flor, false = Sin Flor. Defaults to Con Flor when no selector is bound.</summary>
+    public bool WithFlor() => _withFlorToggle == null || _withFlorToggle.isOn;
+
+    public void BindFlorToggle(Toggle florToggle)
+    {
+        _withFlorToggle = florToggle;
+        if (_withFlorToggle != null) _withFlorToggle.SetIsOnWithoutNotify(true);
+    }
 
     void WireFeeTogglesForExclusive()
     {

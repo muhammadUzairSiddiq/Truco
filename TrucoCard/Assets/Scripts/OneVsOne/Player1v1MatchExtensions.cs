@@ -167,7 +167,11 @@ public static class Player1v1MatchExtensions
         if (m == null || string.IsNullOrEmpty(uid)) return false;
         if (OneVsOneMatchSession.IsHost && OneVsOneMatchSession.CurrentMatchId == m._id) return true;
         string host = m.GetHostUserId();
-        return !string.IsNullOrEmpty(host) && host == uid;
+        if (!string.IsNullOrEmpty(host) && host == uid) return true;
+        // API list often omits createdBy; sole registered player is the host waiting for a rival.
+        if (m.players != null && m.players.Length == 1 && m.players[0] != null && m.players[0]._id == uid)
+            return true;
+        return false;
     }
 
     public static bool CanClickJoinOnRoom(this Player1v1Match m)

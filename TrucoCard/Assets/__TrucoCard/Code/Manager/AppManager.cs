@@ -16,6 +16,7 @@ public class AppManager : SingeltonBase<AppManager>
 
     public void DisplayLoadingUI(string loadingMsg)
     {
+        TrucoNotificationLog.Pending(loadingMsg);
         _loadingOverlay.DisplayLoadingUI(loadingMsg);
     }
     public void HideLoadingUI()
@@ -30,7 +31,7 @@ public class AppManager : SingeltonBase<AppManager>
     public void DisplayNotification(string msgStr, Action onCloseAction = null)
     {
         HideLoadingUI();
-
+        TrucoNotificationLog.Info(msgStr);
         _notificationOverlay.DisplayNotification(msgStr, onCloseAction);
     }
     public void HideNotification()
