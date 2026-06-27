@@ -124,12 +124,19 @@ public class TurnManager : MonoBehaviourPunCallbacks
         while (d > 0f)
         {
             if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
+            if (TrucoPunReconnectionManager.IsWaitingForOpponentReconnect)
+            {
+                int rem = TrucoPunReconnectionManager.OpponentReconnectSecondsRemaining;
+                TrucoPunReconnectionManager.UpdateOpponentAbsentTurnBanner(rem);
+                yield return null;
+                continue;
+            }
             if (UIMANAGER.Instance != null &&
                 (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
             {
                 // A canto is open. If I'm not the one who must respond, show that I'm waiting.
                 if (UIMANAGER.Instance != null && !UIMANAGER.Instance._iOweChallengeResponse)
-                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EsperandoRespuestaRival, -1f);
+                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
                 yield return null;
                 continue;
             }
@@ -143,9 +150,29 @@ public class TurnManager : MonoBehaviourPunCallbacks
             }
             yield return null;
         }
-        // Countdown finished — show waiting until the next Turn RPC resets the banner.
-        if (UIMANAGER.Instance != null)
-            UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EsperandoJugadaRival, -1f);
+        // After the 30 s turn window: keep showing reconnect countdown if the rival dropped.
+        while (true)
+        {
+            if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
+            if (TrucoPunReconnectionManager.IsWaitingForOpponentReconnect)
+            {
+                int rem = TrucoPunReconnectionManager.OpponentReconnectSecondsRemaining;
+                TrucoPunReconnectionManager.UpdateOpponentAbsentTurnBanner(rem);
+                yield return null;
+                continue;
+            }
+            if (UIMANAGER.Instance != null &&
+                (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
+            {
+                if (!UIMANAGER.Instance._iOweChallengeResponse)
+                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
+                yield return null;
+                continue;
+            }
+            if (UIMANAGER.Instance != null)
+                UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoJugadaRival), -1f);
+            yield return null;
+        }
     }
 
     IEnumerator TurnTimeoutRoutine(string turnForActor)
@@ -161,7 +188,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
             {
                 // Canto open: if I'm waiting on the opponent's answer, show it (the responder runs their own 30 s timer).
                 if (!UIMANAGER.Instance._iOweChallengeResponse)
-                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EsperandoRespuestaRival, -1f);
+                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
                 yield return null;
                 continue;
             }

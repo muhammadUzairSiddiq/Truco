@@ -35,8 +35,9 @@ public class UIMANAGER : MonoBehaviour
     [Tooltip("Creada en runtime si no existe: panel detrás del texto de turno (no bloquea clics).")]
     [SerializeField] private RectTransform turnTextBackground;
     static Sprite _cachedUiWhiteSprite;
-    static readonly Color TurnBannerBgNormal = new Color(0.07f, 0.09f, 0.12f, 0.88f);
-    static readonly Color TurnBannerBgUrgent = new Color(0.22f, 0.1f, 0.08f, 0.94f);
+    static readonly Color TurnBannerBgNormal = TrucoGameplayTimerBanner.BgNormal;
+    static readonly Color TurnBannerBgUrgent = TrucoGameplayTimerBanner.BgUrgent;
+    static readonly Color TurnBannerBgReconnect = TrucoGameplayTimerBanner.BgReconnect;
     public List<GameObject> myPlayerCards;
     [SerializeField] private List<GameObject> otherPlayersCards;
     [SerializeField] private List<Transform> myDisplayCardsPosition;
@@ -221,30 +222,55 @@ public class UIMANAGER : MonoBehaviour
         bg.anchorMax = textRt.anchorMax;
         bg.pivot = textRt.pivot;
         bg.anchoredPosition = textRt.anchoredPosition;
-        bg.sizeDelta = new Vector2(textRt.sizeDelta.x + 32f, textRt.sizeDelta.y + 24f);
+        bg.sizeDelta = new Vector2(Mathf.Max(textRt.sizeDelta.x + 140f, 560f), Mathf.Max(textRt.sizeDelta.y + 100f, 220f));
         turnTextBackground = bg;
+        turnText.transform.SetAsLastSibling();
+    }
+
+    void ApplyTurnBannerSize(bool largeCountdown)
+    {
+        if (turnTextBackground == null || turnText == null) return;
+        var textRt = turnText.GetComponent<RectTransform>();
+        if (textRt == null) return;
+        turnTextBackground.sizeDelta = largeCountdown
+            ? new Vector2(Mathf.Max(textRt.sizeDelta.x + 160f, 620f), Mathf.Max(textRt.sizeDelta.y + 120f, 260f))
+            : new Vector2(Mathf.Max(textRt.sizeDelta.x + 140f, 560f), Mathf.Max(textRt.sizeDelta.y + 100f, 220f));
     }
 
     /// <param name="autoHideSeconds">Si es &lt; 0, el banner queda visible hasta el próximo <see cref="UpdateTurnText"/> (p. ej. durante la cuenta de 30 s).</param>
     /// <param name="turnCountdownUrgent">Panel del cronómetro ligeramente más cálido cuando quedan pocos segundos.</param>
-    public void UpdateTurnText(string message, float autoHideSeconds = 2.25f, bool turnCountdownUrgent = false)
+    /// <param name="reconnectCountdown">Rival desconectado — panel negro más marcado para el timer de 60 s.</param>
+    public void UpdateTurnText(string message, float autoHideSeconds = 2.25f, bool turnCountdownUrgent = false, bool reconnectCountdown = false)
     {
         if (turnText == null) return;
         CancelInvoke(nameof(DisableTurnText));
+        bool persistentTimer = autoHideSeconds < 0f;
+        EnsureTurnBannerBackground();
+        ApplyTurnBannerSize(persistentTimer);
         turnText.SetActive(true);
         if (turnTextBackground != null) turnTextBackground.gameObject.SetActive(true);
-        ApplyTurnBannerUrgency(turnCountdownUrgent);
+        ApplyTurnBannerUrgency(turnCountdownUrgent, reconnectCountdown);
         var tmp = turnText.GetComponent<TMPro.TMP_Text>();
-        if (tmp != null) tmp.text = message;
+        if (tmp != null)
+        {
+            tmp.text = message;
+            tmp.fontStyle = TMPro.FontStyles.Bold;
+            tmp.color = Color.white;
+            tmp.raycastTarget = false;
+        }
+        turnText.transform.SetAsLastSibling();
         if (autoHideSeconds >= 0f)
             Invoke(nameof(DisableTurnText), autoHideSeconds);
     }
 
-    void ApplyTurnBannerUrgency(bool urgent)
+    void ApplyTurnBannerUrgency(bool urgent, bool reconnect = false)
     {
         if (turnTextBackground == null) return;
         var img = turnTextBackground.GetComponent<Image>();
-        if (img != null) img.color = urgent ? TurnBannerBgUrgent : TurnBannerBgNormal;
+        if (img == null) return;
+        if (reconnect) img.color = TurnBannerBgReconnect;
+        else if (urgent) img.color = TurnBannerBgUrgent;
+        else img.color = TurnBannerBgNormal;
     }
 
     // Go Back to Main Menu

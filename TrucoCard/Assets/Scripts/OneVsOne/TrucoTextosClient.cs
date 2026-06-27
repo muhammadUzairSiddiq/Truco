@@ -53,47 +53,25 @@ public static class TrucoTextosClient
     public static string CuentaRegresiva => TrucoLocalization.T(TrucoLocalization.Key.CuentaRegresiva);
     public static string TuTurno => TrucoLocalization.T(TrucoLocalization.Key.TuTurno);
     public static string TurnoRival => TrucoLocalization.T(TrucoLocalization.Key.TurnoRival);
+    public static string RivalAusente => TrucoLocalization.T(TrucoLocalization.Key.RivalAusente);
 
     public const int TurnoTimerUrgenteHastaSegundos = 5;
 
-    public static string FormatoBannerTuTurnoConSegundos(int sec)
-    {
-        if (sec < 0) sec = 0;
-        bool urgent = sec <= TurnoTimerUrgenteHastaSegundos;
-        string cLabel = urgent ? "#f0dcc0" : "#c8d4e0";
-        string cNum = urgent ? "#ffc24a" : "#ffffff";
-        string cSuf = urgent ? "#e8a060" : "#aeb8c4";
-        string szNum = urgent ? "86" : "80";
-        return "<align=center><line-height=76%><size=34><color=" + cLabel + ">" + TuTurno
-            + "</color></size><br><size=" + szNum + "><color=" + cNum + "><b>" + sec
-            + "</b></color></size><size=30><color=" + cSuf + "> s</color></size></line-height></align>";
-    }
+    public static string FormatoBannerTuTurnoConSegundos(int sec) =>
+        TrucoGameplayTimerBanner.ConSegundos(TuTurno, sec);
 
-    public static string FormatoBannerTurnoRivalConSegundos(int sec)
-    {
-        if (sec < 0) sec = 0;
-        bool urgent = sec <= TurnoTimerUrgenteHastaSegundos;
-        string cLabel = urgent ? "#f0dcc0" : "#c8d4e0";
-        string cNum = urgent ? "#ffc24a" : "#ffffff";
-        string cSuf = urgent ? "#e8a060" : "#aeb8c4";
-        string szNum = urgent ? "86" : "80";
-        return "<align=center><line-height=76%><size=34><color=" + cLabel + ">" + TurnoRival
-            + "</color></size><br><size=" + szNum + "><color=" + cNum + "><b>" + sec
-            + "</b></color></size><size=30><color=" + cSuf + "> s</color></size></line-height></align>";
-    }
+    public static string FormatoBannerTurnoRivalConSegundos(int sec) =>
+        TrucoGameplayTimerBanner.ConSegundos(TurnoRival, sec);
 
-    public static string FormatoBannerResponderConSegundos(int sec)
-    {
-        if (sec < 0) sec = 0;
-        bool urgent = sec <= TurnoTimerUrgenteHastaSegundos;
-        string cLabel = urgent ? "#f0dcc0" : "#ffe2b0";
-        string cNum = urgent ? "#ffc24a" : "#ffd166";
-        string cSuf = urgent ? "#e8a060" : "#c9a96a";
-        string szNum = urgent ? "86" : "80";
-        return "<align=center><line-height=76%><size=34><color=" + cLabel + ">" + Responde
-            + "</color></size><br><size=" + szNum + "><color=" + cNum + "><b>" + sec
-            + "</b></color></size><size=30><color=" + cSuf + "> s</color></size></line-height></align>";
-    }
+    /// <summary>Countdown while the opponent may reconnect before walkover win.</summary>
+    public static string FormatoBannerRivalAusenteConSegundos(int sec) =>
+        TrucoGameplayTimerBanner.ConSegundos(RivalAusente, sec);
+
+    public static string FormatoBannerResponderConSegundos(int sec) =>
+        TrucoGameplayTimerBanner.ConSegundos(Responde, sec);
+
+    public static string FormatoBannerEsperandoRival(string msg) =>
+        TrucoGameplayTimerBanner.SoloMensaje(msg);
 
     public static string Responde => TrucoLocalization.T(TrucoLocalization.Key.Responde);
     public static string EsperandoRespuestaRival => TrucoLocalization.T(TrucoLocalization.Key.EsperandoRespuestaRival);

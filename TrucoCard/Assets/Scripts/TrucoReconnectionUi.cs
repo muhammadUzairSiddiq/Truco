@@ -2,11 +2,12 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>Full-screen dim + centered white text for network reconnection (Gameplay).</summary>
+/// <summary>Full-screen dim + bold white countdown for network reconnection (Gameplay).</summary>
 public class TrucoReconnectionUi : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI _label;
-    RectTransform _rootRt;
+    [SerializeField] private Image _panelBg;
+    RectTransform _panelRt;
 
     public static TrucoReconnectionUi Ensure(Transform parent)
     {
@@ -28,33 +29,44 @@ public class TrucoReconnectionUi : MonoBehaviour
         var canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
-        canvas.sortingOrder = 60000;
+        canvas.sortingOrder = 65000;
         gameObject.AddComponent<GraphicRaycaster>();
 
         var dim = new GameObject("Dim");
         dim.transform.SetParent(transform, false);
-        _rootRt = dim.AddComponent<RectTransform>();
-        _rootRt.anchorMin = Vector2.zero;
-        _rootRt.anchorMax = Vector2.one;
-        _rootRt.offsetMin = Vector2.zero;
-        _rootRt.offsetMax = Vector2.zero;
-        var img = dim.AddComponent<Image>();
-        img.color = new Color(0f, 0f, 0f, 0.72f);
-        img.raycastTarget = true;
+        var dimRt = dim.AddComponent<RectTransform>();
+        dimRt.anchorMin = Vector2.zero;
+        dimRt.anchorMax = Vector2.one;
+        dimRt.offsetMin = Vector2.zero;
+        dimRt.offsetMax = Vector2.zero;
+        var dimImg = dim.AddComponent<Image>();
+        dimImg.color = new Color(0f, 0f, 0f, 0.55f);
+        dimImg.raycastTarget = true;
+
+        var panel = new GameObject("Panel");
+        panel.transform.SetParent(dim.transform, false);
+        _panelRt = panel.AddComponent<RectTransform>();
+        _panelRt.anchorMin = _panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+        _panelRt.pivot = new Vector2(0.5f, 0.5f);
+        _panelRt.sizeDelta = new Vector2(920f, 420f);
+        _panelBg = panel.AddComponent<Image>();
+        _panelBg.color = TrucoGameplayTimerBanner.BgReconnect;
+        _panelBg.raycastTarget = false;
 
         var textGo = new GameObject("Text");
-        textGo.transform.SetParent(dim.transform, false);
+        textGo.transform.SetParent(panel.transform, false);
         var tr = textGo.AddComponent<RectTransform>();
-        tr.anchorMin = new Vector2(0.5f, 0.5f);
-        tr.anchorMax = new Vector2(0.5f, 0.5f);
-        tr.pivot = new Vector2(0.5f, 0.5f);
-        tr.anchoredPosition = Vector2.zero;
-        tr.sizeDelta = new Vector2(1080f, 400f);
+        tr.anchorMin = Vector2.zero;
+        tr.anchorMax = Vector2.one;
+        tr.offsetMin = new Vector2(24f, 20f);
+        tr.offsetMax = new Vector2(-24f, -20f);
         _label = textGo.AddComponent<TextMeshProUGUI>();
         _label.alignment = TextAlignmentOptions.Center;
-        _label.fontSize = 36;
+        _label.fontStyle = FontStyles.Bold;
         _label.color = Color.white;
         _label.enableWordWrapping = true;
+        _label.richText = true;
+        _label.raycastTarget = false;
         if (TMP_Settings.defaultFontAsset != null)
             _label.font = TMP_Settings.defaultFontAsset;
         gameObject.SetActive(false);
@@ -63,9 +75,10 @@ public class TrucoReconnectionUi : MonoBehaviour
     public void Show(string line1, int secondsRemaining)
     {
         if (_label == null) Build();
-        string t = secondsRemaining >= 0 ? $"\n{secondsRemaining}" : string.Empty;
-        _label.text = line1 + t;
+        _label.text = TrucoGameplayTimerBanner.OverlayTituloYSegundos(line1, secondsRemaining);
+        if (_panelBg != null) _panelBg.color = TrucoGameplayTimerBanner.BgReconnect;
         gameObject.SetActive(true);
+        transform.SetAsLastSibling();
     }
 
     public void Hide()

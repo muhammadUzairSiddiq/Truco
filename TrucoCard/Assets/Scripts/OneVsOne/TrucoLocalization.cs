@@ -107,6 +107,7 @@ public static class TrucoLocalization
             case Key.CuentaRegresiva: return "Tiempo: {0} s";
             case Key.TuTurno: return "Tu turno";
             case Key.TurnoRival: return "Turno del rival";
+            case Key.RivalAusente: return "Rival desconectado";
             case Key.Responde: return "Respondé";
             case Key.EsperandoRespuestaRival: return "Esperando respuesta del rival…";
             case Key.EsperandoJugadaRival: return "Esperando jugada del rival…";
@@ -205,6 +206,7 @@ public static class TrucoLocalization
             case Key.CuentaRegresiva: return "Time: {0} s";
             case Key.TuTurno: return "Your turn";
             case Key.TurnoRival: return "Opponent's turn";
+            case Key.RivalAusente: return "Opponent disconnected";
             case Key.Responde: return "Respond";
             case Key.EsperandoRespuestaRival: return "Waiting for opponent's response…";
             case Key.EsperandoJugadaRival: return "Waiting for opponent's play…";
@@ -264,7 +266,7 @@ public static class TrucoLocalization
         NombreSala, TipoSala, Publica, Privada, ContrasenaSala, CodigoSala4, CodigoPrivadaInfo, CodigoInvalido4,
         CodigoEtiqueta, TuCodigoSala, CodigoParaUnir, EntradaMonedas, Unirse, Entrar,
         SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, Conectando, IngresaContrasena,
-        TiempoEsgotadoJugada, CuentaRegresiva, TuTurno, TurnoRival, Responde,
+        TiempoEsgotadoJugada, CuentaRegresiva, TuTurno, TurnoRival, RivalAusente, Responde,
         EsperandoRespuestaRival, EsperandoJugadaRival, TiempoRespuestaAgotado,
         GanastePremio, GanaPorAbandono, RivalReconectando, Reconectando, ReconectandoOverlay,
         ReconectarFallo, ReconexOk, ReconexionPerdida1v1, EspectandoAdmin,
