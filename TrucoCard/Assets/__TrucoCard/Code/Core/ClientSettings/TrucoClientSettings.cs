@@ -34,7 +34,8 @@ public static class TrucoClientSettings
         if (_so.debugLogsEnabled)
             Debug.Log("[TrucoClientSettings] Loaded. ES=" + _so.spanishEnabled + " EN=" + _so.englishEnabled +
                       " debug=" + _so.debugLogsEnabled + " photonRetry=" + PhotonJoinMaxAttempts + "x" +
-                      PhotonJoinRetryIntervalSeconds + "s");
+                      PhotonJoinRetryIntervalSeconds + "s gameSecretConfigured=" +
+                      !string.IsNullOrEmpty(GameSecret));
     }
 
     public static void ApplyAsset(TrucoClientSettingsSO so)

@@ -101,16 +101,14 @@ public static class OneVsOneMatchLifecycle
   public static async Task ForfeitActiveMatchAsync(string matchId)
   {
     if (string.IsNullOrEmpty(matchId)) return;
-    string winner = OneVsOneMatchSession.CachedOpponentUserId;
+    string winner = OneVsOneMatchSession.CachedOpponentUserId
+                    ?? PhotonPlayerHelper.GetOtherTrucoPlayerUserId();
     if (!string.IsNullOrEmpty(winner))
-    {
-      if (PhotonNetwork.IsMasterClient)
-        await ApiController.Finalize1v1MatchAsMaster(matchId, winner);
-      else
-        await ApiController.Finalize1v1MatchAsGuest(matchId);
-    }
+      await ApiController.Finalize1v1MatchSettlement(matchId, winner, submitResult: true);
     else
     {
+      TrucoRulesScenarioLog.BackendFail("Forfeit settle skipped",
+          "no opponent userId for match=" + matchId);
       await ApiController.TryNotifyPlayerLeftMatch1v1(matchId);
       await ApiController.GetCurrentUserProfile();
     }

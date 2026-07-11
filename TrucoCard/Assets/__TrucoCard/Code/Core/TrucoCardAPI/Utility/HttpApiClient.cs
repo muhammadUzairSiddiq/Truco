@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -136,20 +136,34 @@ public static class HttpApiClient
     }
 
     /// <summary>
-    /// Required for match result / walkover. Value from TrucoClientSettings (Resources).
-    /// Ask backend for the production secret if empty — requests will 403 without it.
+    /// Required for match result / walkover. Value from TrucoClientSettings (Resources)
+    /// or PlayerPrefs key <c>TrucoGameSecret</c> (runtime override without rebuild).
     /// </summary>
     static void AttachGameSecretHeader(UnityWebRequest req)
     {
-        string secret = TrucoClientSettings.GameSecret;
+        string secret = ResolveGameSecret();
         if (string.IsNullOrEmpty(secret))
         {
             TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
-                "x-game-secret missing — set TrucoClientSettings.gameSecret (backend will return 403 on /result).");
-            return;
+                "x-game-secret MISSING — set Resources/TrucoClientSettings.gameSecret (or PlayerPrefs TrucoGameSecret). POST /result will 403.");
+            throw new System.Exception(
+                "x-game-secret missing on client — ask backend for the production secret and set TrucoClientSettings.gameSecret");
         }
         req.SetRequestHeader("x-game-secret", secret);
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+            "x-game-secret attached (len=" + secret.Length + ")");
     }
+
+    /// <summary>Settings asset first, then PlayerPrefs override for devices already built.</summary>
+    public static string ResolveGameSecret()
+    {
+        string fromSettings = TrucoClientSettings.GameSecret;
+        if (!string.IsNullOrEmpty(fromSettings)) return fromSettings.Trim();
+        string fromPrefs = PlayerPrefs.GetString("TrucoGameSecret", string.Empty);
+        return string.IsNullOrEmpty(fromPrefs) ? string.Empty : fromPrefs.Trim();
+    }
+
+    public static bool HasGameSecretConfigured() => !string.IsNullOrEmpty(ResolveGameSecret());
 
     private static string ExtractErrorMessage(string responseText)
     {

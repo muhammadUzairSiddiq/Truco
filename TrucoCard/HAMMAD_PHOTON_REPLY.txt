@@ -8,7 +8,7 @@ Configured in Unity:
   Assets/Photon/PhotonUnityNetworking/Resources/PhotonServerSettings.asset
   AppIdRealtime = 7667f450-aaf1-4e4c-ba90-dc36c320a887
   AppVersion    = trucopy-1.0.0
-  FixedRegion   = asia
+  FixedRegion   = asia (do NOT flip to sa until host+guest APKs/Editor all match)
 
 Old developer App ID (552218c5-ee23-464f-9190-bfc2d7e3b60d) removed from settings.
 Archived only in: PHOTON_APP_IDS.txt (not used by the game).

@@ -181,6 +181,11 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 if (UIMANAGER.Instance != null && !UIMANAGER.Instance._iOweChallengeResponse)
                 {
                     int sec = UIMANAGER.Instance.GetChallengeResponseSecondsRemaining();
+                    // If raise never stamped the clock, avoid a frozen "30" forever.
+                    if (sec >= Mathf.CeilToInt(TurnTimeoutSeconds) && Time.frameCount % 60 == 0)
+                        TrucoRulesScenarioLog.Ok("OppTimer paused for challenge response",
+                            "sec=" + sec + " pending=" + UIMANAGER.Instance._isChallengepPending
+                            + " unanswered=" + UIMANAGER.Instance.unAnsweredChallenges.Count);
                     UIMANAGER.Instance.UpdateTurnText(
                         TrucoTextosClient.FormatoBannerEsperandoRivalConSegundos(TrucoTextosClient.EsperandoRespuestaRival, sec),
                         -1f, sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos);
@@ -376,12 +381,24 @@ public class TurnManager : MonoBehaviourPunCallbacks
     }
     
     /// <summary>Restart the active 30 s turn clock after a canto closes (full fresh window).</summary>
-    public void RestartTurnTimersIfActive()
+    /// <param name="force">When true, restart even if challenge pending flags were left dirty (clears timer freeze).</param>
+    public void RestartTurnTimersIfActive(bool force = false)
     {
         if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved) return;
-        if (UIMANAGER.Instance != null &&
+        if (!force && UIMANAGER.Instance != null &&
             (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
+        {
+            TrucoRulesScenarioLog.Ok("TimerReset SKIPPED (challenge still pending)",
+                "pending=" + UIMANAGER.Instance._isChallengepPending
+                + " unanswered=" + UIMANAGER.Instance.unAnsweredChallenges.Count);
             return;
+        }
+        if (force && UIMANAGER.Instance != null)
+        {
+            UIMANAGER.Instance._isChallengepPending = false;
+            // Keep unAnsweredChallenges if a stacked canto chain still needs them;
+            // force only unblocks the turn clock after Quiero/NoQuiero closed the UI.
+        }
         if (_turnTimeoutRoutine != null)
         {
             StopCoroutine(_turnTimeoutRoutine);
@@ -395,13 +412,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
         string actor = PhotonNetwork.LocalPlayer.ActorNumber.ToString();
         if (GameManager.Instance.IsMyTurn())
         {
-            TrucoRulesScenarioLog.Ok("TimerReset MY_TURN after canto close", "fresh=" + TurnTimeoutSeconds + "s");
+            TrucoRulesScenarioLog.Ok("TimerReset MY_TURN after canto close", "fresh=" + TurnTimeoutSeconds + "s force=" + force);
             _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(actor));
             UIMANAGER.Instance?.EnableButtons();
         }
         else
         {
-            TrucoRulesScenarioLog.Ok("TimerReset WAIT_RIVAL after canto close", "fresh=" + TurnTimeoutSeconds + "s");
+            TrucoRulesScenarioLog.Ok("TimerReset WAIT_RIVAL after canto close", "fresh=" + TurnTimeoutSeconds + "s force=" + force);
             _opponentTurnDisplayRoutine = StartCoroutine(OpponentTurnDisplayRoutine());
         }
     }

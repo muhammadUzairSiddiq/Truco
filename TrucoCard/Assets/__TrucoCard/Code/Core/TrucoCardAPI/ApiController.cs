@@ -916,37 +916,100 @@ public static class ApiController
     }
 
     /// <summary>
-    /// Master client: POST /result (rake + prize), POST /leave + /end, GET /auth/me.
-    /// Only one client should submit the result to avoid double settlement.
+    /// Settle 1v1: POST /result (prize) with retries, then leave+end, then refresh wallet.
+    /// Both clients may call this with the same winnerId — server should treat duplicate as OK.
     /// </summary>
     public static async System.Threading.Tasks.Task Finalize1v1MatchAsMaster(string matchId, string winnerUserId, System.Action onSettled = null)
+        => await Finalize1v1MatchSettlement(matchId, winnerUserId, submitResult: true, onSettled);
+
+    /// <summary>Guest also submits /result when it knows the winner (master alone was unreliable after mano master rotate).</summary>
+    public static async System.Threading.Tasks.Task Finalize1v1MatchAsGuest(string matchId, string winnerUserId = null, System.Action onSettled = null)
+        => await Finalize1v1MatchSettlement(matchId, winnerUserId, submitResult: !string.IsNullOrEmpty(winnerUserId), onSettled);
+
+    public static async System.Threading.Tasks.Task Finalize1v1MatchSettlement(
+        string matchId,
+        string winnerUserId,
+        bool submitResult,
+        System.Action onSettled = null)
     {
         if (string.IsNullOrEmpty(matchId)) return;
-        bool resultOk = false;
-        if (!string.IsNullOrEmpty(winnerUserId))
-            resultOk = await SubmitMatchResult1v1(matchId, winnerUserId, msg =>
-                Debug.LogWarning("[ApiController] - match result failed: " + msg));
+
+        int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
+        bool secretOk = HttpApiClient.HasGameSecretConfigured();
+        TrucoRulesScenarioLog.Backend("SETTLE start",
+            "match=" + matchId
+            + " winner=" + (winnerUserId ?? "null")
+            + " submitResult=" + submitResult
+            + " secretConfigured=" + secretOk
+            + " balBefore=" + balBefore);
+
+        bool resultOk = !submitResult;
+        string lastErr = null;
+        if (submitResult)
+        {
+            if (string.IsNullOrEmpty(winnerUserId))
+            {
+                lastErr = "winnerUserId empty — cannot POST /result";
+                TrucoRulesScenarioLog.BackendFail("POST /result skipped", lastErr);
+            }
+            else if (!secretOk)
+            {
+                lastErr = "x-game-secret missing on client (TrucoClientSettings.gameSecret)";
+                TrucoRulesScenarioLog.BackendFail("POST /result blocked", lastErr);
+            }
+            else
+            {
+                const int maxAttempts = 3;
+                for (int attempt = 1; attempt <= maxAttempts; attempt++)
+                {
+                    resultOk = await SubmitMatchResult1v1(matchId, winnerUserId, msg =>
+                    {
+                        lastErr = msg;
+                        Debug.LogWarning("[ApiController] - match result failed (attempt " + attempt + "): " + msg);
+                    });
+                    if (resultOk) break;
+                    if (IsAlreadySettledError(lastErr))
+                    {
+                        resultOk = true;
+                        TrucoRulesScenarioLog.Backend("POST /result already settled → treat OK",
+                            "match=" + matchId + " msg=" + lastErr);
+                        break;
+                    }
+                    if (attempt < maxAttempts)
+                        await System.Threading.Tasks.Task.Delay(400 * attempt);
+                }
+            }
+        }
+
+        // Close lobby row even if result failed (avoid zombie rooms), but surface failure clearly.
         await CloseMatchRowAfterGameAsync(matchId);
         TrucoActiveHostMatchStore.Clear();
         await GetCurrentUserProfile();
+        int balAfter = GetSessionUser?.Data?.wallet?.balance ?? -1;
+        TrucoRulesScenarioLog.Backend("SETTLE done",
+            "match=" + matchId
+            + " resultOk=" + resultOk
+            + " balBefore=" + balBefore
+            + " balAfter=" + balAfter
+            + " delta=" + (balBefore >= 0 && balAfter >= 0 ? (balAfter - balBefore).ToString() : "?"));
         onSettled?.Invoke();
-        if (!string.IsNullOrEmpty(winnerUserId) && !resultOk)
+
+        if (submitResult && !resultOk)
         {
+            string detail = string.IsNullOrEmpty(lastErr) ? "unknown" : lastErr;
             AppManager.Instance?.DisplayNotification(
                 TrucoLocalization.IsEnglish
-                    ? "Match finished, but the server did not confirm the prize. Check POST /matches/{id}/result."
-                    : "Partida terminada, pero el servidor no confirmó el premio. Revisá POST /matches/{id}/result.");
+                    ? "Match finished, but the server did not confirm the prize. " + detail
+                    : "Partida terminada, pero el servidor no confirmó el premio. " + detail);
         }
     }
 
-    /// <summary>Non-master client after a match: leave + end row + refresh wallet (no /result).</summary>
-    public static async System.Threading.Tasks.Task Finalize1v1MatchAsGuest(string matchId, System.Action onSettled = null)
+    static bool IsAlreadySettledError(string msg)
     {
-        if (string.IsNullOrEmpty(matchId)) return;
-        await CloseMatchRowAfterGameAsync(matchId);
-        TrucoActiveHostMatchStore.Clear();
-        await GetCurrentUserProfile();
-        onSettled?.Invoke();
+        if (string.IsNullOrEmpty(msg)) return false;
+        string m = msg.ToLowerInvariant();
+        return m.Contains("already") || m.Contains("completed") || m.Contains("finished")
+               || m.Contains("settled") || m.Contains("duplicate");
     }
 
     /// <summary>Pre-game cancel: POST /leave then /end so the lobby row disappears for everyone.</summary>
@@ -1066,22 +1129,34 @@ public static class ApiController
     public static async Task<bool> SubmitMatchResult1v1(string matchId, string winnerUserId, Action<string> onError = null)
     {
         if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(winnerUserId)) return false;
+        string url = ApiConfig.MatchSubmitResult(matchId);
         try
         {
             var body = new MatchResultSubmitRequest { winnerId = winnerUserId, status = "completed" };
             string json = JsonUtility.ToJson(body);
-            await HttpApiClient.PostAsync(ApiConfig.MatchSubmitResult(matchId), json, requireGameSecret: true);
-            TrucoRulesScenarioLog.Backend("POST /result OK", "match=" + matchId + " winner=" + winnerUserId);
+            TrucoRulesScenarioLog.Backend("POST /result attempt",
+                "url=" + url + " body=" + json + " secret=" + HttpApiClient.HasGameSecretConfigured());
+            string response = await HttpApiClient.PostAsync(url, json, requireGameSecret: true);
+            TrucoRulesScenarioLog.Backend("POST /result OK",
+                "match=" + matchId + " winner=" + winnerUserId
+                + " response=" + TruncateForLog(response, 200));
             Debug.Log("[ApiController] - match result reported: " + matchId);
             return true;
         }
         catch (Exception ex)
         {
             onError?.Invoke(ex.Message);
-            TrucoRulesScenarioLog.BackendFail("POST /result", ex.Message);
+            TrucoRulesScenarioLog.BackendFail("POST /result",
+                "match=" + matchId + " winner=" + winnerUserId + " err=" + ex.Message);
             Debug.LogWarning("[ApiController] - SubmitMatchResult1v1: " + ex.Message);
             return false;
         }
+    }
+
+    static string TruncateForLog(string s, int max)
+    {
+        if (string.IsNullOrEmpty(s)) return "";
+        return s.Length <= max ? s : s.Substring(0, max) + "…";
     }
 
     /// <summary>

@@ -6,7 +6,7 @@ CURRENT (project-owned, production / testing builds)
 ----------------------------------------------------
 App ID:  7667f450-aaf1-4e4c-ba90-dc36c320a887
 Owner:   Hammad / TrucoPy project Photon account
-Region:  FixedRegion = asia (PhotonServerSettings)
+Region:  FixedRegion = asia (keep until BOTH devices rebuild together for Paraguay sa)
 AppVer:  trucopy-1.0.0
 
 PREVIOUS (developer / testing — DO NOT USE IN BUILDS)

@@ -109,6 +109,7 @@ public class UIMANAGER : MonoBehaviour
     public void BeginChallengeResponseCountdown()
     {
         if (SpectatorContext.IsSpectator) return;
+        MarkChallengeSentNow();
         _iOweChallengeResponse = true;
         if (_challengeResponseRoutine != null) StopCoroutine(_challengeResponseRoutine);
         TrucoRulesScenarioLog.Ok("ChallengeResponseTimer START",
@@ -122,6 +123,18 @@ public class UIMANAGER : MonoBehaviour
     {
         _iOweChallengeResponse = false;
         if (_challengeResponseRoutine != null) { StopCoroutine(_challengeResponseRoutine); _challengeResponseRoutine = null; }
+    }
+
+    /// <summary>After Quiero/NoQuiero closes a canto — clear pending flags and restart turn clocks on BOTH seats.</summary>
+    void FinishChallengeUiAndRestartTimers(string reason)
+    {
+        _isChallengepPending = false;
+        CancelChallengeResponseCountdown();
+        TrucoRulesScenarioLog.Ok("ChallengeClosed → restart timers",
+            "reason=" + reason
+            + " unanswered=" + unAnsweredChallenges.Count
+            + " myTurn=" + (GameManager.Instance != null && GameManager.Instance.IsMyTurn()));
+        TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
     }
 
     System.Collections.IEnumerator ChallengeResponseCountdown()
@@ -569,6 +582,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeRetruco()
     {
         TrucoGameplayAudio.PlayLocalRaise(RETRUCO_CHALLENGE);
+        MarkChallengeSentNow();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Retruco);
         _cantChallenge = true;
@@ -601,6 +615,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeVale4()
     {
         TrucoGameplayAudio.PlayLocalRaise(VALE4_CHALLENGE);
+        MarkChallengeSentNow();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Vale4);
         _cantChallenge = true;
@@ -633,6 +648,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeEnvido()
     {
         TrucoGameplayAudio.PlayLocalRaise(ENVIDO_CHALLENGE);
+        MarkChallengeSentNow();
         // This checks if other player had invoked Truco Challenge and resets the Points
         if (GameManager.Instance.lastChallengeType != ChallengeType.Envido)
         {
@@ -665,6 +681,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeRealEnvido()
     {
         TrucoGameplayAudio.PlayLocalRaise(REALENVIDO_CHALLENGE);
+        MarkChallengeSentNow();
         // This checks if other player had invoked Truco Challenge and resets the Points
         if (GameManager.Instance.lastChallengeType == ChallengeType.Truco)
         {
@@ -698,6 +715,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeFaltaEnvido()
     {
+        MarkChallengeSentNow();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Envido);
         invokedChallenges.Add(ChallengeType.FaltaEnvido);
@@ -786,7 +804,7 @@ public class UIMANAGER : MonoBehaviour
             trucoPlayed = true;
             unAnsweredChallenges.Clear();
         }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+            else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
         {
             envido.SetActive(false);
             realEnvido.SetActive(false);
@@ -798,6 +816,7 @@ public class UIMANAGER : MonoBehaviour
             invokedChallenges.Add(ChallengeType.FaltaEnvido);
             GameManager.Instance.ActiveChallenges.Clear();
             _envidoPlayed = true;
+            unAnsweredChallenges.Clear();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
         {
@@ -811,6 +830,7 @@ public class UIMANAGER : MonoBehaviour
             invokedChallenges.Add(ChallengeType.FaltaEnvido);
             GameManager.Instance.ActiveChallenges.Clear();
             _envidoPlayed = true;
+            unAnsweredChallenges.Clear();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
         {
@@ -823,6 +843,7 @@ public class UIMANAGER : MonoBehaviour
             invokedChallenges.Add(ChallengeType.RealEnvido);
             invokedChallenges.Add(ChallengeType.FaltaEnvido);
             _envidoPlayed = true;
+            unAnsweredChallenges.Clear();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
         {
@@ -831,6 +852,7 @@ public class UIMANAGER : MonoBehaviour
             envido.SetActive(false);
             realEnvido.SetActive(false);
             faltaEnvido.SetActive(false);
+            unAnsweredChallenges.Clear();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.ContraFlor))
         {
@@ -840,6 +862,7 @@ public class UIMANAGER : MonoBehaviour
             realEnvido.SetActive(false);
             faltaEnvido.SetActive(false);
             GameManager.Instance.ShowAllCards();
+            unAnsweredChallenges.Clear();
         }
         queiro.SetActive(false);
         noQueiro.SetActive(false);
@@ -857,6 +880,7 @@ public class UIMANAGER : MonoBehaviour
             Debug.LogWarning("Setting My turn Again");
             GameManager.Instance.SetCanPlayCard(true);
         }
+        FinishChallengeUiAndRestartTimers("local Quiero");
     }
     
     // This is called from UI Button To Call NoQuiero Challenge on other player
@@ -1008,13 +1032,14 @@ public class UIMANAGER : MonoBehaviour
             DisableButtons();
         }
         GameManager.Instance.challengePoints = 0;
-
+        FinishChallengeUiAndRestartTimers("local NoQuiero");
     }
     
     // This is called from UI Button To Call Flor Challenge on other player
 
     public void ChallengeFlor()
     {
+         MarkChallengeSentNow();
          _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Flor);
         // This block of code checks if other player has already denied FLor and gives local player points
@@ -1084,6 +1109,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeFlorChica()
     {
         TrucoGameplayAudio.PlayLocalRaise(FLOR_CHICA_CHALLENGE);
+        MarkChallengeSentNow();
         _isChallengepPending = false;
         invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
@@ -1110,6 +1136,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeConFlorQuiero()
     {
         TrucoGameplayAudio.PlayLocalRaise(CON_FLOR_QUIERO_CHALLENGE);
+        MarkChallengeSentNow();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Flor);
         invokedChallenges.Add(ChallengeType.ConFlorQuiero);
@@ -1138,6 +1165,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeContraFlor()
     {
         TrucoGameplayAudio.PlayLocalRaise(CONTRA_FLOR_CHALLENGE);
+        MarkChallengeSentNow();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
@@ -1564,8 +1592,7 @@ public class UIMANAGER : MonoBehaviour
         //     GameManager.Instance.SetCanPlayCard(true);
         // }
         _cantChallenge = false;
-        CancelChallengeResponseCountdown();
-        TurnManager.Instance?.RestartTurnTimersIfActive();
+        FinishChallengeUiAndRestartTimers("recv Quiero");
         if (GameManager.Instance.IsMyTurn())
             GameManager.Instance.SetCanPlayCard(true);
     }
@@ -1639,8 +1666,7 @@ public class UIMANAGER : MonoBehaviour
         }
 
         GameManager.Instance.challengePoints = 0;
-        CancelChallengeResponseCountdown();
-        TurnManager.Instance?.RestartTurnTimersIfActive();
+        FinishChallengeUiAndRestartTimers("recv NoQuiero");
     }
 
     
