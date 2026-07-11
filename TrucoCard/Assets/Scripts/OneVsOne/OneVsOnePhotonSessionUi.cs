@@ -2,7 +2,6 @@ using System.Collections;
 using Photon.Pun;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>Reemplaza al panel clásico "Looking for match" en el flujo 1v1: espera y cuenta 3-2-1 antes de Gameplay (solo el master carga la escena).</summary>
@@ -107,14 +106,7 @@ public class OneVsOnePhotonSessionUi : MonoBehaviour
         LoadGameplayScene();
     }
 
-    static void LoadGameplayScene()
-    {
-        if (!PhotonNetwork.InRoom) return;
-        if (PhotonNetwork.IsMasterClient)
-            TrucoSceneTransition.GoPhoton("Gameplay");
-        else if (SceneManager.GetActiveScene().name != "Gameplay")
-            TrucoSceneTransition.Go("Gameplay");
-    }
+    static void LoadGameplayScene() => TrucoOneVsOneGameplayLaunch.LoadFromCurrentRoom();
 
     public void HideOverlay()
     {

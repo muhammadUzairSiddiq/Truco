@@ -1,0 +1,52 @@
+TrucoCard / TrucoPy — Photon PUN App IDs
+========================================
+Updated: 2026-07-11
+
+CURRENT (project-owned, production / testing builds)
+----------------------------------------------------
+App ID:  7667f450-aaf1-4e4c-ba90-dc36c320a887
+Owner:   Hammad / TrucoPy project Photon account
+Region:  FixedRegion = asia (PhotonServerSettings)
+AppVer:  trucopy-1.0.0
+
+PREVIOUS (developer / testing — DO NOT USE IN BUILDS)
+-----------------------------------------------------
+App ID:  552218c5-ee23-464f-9190-bfc2d7e3b60d
+Status:  Retired from Unity PhotonServerSettings.asset
+Note:    Kept here for audit / rollback reference only.
+         Must not appear hardcoded in production project code or settings.
+
+Photon Custom Authentication
+----------------------------
+Current PUN AuthMode = Auth (0) — NOT using Photon Custom Authentication.
+Players connect with the App ID only (plus AppVersion).
+
+How the production App ID is protected today:
+  1. AppVersion "trucopy-1.0.0" isolates matchmaking from other clients.
+  2. Backend JWT auth gates create/join/result/leave (REST).
+  3. Replay protection (x-nonce + x-timestamp) on POST/PUT.
+  4. x-game-secret required on POST /matches/:id/result (and walkover).
+  5. Photon Webhooks (PathJoin / PathLeave / PathClose) → Node backend
+     for disconnect / zombie room cleanup (Milestone 3A).
+
+Recommended next step (Hammad Photon dashboard):
+  Enable Custom Authentication pointing at the Node auth endpoint so
+  Photon rejects clients without a valid backend token. Until then,
+  anyone with the App ID can open a Photon room; economy remains
+  protected by the REST API.
+
+Photon Webhooks (configure in Photon Dashboard → Webhooks)
+----------------------------------------------------------
+Base URL: https://srv983121.hstgr.cloud
+
+  PathJoin:  POST /api/webhooks/photon/PathJoin
+  PathLeave: POST /api/webhooks/photon/PathLeave
+  PathClose: POST /api/webhooks/photon/PathClose
+
+Full URLs to paste in Photon dashboard:
+  https://srv983121.hstgr.cloud/api/webhooks/photon/PathJoin
+  https://srv983121.hstgr.cloud/api/webhooks/photon/PathLeave
+  https://srv983121.hstgr.cloud/api/webhooks/photon/PathClose
+
+Unity project file that holds the live App ID:
+  Assets/Photon/PhotonUnityNetworking/Resources/PhotonServerSettings.asset

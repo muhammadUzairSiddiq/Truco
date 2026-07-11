@@ -21,7 +21,7 @@ public class TrucoApiEndpointsSO : ScriptableObject
     [System.Serializable]
     public class Endpoint
     {
-        [Tooltip("Logical key. Known keys: MatchList, PlayerCreateMatch, PlayerJoinMatch, MatchRegisterPhotonRoom, MatchSubmitResult, MatchPlayerLeave, MatchEnd, GetMatch, GetMyMatches, EnterTournament, ValidatePrivateTournament, FinalizeTournament, FinalizeMatch, CreateTournamentMatch. You may also add brand-new keys and read them with ApiConfig.Custom(key, args).")]
+        [Tooltip("Logical key. Known keys: MatchList, PlayerCreateMatch, PlayerJoinMatch, MatchRegisterPhotonRoom, MatchSubmitResult, MatchWalkover, MatchPlayerLeave, MatchEnd, GetMatch, GetMyMatches, EnterTournament, ValidatePrivateTournament, FinalizeTournament, FinalizeMatch, CreateTournamentMatch. You may also add brand-new keys and read them with ApiConfig.Custom(key, args).")]
         public string key;
 
         [Tooltip("Path that begins with '/'. Use {0} where an id goes. Example: /matches/{0}/end")]

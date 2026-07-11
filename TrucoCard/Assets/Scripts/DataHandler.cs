@@ -11,6 +11,7 @@ public class DataHandler : SingeltonBase<DataHandler>
 	private FileStream _stream;
 	private string path;
 	public int points { set; get; }
+	public int opponentPoints { set; get; }
 	public int roundNumber;
 	bool Data_avaliable;
 	

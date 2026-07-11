@@ -164,6 +164,12 @@ public class OneVsOneRoomRowView : MonoBehaviour
 
     public string GetJoinerCodeText() => _joinerCodeField != null ? _joinerCodeField.text : string.Empty;
 
+    public void SetJoinInteractable(bool interactable)
+    {
+        if (_joinButton != null)
+            _joinButton.interactable = interactable;
+    }
+
     /// <summary>Tras <see cref="OneVsOnePhotonFlow.OnRoomListUpdate"/> para actualizar 0/2–2/2 sin volver a pedir el API.</summary>
     public void RefreshFromLivePhoton()
     {

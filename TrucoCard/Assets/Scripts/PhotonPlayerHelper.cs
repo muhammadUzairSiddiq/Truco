@@ -35,6 +35,15 @@ public static class PhotonPlayerHelper
         return string.IsNullOrEmpty(s) ? null : s;
     }
 
+    /// <summary>Local Truco player's backend _id (Photon custom prop, else session user).</summary>
+    public static string GetLocalTrucoPlayerUserId()
+    {
+        var local = Photon.Pun.PhotonNetwork.LocalPlayer;
+        var fromPhoton = TryGetBackendUserId(local);
+        if (!string.IsNullOrEmpty(fromPhoton)) return fromPhoton;
+        return ApiController.GetSessionUser?.Data?._id;
+    }
+
     /// <summary>Other Truco (non-spectator) player’s backend _id, if they set custom property userId.</summary>
     public static string GetOtherTrucoPlayerUserId()
     {

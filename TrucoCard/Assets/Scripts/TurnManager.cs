@@ -31,26 +31,48 @@ public class TurnManager : MonoBehaviourPunCallbacks
         if (truco.Count < 2) return;
         if (PhotonNetwork.IsMasterClient)
         {
-            Player firstForRound = DataHandler.Instance.roundNumber % 2 == 0 ? truco[1] : truco[0];
+            Player firstForRound = GetManoPlayerForRound(truco, DataHandler.Instance.roundNumber);
+            TrucoRulesScenarioLog.Ok("Mano for new hand",
+                "round=" + DataHandler.Instance.roundNumber
+                + " firstActor=" + (firstForRound != null ? firstForRound.ActorNumber : -1)
+                + " (odd→actorOrder[0], even→actorOrder[1])");
 
             if (firstForRound != null && firstForRound.Equals(PhotonNetwork.LocalPlayer))
             {
                 GameManager.Instance.SetCards();
                 StartTheTurn();
             }
-            
-            Debug.LogWarning("Truco first actor: " + firstForRound.ActorNumber);
+
             PhotonNetwork.SetMasterClient(firstForRound);
         }
+    }
+
+    /// <summary>
+    /// Mano / first to play alternates each hand. Players are ordered by ActorNumber;
+    /// odd round → lower actor (usually host), even round → higher actor (usually guest).
+    /// </summary>
+    public static Player GetManoPlayerForRound(List<Player> trucoOrdered, int roundNumber)
+    {
+        if (trucoOrdered == null || trucoOrdered.Count < 2) return null;
+        return roundNumber % 2 == 0 ? trucoOrdered[1] : trucoOrdered[0];
     }
 
     // Set New player 1 Based on the round number
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
-        Debug.LogWarning("OnMaster Client Switched");
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
-        if (newMasterClient.Equals(PhotonNetwork.LocalPlayer))
+        // Only block while NuevaMano reload is pending or match ended — not on a fresh scene deal.
+        if (GameManager.Instance != null &&
+            (GameManager.Instance._gameEnded || GameManager.Instance.IsRestartScheduled()))
         {
+            TrucoRulesScenarioLog.Ok("OnMasterClientSwitched skipped deal (restart/match end)");
+            return;
+        }
+        if (newMasterClient != null && newMasterClient.Equals(PhotonNetwork.LocalPlayer))
+        {
+            TrucoRulesScenarioLog.Ok("OnMasterClientSwitched → deal + StartTheTurn",
+                "newMaster=" + newMasterClient.ActorNumber
+                + " round=" + DataHandler.Instance.roundNumber);
             GameManager.Instance.SetCards();
             StartTheTurn();
         }
@@ -60,15 +82,31 @@ public class TurnManager : MonoBehaviourPunCallbacks
     void StartTheTurn()
     {
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
-        if (PhotonNetwork.IsMasterClient)
+        if (!PhotonNetwork.IsMasterClient) return;
+
+        _turnOrder.Clear();
+        var t = PhotonPlayerHelper.GetTrucoPlayers();
+        if (t.Count < 2) return;
+        for (int i = 0; i < t.Count; i++)
+            _turnOrder.Add(t[i].ActorNumber.ToString());
+
+        // CRITICAL: do not always start at index 0 (host). Mano must follow roundNumber
+        // or after host Mazo the guest never gets MY_TURN on the next hand.
+        Player mano = GetManoPlayerForRound(t, DataHandler.Instance.roundNumber);
+        currentTurnIndex = 0;
+        if (mano != null)
         {
-            _turnOrder.Clear();
-            var t = PhotonPlayerHelper.GetTrucoPlayers();
-            if (t.Count < 2) return;
-            for (int i = 0; i < t.Count; i++) _turnOrder.Add(t[i].ActorNumber.ToString());
-            string turnNumber = GetCurrentPlayerTurn();
-            StartTurn(turnNumber);
-        } 
+            int idx = _turnOrder.IndexOf(mano.ActorNumber.ToString());
+            if (idx >= 0) currentTurnIndex = idx;
+        }
+
+        string turnNumber = GetCurrentPlayerTurn();
+        TrucoRulesScenarioLog.Ok("StartTheTurn",
+            "round=" + DataHandler.Instance.roundNumber
+            + " firstActor=" + turnNumber
+            + " turnIndex=" + currentTurnIndex
+            + " order=" + string.Join(",", _turnOrder));
+        StartTurn(turnNumber);
     }
     
     // This function is called to start the turn of the players over network
@@ -80,7 +118,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void Turn(string turnNumber)
     {
-        if (GameManager.Instance == null || GameManager.Instance._gameEnded) return;
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved) return;
+        if (_turnOrder.Count == 0)
+        {
+            var truco = PhotonPlayerHelper.GetTrucoPlayers();
+            for (int i = 0; i < truco.Count; i++)
+                _turnOrder.Add(truco[i].ActorNumber.ToString());
+        }
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator)
         {
             if (UIMANAGER.Instance != null)
@@ -99,15 +143,15 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
         if (PhotonNetwork.LocalPlayer.ActorNumber.ToString() == turnNumber)
         {
-            Debug.Log("It's your turn: " + turnNumber);
-            GameManager.Instance.SetCanPlayCard(true);
+            TrucoRulesScenarioLog.Ok("TurnStart MY_TURN", "timer=" + TurnTimeoutSeconds + "s actor=" + turnNumber);
             GameManager.Instance.SetMyTurn(true);
+            GameManager.Instance.SetCanPlayCard(true);
             UIMANAGER.Instance.EnableButtons();
             _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(turnNumber));
         }
         else
         {
-            Debug.Log("Waiting for player: " + turnNumber);
+            TrucoRulesScenarioLog.Opp("TurnStart WAIT_RIVAL", "timer=" + TurnTimeoutSeconds + "s actor=" + turnNumber);
             GameManager.Instance.SetCanPlayCard(false);
             GameManager.Instance.SetMyTurn(false);
             UIMANAGER.Instance.DisableButtons();
@@ -123,7 +167,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
         float d = TurnTimeoutSeconds;
         while (d > 0f)
         {
-            if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
+            if (GameManager.Instance != null && (GameManager.Instance._gameEnded || GameManager.Instance.HandResolved)) yield break;
             if (TrucoPunReconnectionManager.IsWaitingForOpponentReconnect)
             {
                 int rem = TrucoPunReconnectionManager.OpponentReconnectSecondsRemaining;
@@ -134,9 +178,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
             if (UIMANAGER.Instance != null &&
                 (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
             {
-                // A canto is open. If I'm not the one who must respond, show that I'm waiting.
                 if (UIMANAGER.Instance != null && !UIMANAGER.Instance._iOweChallengeResponse)
-                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
+                {
+                    int sec = UIMANAGER.Instance.GetChallengeResponseSecondsRemaining();
+                    UIMANAGER.Instance.UpdateTurnText(
+                        TrucoTextosClient.FormatoBannerEsperandoRivalConSegundos(TrucoTextosClient.EsperandoRespuestaRival, sec),
+                        -1f, sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos);
+                }
                 yield return null;
                 continue;
             }
@@ -153,7 +201,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
         // After the 30 s turn window: keep showing reconnect countdown if the rival dropped.
         while (true)
         {
-            if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
+            if (GameManager.Instance != null && (GameManager.Instance._gameEnded || GameManager.Instance.HandResolved)) yield break;
             if (TrucoPunReconnectionManager.IsWaitingForOpponentReconnect)
             {
                 int rem = TrucoPunReconnectionManager.OpponentReconnectSecondsRemaining;
@@ -165,7 +213,12 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
             {
                 if (!UIMANAGER.Instance._iOweChallengeResponse)
-                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
+                {
+                    int sec = UIMANAGER.Instance.GetChallengeResponseSecondsRemaining();
+                    UIMANAGER.Instance.UpdateTurnText(
+                        TrucoTextosClient.FormatoBannerEsperandoRivalConSegundos(TrucoTextosClient.EsperandoRespuestaRival, sec),
+                        -1f, sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos);
+                }
                 yield return null;
                 continue;
             }
@@ -182,13 +235,19 @@ public class TurnManager : MonoBehaviourPunCallbacks
         float d = TurnTimeoutSeconds;
         while (d > 0f)
         {
-            if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
+            if (GameManager.Instance != null && (GameManager.Instance._gameEnded || GameManager.Instance.HandResolved)) yield break;
             if (UIMANAGER.Instance != null &&
                 (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
             {
-                // Canto open: if I'm waiting on the opponent's answer, show it (the responder runs their own 30 s timer).
-                if (!UIMANAGER.Instance._iOweChallengeResponse)
-                    UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
+                if (UIMANAGER.Instance._iOweChallengeResponse)
+                {
+                    yield return null;
+                    continue;
+                }
+                int sec = UIMANAGER.Instance.GetChallengeResponseSecondsRemaining();
+                UIMANAGER.Instance.UpdateTurnText(
+                    TrucoTextosClient.FormatoBannerEsperandoRivalConSegundos(TrucoTextosClient.EsperandoRespuestaRival, sec),
+                    -1f, sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos);
                 yield return null;
                 continue;
             }
@@ -202,22 +261,41 @@ public class TurnManager : MonoBehaviourPunCallbacks
             }
             yield return null;
         }
+        if (UIMANAGER.Instance != null && UIMANAGER.Instance._iOweChallengeResponse)
+        {
+            TrucoRulesScenarioLog.Ok("TurnTimeout → auto NoQuiero (owed challenge response)",
+                "actor=" + turnForActor);
+            UIMANAGER.Instance.ChallengeNoQueiro();
+            yield break;
+        }
         if (UIMANAGER.Instance != null &&
             (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
+        {
+            TrucoRulesScenarioLog.Ok("TurnTimeout skipped (challenge still pending)",
+                "actor=" + turnForActor);
             yield break;
+        }
+        TrucoRulesScenarioLog.Ok("TurnTimeout → Mazo (no play in " + TurnTimeoutSeconds + "s)",
+            "actor=" + turnForActor);
         GameManager.Instance?.PlayFirstHandCardOnTimeout();
-        // Safety net: if the RPC chain doesn't advance the turn within 2 s, master forces EndTurn.
-        StartCoroutine(ForceAdvanceTurnIfStillStuck(turnForActor));
+        StartCoroutine(EnsureMazoResolvedAfterTimeout(turnForActor));
     }
 
-    IEnumerator ForceAdvanceTurnIfStillStuck(string turnForActor)
+    IEnumerator EnsureMazoResolvedAfterTimeout(string turnForActor)
     {
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(2.5f);
         if (GameManager.Instance == null || GameManager.Instance._gameEnded) yield break;
         if (PhotonNetwork.LocalPlayer.ActorNumber.ToString() != turnForActor) yield break;
-        if (!GameManager.Instance.IsMyTurn()) yield break;
-        if (PhotonNetwork.IsMasterClient)
-            EndTurn();
+        if (GameManager.Instance.HandResolved || GameManager.Instance.IsHandOutcomeLocked())
+        {
+            TrucoRulesScenarioLog.Ok("Timeout ensure: hand already resolved → no second Mazo",
+                "actor=" + turnForActor);
+            GameManager.Instance.RequestStateSyncAfterReconnect();
+            yield break;
+        }
+        TrucoRulesScenarioLog.Ok("Timeout ensure → ForceMazoTimeoutResolution",
+            "actor=" + turnForActor);
+        GameManager.Instance.ForceMazoTimeoutResolution();
     }
 
     public void GiveTurnAgainTo(int playerNumber)
@@ -275,6 +353,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void SwitchTurn()
     {
+        if (GameManager.Instance != null && GameManager.Instance.HandResolved) return;
         GameManager.Instance.CheckAfterTurn();
         
         if (_giveTurnAgain)
@@ -296,10 +375,75 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
     }
     
+    /// <summary>Restart the active 30 s turn clock after a canto closes (full fresh window).</summary>
+    public void RestartTurnTimersIfActive()
+    {
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved) return;
+        if (UIMANAGER.Instance != null &&
+            (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
+            return;
+        if (_turnTimeoutRoutine != null)
+        {
+            StopCoroutine(_turnTimeoutRoutine);
+            _turnTimeoutRoutine = null;
+        }
+        if (_opponentTurnDisplayRoutine != null)
+        {
+            StopCoroutine(_opponentTurnDisplayRoutine);
+            _opponentTurnDisplayRoutine = null;
+        }
+        string actor = PhotonNetwork.LocalPlayer.ActorNumber.ToString();
+        if (GameManager.Instance.IsMyTurn())
+        {
+            TrucoRulesScenarioLog.Ok("TimerReset MY_TURN after canto close", "fresh=" + TurnTimeoutSeconds + "s");
+            _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(actor));
+            UIMANAGER.Instance?.EnableButtons();
+        }
+        else
+        {
+            TrucoRulesScenarioLog.Ok("TimerReset WAIT_RIVAL after canto close", "fresh=" + TurnTimeoutSeconds + "s");
+            _opponentTurnDisplayRoutine = StartCoroutine(OpponentTurnDisplayRoutine());
+        }
+    }
+
     private string GetCurrentPlayerTurn()
     {
         string currentPlayerId = _turnOrder[currentTurnIndex];
         return currentPlayerId;
     }
-    
+
+    public int GetCurrentTurnActorNumber()
+    {
+        string id = GetCurrentPlayerTurn();
+        return int.TryParse(id, out int n) ? n : PhotonNetwork.LocalPlayer.ActorNumber;
+    }
+
+    public void ResumeTurnAfterSync(int turnActor)
+    {
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded) return;
+        if (GameManager.Instance.IsHandOutcomeLocked()) return;
+        int idx = _turnOrder.IndexOf(turnActor.ToString());
+        if (idx >= 0) currentTurnIndex = idx;
+        bool mine = PhotonNetwork.LocalPlayer.ActorNumber == turnActor;
+        GameManager.Instance.SetMyTurn(mine);
+        GameManager.Instance.SetCanPlayCard(mine);
+        if (mine) UIMANAGER.Instance?.EnableButtons();
+        else UIMANAGER.Instance?.DisableButtons();
+    }
+
+    /// <summary>Stop turn countdown coroutines when a hand ends (Mazo, trick win, etc.).</summary>
+    public void StopAllTurnTimers()
+    {
+        TrucoRulesScenarioLog.Ok("TimersStopped (hand resolved / mazo / winner)");
+        if (_turnTimeoutRoutine != null)
+        {
+            StopCoroutine(_turnTimeoutRoutine);
+            _turnTimeoutRoutine = null;
+        }
+        if (_opponentTurnDisplayRoutine != null)
+        {
+            StopCoroutine(_opponentTurnDisplayRoutine);
+            _opponentTurnDisplayRoutine = null;
+        }
+    }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -155,25 +156,68 @@ public static class TrucoFormUiPolish
     }
 
     public static (Toggle t5, Toggle t10, Toggle t15) CreateFeePillRow(Transform parent, TMP_FontAsset font, int fontSize = 34)
-    {
-        var row = new GameObject("FeePills", typeof(RectTransform));
-        row.transform.SetParent(parent, false);
-        var rel = row.AddComponent<LayoutElement>();
-        rel.minHeight = 84f;
-        rel.preferredHeight = 88f;
-        var h = row.AddComponent<HorizontalLayoutGroup>();
-        h.spacing = 14;
-        h.childAlignment = TextAnchor.MiddleCenter;
-        h.childControlWidth = true;
-        h.childControlHeight = true;
-        h.childForceExpandWidth = true;
-        h.childForceExpandHeight = false;
+        => CreateFeeScrollSelector(parent, font, OneVsOneCreateRoomPanel.EntryFeeOptions, fontSize, out _);
 
-        var t5 = CreatePillToggle(h.transform, font, "5", "5", true, fontSize);
-        var t10 = CreatePillToggle(h.transform, font, "10", "10", false, fontSize);
-        var t15 = CreatePillToggle(h.transform, font, "15", "15", false, fontSize);
-        WireExclusiveTriple(t5, t10, t15);
-        return (t5, t10, t15);
+    /// <summary>Scrollable grid of entry-fee pills (white bold label when selected).</summary>
+    public static (Toggle t5, Toggle t10, Toggle t15) CreateFeeScrollSelector(
+        Transform parent, TMP_FontAsset font, int[] amounts, int fontSize, out List<Toggle> allToggles)
+    {
+        allToggles = new List<Toggle>();
+        var scroll = WrapInScrollView(parent, out RectTransform content);
+        var scrollLe = scroll.gameObject.AddComponent<LayoutElement>();
+        scrollLe.minHeight = 160f;
+        scrollLe.preferredHeight = 180f;
+        scrollLe.flexibleHeight = 0f;
+
+        var grid = content.gameObject.AddComponent<GridLayoutGroup>();
+        grid.cellSize = new Vector2(118f, 72f);
+        grid.spacing = new Vector2(12f, 10f);
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = 3;
+        grid.childAlignment = TextAnchor.UpperCenter;
+
+        Toggle first = null, second = null, third = null;
+        for (int i = 0; i < amounts.Length; i++)
+        {
+            bool on = amounts[i] == 5;
+            var t = CreatePillToggle(content, font, amounts[i].ToString(), amounts[i].ToString(), on, fontSize);
+            t.name = "Fee_" + amounts[i];
+            allToggles.Add(t);
+            if (i == 0) first = t;
+            else if (i == 1) second = t;
+            else if (i == 2) third = t;
+        }
+        WireExclusiveGroup(allToggles);
+        return (first, second, third);
+    }
+
+    public static void WireExclusiveGroup(IList<Toggle> toggles)
+    {
+        if (toggles == null) return;
+        foreach (var t in toggles)
+        {
+            if (t == null) continue;
+            t.onValueChanged.AddListener(on =>
+            {
+                if (!on) return;
+                foreach (var other in toggles)
+                {
+                    if (other == null || other == t) continue;
+                    other.SetIsOnWithoutNotify(false);
+                    RefreshPillVisual(other, false);
+                }
+                RefreshPillVisual(t, true);
+            });
+        }
+    }
+
+    public static void RefreshPillVisual(Toggle t, bool on)
+    {
+        if (t == null) return;
+        var img = t.GetComponent<Image>();
+        if (img != null) StylePillImage(img, on);
+        var tmp = t.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (tmp != null) StylePillLabel(tmp, on);
     }
 
     public static void WireExclusivePair(Toggle a, Toggle b)
@@ -269,15 +313,7 @@ public static class TrucoFormUiPolish
     static void StylePillLabel(TextMeshProUGUI tmp, bool on)
     {
         if (tmp == null) return;
+        tmp.fontStyle = FontStyles.Bold;
         tmp.color = on ? Color.white : TrucoUiTheme.CreateFormSubLabelCream;
-    }
-
-    static void RefreshPillVisual(Toggle t, bool on)
-    {
-        if (t == null) return;
-        var img = t.GetComponent<Image>();
-        StylePillImage(img, on);
-        var tmp = t.GetComponentInChildren<TextMeshProUGUI>(true);
-        StylePillLabel(tmp, on);
     }
 }

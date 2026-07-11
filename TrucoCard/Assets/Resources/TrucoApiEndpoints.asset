@@ -18,3 +18,9 @@ MonoBehaviour:
     pathTemplate: /matches/{0}/end
   - key: MatchStartGame
     pathTemplate: /matches/{0}/start-game
+  - key: MatchWalkover
+    pathTemplate: /matches/{0}/walkover
+  - key: MatchSubmitResult
+    pathTemplate: /matches/{0}/result
+  - key: MatchPlayerLeave
+    pathTemplate: /matches/{0}/leave

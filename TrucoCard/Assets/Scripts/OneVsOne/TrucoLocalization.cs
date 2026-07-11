@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-/// <summary>Spanish / English UI strings. Persisted via PlayerPrefs; toggled from main menu ENG / SPN buttons.</summary>
+/// <summary>Spanish / English UI strings. Language + debug logging controlled by Resources/TrucoClientSettings.</summary>
 public static class TrucoLocalization
 {
     public enum Lang { Spanish = 0, English = 1 }
@@ -25,35 +25,54 @@ public static class TrucoLocalization
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void AutoLoad()
     {
+        TrucoClientSettings.EnsureLoaded();
         Load();
-        ForceSpanish();
+        ApplyFromSettings();
+    }
+
+    /// <summary>Re-apply language from <see cref="TrucoClientSettingsSO"/> (call after SO change or main menu open).</summary>
+    public static void ApplyFromSettings()
+    {
+        if (!_loaded) Load();
+        var resolved = TrucoClientSettings.ResolveLanguage(_current);
+        if (_current == resolved) return;
+        _current = resolved;
+        PlayerPrefs.SetInt(PrefKey, (int)_current);
+        PlayerPrefs.Save();
+        OnLanguageChanged?.Invoke();
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Localization,
+            "Language → " + _current + " (ES=" + TrucoClientSettings.SpanishEnabled +
+            " EN=" + TrucoClientSettings.EnglishEnabled + ")");
     }
 
     public static void Load()
     {
         _loaded = true;
-        _current = (Lang)PlayerPrefs.GetInt(PrefKey, (int)Lang.Spanish);
+        TrucoClientSettings.EnsureLoaded();
+        _current = TrucoClientSettings.ResolveLanguage((Lang)PlayerPrefs.GetInt(PrefKey, (int)Lang.Spanish));
     }
 
     public static void SetLanguage(Lang lang)
     {
-        lang = Lang.Spanish;
+        TrucoClientSettings.EnsureLoaded();
+        if (!TrucoClientSettings.IsLanguageAllowed(lang))
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Localization,
+                "Language " + lang + " disabled in TrucoClientSettings.");
+            ApplyFromSettings();
+            return;
+        }
         if (!_loaded) Load();
         if (_current == lang) return;
         _current = lang;
         PlayerPrefs.SetInt(PrefKey, (int)lang);
         PlayerPrefs.Save();
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Localization, "Player selected " + lang);
         OnLanguageChanged?.Invoke();
     }
 
-    /// <summary>UI is Spanish-only; clears any saved English preference.</summary>
-    public static void ForceSpanish()
-    {
-        _loaded = true;
-        _current = Lang.Spanish;
-        PlayerPrefs.SetInt(PrefKey, (int)Lang.Spanish);
-        PlayerPrefs.Save();
-    }
+    /// <summary>Legacy entry point — now delegates to <see cref="ApplyFromSettings"/>.</summary>
+    public static void ForceSpanish() => ApplyFromSettings();
 
     public static bool IsEnglish => Current == Lang.English;
 
@@ -103,7 +122,7 @@ public static class TrucoLocalization
             case Key.ErrorUnirse: return "No se pudo unir a la sala.";
             case Key.Conectando: return "Conectando al servidor de partida…";
             case Key.IngresaContrasena: return "Ingresá la contraseña de la sala.";
-            case Key.TiempoEsgotadoJugada: return "Se acabó el tiempo. Se juega la carta automáticamente.";
+            case Key.TiempoEsgotadoJugada: return "Se acabó el tiempo. Mazo — perdés los puntos de la mano.";
             case Key.CuentaRegresiva: return "Tiempo: {0} s";
             case Key.TuTurno: return "Tu turno";
             case Key.TurnoRival: return "Turno del rival";
@@ -124,6 +143,7 @@ public static class TrucoLocalization
             case Key.GanastePartida: return "¡Ganaste la partida!";
             case Key.PerdistePartida: return "Perdiste la partida.";
             case Key.PerdisteMano: return "Perdiste la mano.";
+            case Key.NuevaMano: return "Nueva mano…";
             case Key.FaltaPanelCrear: return "No se pudo abrir el panel de crear (error interno).";
             case Key.ValidandoContrasena: return "Validando contraseña…";
             case Key.ContrasenaInvalida: return "Ingresá una contraseña válida.";
@@ -134,16 +154,17 @@ public static class TrucoLocalization
             case Key.PhotonCreateFailed: return "No se pudo crear la sala en Photon: {0}";
             case Key.PhotonSyncWarning: return "No se pudo sincronizar el nombre de la sala con el servidor, pero se puede jugar. El admin puede no ver el nombre todavía.";
             case Key.PhotonConnectFailed: return "No se pudo conectar a Photon.";
+            case Key.EsperandoAnfitrionPhoton: return "Esperando que el anfitrión abra la sala…";
             case Key.ChampionCongrats: return "¡Felicitaciones, sos el campeón!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
             case Key.ModoJuego: return "Modo de juego";
             case Key.ConFlor: return "Con Flor";
             case Key.SinFlor: return "Sin Flor";
-            case Key.ConfirmLeaveLobbyTitle: return "¿Salir de la sala?";
-            case Key.ConfirmLeaveLobbyBody: return "Si salís ahora, perderás la sala y se reembolsará la entrada.";
+            case Key.ConfirmLeaveLobbyTitle: return "¿Eliminar tu sala?";
+            case Key.ConfirmLeaveLobbyBody: return "Si salís, tu sala se eliminará para todos los jugadores y se reembolsará la entrada.";
             case Key.ConfirmNoQuedarme: return "NO";
-            case Key.ConfirmSiSalir: return "SÍ, SALIR";
+            case Key.ConfirmSiSalir: return "SÍ";
             case Key.SalaCanceladaReembolso: return "Sala cancelada. Entrada reembolsada.";
             case Key.NotificacionesTitulo: return "Notificaciones";
             case Key.NotificacionesVacio: return "No hay eventos todavía.";
@@ -154,6 +175,18 @@ public static class TrucoLocalization
             case Key.LogSalaCreada: return "Sala creada. Esperando rival…";
             case Key.LogUnidoSala: return "Te uniste a una sala. Esperando inicio…";
             case Key.LogSalasActualizadas: return "Lista de salas actualizada ({0} disponibles).";
+            case Key.EliminarSala: return "Eliminar sala";
+            case Key.SalaEliminada: return "Sala eliminada. Trucoins devueltos.";
+            case Key.YaTienesSala: return "Ya tenés una sala activa. Usá atrás para salir y eliminarla.";
+            case Key.AudioSilenciado: return "Audio silenciado";
+            case Key.AudioActivado: return "Audio activado";
+            case Key.RejoinPartida: return "Reconectar a partida";
+            case Key.ContinuarPartida: return "CONTINUAR";
+            case Key.SalasAntiguasEliminadas: return "Se eliminaron {0} salas antiguas.";
+            case Key.PurgeLobbyResult: return "Cerradas {0} de tus {1} salas. {2} salas son de otros jugadores.";
+            case Key.PurgeLobbyNoneMine: return "No tenés salas activas para eliminar.";
+            case Key.PurgeLobbyStillMine: return "No se pudieron cerrar {0} de tus salas (servidor).";
+            case Key.SilenciarAudio: return "Silenciar";
             default: return k.ToString();
         }
     }
@@ -202,7 +235,7 @@ public static class TrucoLocalization
             case Key.ErrorUnirse: return "Could not join the room.";
             case Key.Conectando: return "Connecting to match server…";
             case Key.IngresaContrasena: return "Enter the room password.";
-            case Key.TiempoEsgotadoJugada: return "Time is up. Playing the leftmost card automatically.";
+            case Key.TiempoEsgotadoJugada: return "Time is up. Mazo — you lose the hand points.";
             case Key.CuentaRegresiva: return "Time: {0} s";
             case Key.TuTurno: return "Your turn";
             case Key.TurnoRival: return "Opponent's turn";
@@ -223,6 +256,7 @@ public static class TrucoLocalization
             case Key.GanastePartida: return "You won the match!";
             case Key.PerdistePartida: return "You lost the match.";
             case Key.PerdisteMano: return "You lost the hand.";
+            case Key.NuevaMano: return "New hand…";
             case Key.FaltaPanelCrear: return "Could not open create panel (internal error).";
             case Key.ValidandoContrasena: return "Validating password…";
             case Key.ContrasenaInvalida: return "Enter a valid password.";
@@ -233,6 +267,7 @@ public static class TrucoLocalization
             case Key.PhotonCreateFailed: return "Could not create the Photon room: {0}";
             case Key.PhotonSyncWarning: return "Could not sync the room name with the server, but you can still play. Admin may not see the name yet.";
             case Key.PhotonConnectFailed: return "Could not connect to Photon.";
+            case Key.EsperandoAnfitrionPhoton: return "Waiting for the host to open the room…";
             case Key.ChampionCongrats: return "Congratulations, you are the champion!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
@@ -253,6 +288,18 @@ public static class TrucoLocalization
             case Key.LogSalaCreada: return "Room created. Waiting for opponent…";
             case Key.LogUnidoSala: return "You joined a room. Waiting to start…";
             case Key.LogSalasActualizadas: return "Room list updated ({0} available).";
+            case Key.EliminarSala: return "Delete room";
+            case Key.SalaEliminada: return "Room deleted. Trucoins refunded.";
+            case Key.YaTienesSala: return "You already have an active room. Use back to leave and delete it.";
+            case Key.AudioSilenciado: return "Audio muted";
+            case Key.AudioActivado: return "Audio enabled";
+            case Key.RejoinPartida: return "Reconnect to match";
+            case Key.ContinuarPartida: return "CONTINUE";
+            case Key.SalasAntiguasEliminadas: return "Removed {0} old rooms.";
+            case Key.PurgeLobbyResult: return "Closed {0} of your {1} rooms. {2} rooms belong to other players.";
+            case Key.PurgeLobbyNoneMine: return "No active rooms to delete for your account.";
+            case Key.PurgeLobbyStillMine: return "Could not remove {0} of your rooms (server).";
+            case Key.SilenciarAudio: return "Mute";
             default: return k.ToString();
         }
     }
@@ -270,13 +317,14 @@ public static class TrucoLocalization
         EsperandoRespuestaRival, EsperandoJugadaRival, TiempoRespuestaAgotado,
         GanastePremio, GanaPorAbandono, RivalReconectando, Reconectando, ReconectandoOverlay,
         ReconectarFallo, ReconexOk, ReconexionPerdida1v1, EspectandoAdmin,
-        GanastePartida, PerdistePartida, PerdisteMano, FaltaPanelCrear,
+        GanastePartida, PerdistePartida, PerdisteMano, NuevaMano, FaltaPanelCrear,
         ValidandoContrasena, ContrasenaInvalida, ContrasenaIncorrecta, EntryPrizeFormat,
-        CodigoMinPlaceholder, PleaseWait, PhotonCreateFailed, PhotonSyncWarning, PhotonConnectFailed, ChampionCongrats,
+        CodigoMinPlaceholder, PleaseWait, PhotonCreateFailed, PhotonSyncWarning, PhotonConnectFailed, EsperandoAnfitrionPhoton, ChampionCongrats,
         LangEng, LangSpn,
         ModoJuego, ConFlor, SinFlor,
         ConfirmLeaveLobbyTitle, ConfirmLeaveLobbyBody, ConfirmNoQuedarme, ConfirmSiSalir, SalaCanceladaReembolso,
         NotificacionesTitulo, NotificacionesVacio, LogExito, LogPendiente, LogAviso, LogInfo,
-        LogSalaCreada, LogUnidoSala, LogSalasActualizadas
+        LogSalaCreada, LogUnidoSala, LogSalasActualizadas,
+        EliminarSala, SalaEliminada, YaTienesSala, AudioSilenciado, AudioActivado, RejoinPartida, ContinuarPartida, SalasAntiguasEliminadas, PurgeLobbyResult, PurgeLobbyNoneMine, PurgeLobbyStillMine, SilenciarAudio
     }
 }

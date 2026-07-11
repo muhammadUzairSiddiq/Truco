@@ -14,9 +14,19 @@ public class OtpVerificationPanel : MonoBehaviour
     private bool _canResend = true;
     private LoginRequest _requestCredientials;
 
+    void OnEnable() => ApplySpanishLabels();
+
+    void ApplySpanishLabels()
+    {
+        TrucoLocalization.ApplyFromSettings();
+        if (_otpInputField != null && (_otpInputField.placeholder is TMP_Text ph))
+            ph.text = "Código OTP";
+    }
+
     public void SetRequestData(LoginRequest requestData)
     {
         _requestCredientials = requestData;
+        ApplySpanishLabels();
 
         _resendBtn.onClick.RemoveAllListeners();
         _submitBtn.onClick.RemoveAllListeners();
@@ -32,14 +42,14 @@ public class OtpVerificationPanel : MonoBehaviour
 
     public async void SendOTP(string targetMail)
     {
-        AppManager.Instance.DisplayLoadingUI("Sending OTP");
+        AppManager.Instance.DisplayLoadingUI("Enviando código…");
 
         _resendBtn.interactable = false;
         _submitBtn.interactable = false;
 
         bool OTPSent = await ApiController.SendVerificationOTP(targetMail, () =>
         {
-            AppManager.Instance.DisplayNotification("Please Check your inbox for OTP");
+            AppManager.Instance.DisplayNotification("Revisá tu correo para el código OTP");
 
             _initTime = Time.time;
             _canResend = false;
@@ -60,13 +70,13 @@ public class OtpVerificationPanel : MonoBehaviour
         string email = _requestCredientials.email;
         string otp = _otpInputField.text.Trim();
 
-        AppManager.Instance.DisplayLoadingUI("Verifying OTP");
+        AppManager.Instance.DisplayLoadingUI("Verificando código…");
 
         bool otpVerified = await ApiController.VerifyOTP(email, otp, () =>
         {
-            AppManager.Instance.DisplayNotification("OTP Verified Successfully!", () =>
+            AppManager.Instance.DisplayNotification("¡Correo verificado!", () =>
             {
-                AppManager.Instance.DisplayLoadingUI("Fetching Profile...");
+                AppManager.Instance.DisplayLoadingUI("Cargando perfil…");
 
                 ApiController.Init(
                     new LoginRequest { email = _requestCredientials.email, password = _requestCredientials.password },
@@ -78,7 +88,7 @@ public class OtpVerificationPanel : MonoBehaviour
                     },
                     (ERR) =>
                     {
-                        AppManager.Instance.DisplayNotification("Failed to fetch profile: " + ERR);
+                        AppManager.Instance.DisplayNotification("No se pudo cargar el perfil: " + ERR);
                     });
 
             });

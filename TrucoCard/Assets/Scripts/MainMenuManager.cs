@@ -12,12 +12,16 @@ public class MainMenuManager : MonoBehaviour
 
     void Awake()
     {
+        TrucoDebugLog.Always(TrucoDebugLog.Category.MainMenu,
+            "MainMenu Awake scene=" + SceneManager.GetActiveScene().name
+            + " logFile=" + TrucoDebugLog.LogFilePath);
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         MainMenuViewCoordinator.Initialize();
     }
 
     private void Start()
     {
+        TrucoDebugLog.Always(TrucoDebugLog.Category.MainMenu, "MainMenu Start");
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         MainMenuViewCoordinator.TryCompleteNavigationIfNeeded();
         WireLogoutButton();
@@ -27,6 +31,8 @@ public class MainMenuManager : MonoBehaviour
         MultiplayerController.LeaveTournamentMatchmaking(async () =>
         {
             await ApiController.GetCurrentUserProfile();
+            TrucoDebugLog.Always(TrucoDebugLog.Category.MainMenu,
+                "MainMenu profile loaded user=" + (ApiController.GetSessionUser?.Data?.username ?? "?"));
 
             AppManager.Instance.HideLoadingUI();
             UsernameMainMenuBinder.ApplyToScene();

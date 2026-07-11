@@ -18,6 +18,10 @@ public static class TrucoTextosClient
     public static string SalaExpiradaEtiqueta => TrucoLocalization.T(TrucoLocalization.Key.SalaExpiradaEtiqueta);
     public static string SalaExpiradaAviso => TrucoLocalization.T(TrucoLocalization.Key.SalaExpiradaAviso);
     public static string CrearSala => TrucoLocalization.T(TrucoLocalization.Key.CrearSala);
+    public static string EliminarSala => TrucoLocalization.T(TrucoLocalization.Key.EliminarSala);
+    public static string SalaEliminada => TrucoLocalization.T(TrucoLocalization.Key.SalaEliminada);
+    public static string YaTienesSala => TrucoLocalization.T(TrucoLocalization.Key.YaTienesSala);
+    public static string SilenciarAudio => TrucoLocalization.T(TrucoLocalization.Key.SilenciarAudio);
     public static string ActualizarLista => TrucoLocalization.T(TrucoLocalization.Key.ActualizarLista);
     public static string Volver => TrucoLocalization.T(TrucoLocalization.Key.Volver);
     public static string BuscandoOponente => TrucoLocalization.T(TrucoLocalization.Key.BuscandoOponente);
@@ -73,6 +77,9 @@ public static class TrucoTextosClient
     public static string FormatoBannerEsperandoRival(string msg) =>
         TrucoGameplayTimerBanner.SoloMensaje(msg);
 
+    public static string FormatoBannerEsperandoRivalConSegundos(string msg, int sec) =>
+        TrucoGameplayTimerBanner.EsperandoConSegundos(msg, sec);
+
     public static string Responde => TrucoLocalization.T(TrucoLocalization.Key.Responde);
     public static string EsperandoRespuestaRival => TrucoLocalization.T(TrucoLocalization.Key.EsperandoRespuestaRival);
     public static string EsperandoJugadaRival => TrucoLocalization.T(TrucoLocalization.Key.EsperandoJugadaRival);
@@ -91,6 +98,7 @@ public static class TrucoTextosClient
     public static string GanastePartida => TrucoLocalization.T(TrucoLocalization.Key.GanastePartida);
     public static string PerdistePartida => TrucoLocalization.T(TrucoLocalization.Key.PerdistePartida);
     public static string PerdisteMano => TrucoLocalization.T(TrucoLocalization.Key.PerdisteMano);
+    public static string NuevaMano => TrucoLocalization.T(TrucoLocalization.Key.NuevaMano);
     public static string FaltaPanelCrear => TrucoLocalization.T(TrucoLocalization.Key.FaltaPanelCrear);
     public static string ValidandoContrasena => TrucoLocalization.T(TrucoLocalization.Key.ValidandoContrasena);
     public static string ContrasenaInvalida => TrucoLocalization.T(TrucoLocalization.Key.ContrasenaInvalida);
@@ -100,6 +108,7 @@ public static class TrucoTextosClient
     public static string PhotonCreateFailed => TrucoLocalization.T(TrucoLocalization.Key.PhotonCreateFailed);
     public static string PhotonSyncWarning => TrucoLocalization.T(TrucoLocalization.Key.PhotonSyncWarning);
     public static string PhotonConnectFailed => TrucoLocalization.T(TrucoLocalization.Key.PhotonConnectFailed);
+    public static string EsperandoAnfitrionPhoton => TrucoLocalization.T(TrucoLocalization.Key.EsperandoAnfitrionPhoton);
     public static string ChampionCongrats => TrucoLocalization.T(TrucoLocalization.Key.ChampionCongrats);
 
     public static string ConfirmLeaveLobbyTitle => TrucoLocalization.T(TrucoLocalization.Key.ConfirmLeaveLobbyTitle);
@@ -116,6 +125,11 @@ public static class TrucoTextosClient
     public static string LogSalaCreada => TrucoLocalization.T(TrucoLocalization.Key.LogSalaCreada);
     public static string LogUnidoSala => TrucoLocalization.T(TrucoLocalization.Key.LogUnidoSala);
     public static string LogSalasActualizadas => TrucoLocalization.T(TrucoLocalization.Key.LogSalasActualizadas);
+    public static string ContinuarPartida => TrucoLocalization.T(TrucoLocalization.Key.ContinuarPartida);
+    public static string SalasAntiguasEliminadas => TrucoLocalization.T(TrucoLocalization.Key.SalasAntiguasEliminadas);
+    public static string PurgeLobbyResult => TrucoLocalization.T(TrucoLocalization.Key.PurgeLobbyResult);
+    public static string PurgeLobbyNoneMine => TrucoLocalization.T(TrucoLocalization.Key.PurgeLobbyNoneMine);
+    public static string PurgeLobbyStillMine => TrucoLocalization.T(TrucoLocalization.Key.PurgeLobbyStillMine);
 
     // Admin / live dashboard (English-only labels kept for admin tooling)
     public const string LiveDashboardTitle = "Panel en vivo — partidas 1v1";

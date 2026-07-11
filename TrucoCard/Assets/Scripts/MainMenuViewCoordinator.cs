@@ -26,7 +26,8 @@ public static class MainMenuViewCoordinator
         _showMenuTab = null;
         _bottomNav = null;
         TrucoLanguageToggleUi.ResetForLeavingMainMenu();
-        TrucoLocalization.ForceSpanish();
+        TrucoLocalization.ApplyFromSettings();
+        OneVsOneRoomListController.ResetLobbyPurgeDebounce();
     }
 
     /// <summary>
@@ -211,12 +212,13 @@ public static class MainMenuViewCoordinator
             mesa1vs1.onClick.RemoveAllListeners();
             mesa1vs1.onClick.AddListener(() =>
             {
+                OneVsOneMatchLifecycle.SanitizeSessionForRoomBrowser();
                 if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
                 if (roomListPanel != null) roomListPanel.SetActive(true);
-                if (bottomNav != null) EnsureBottomNavOnTop(bottomNav);
                 ApplyNav(0);
                 var list = UnityEngine.Object.FindObjectOfType<OneVsOneRoomListController>(true);
                 list?.Open();
+                if (bottomNav != null) EnsureBottomNavOnTop(bottomNav);
             });
         }
 

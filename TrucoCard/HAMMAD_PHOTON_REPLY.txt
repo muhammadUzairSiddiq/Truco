@@ -1,0 +1,51 @@
+TrucoCard — reply notes for Hammad (Photon + backend)
+=====================================================
+Date: 2026-07-11
+
+1) Photon App ID
+----------------
+Configured in Unity:
+  Assets/Photon/PhotonUnityNetworking/Resources/PhotonServerSettings.asset
+  AppIdRealtime = 7667f450-aaf1-4e4c-ba90-dc36c320a887
+  AppVersion    = trucopy-1.0.0
+  FixedRegion   = asia
+
+Old developer App ID (552218c5-ee23-464f-9190-bfc2d7e3b60d) removed from settings.
+Archived only in: PHOTON_APP_IDS.txt (not used by the game).
+
+2) Photon Custom Authentication — current status
+------------------------------------------------
+NO. Current AuthMode = Auth (default). PUN does NOT use Custom Authentication yet.
+
+How the production App ID is protected today:
+  - REST API requires JWT for create/join/leave/result
+  - Replay protection: x-nonce + x-timestamp on all POST/PUT
+  - Match result / walkover require x-game-secret
+  - AppVersion isolates matchmaking pools
+  - Photon Webhooks → Node for PathJoin / PathLeave / PathClose (zombie cleanup)
+
+Recommended: enable Photon Custom Auth in the dashboard pointing at your Node
+auth endpoint so Photon itself rejects clients without a backend token.
+
+3) Photon Webhooks (configure in Photon Dashboard)
+--------------------------------------------------
+  PathJoin:  https://srv983121.hstgr.cloud/api/webhooks/photon/PathJoin
+  PathLeave: https://srv983121.hstgr.cloud/api/webhooks/photon/PathLeave
+  PathClose: https://srv983121.hstgr.cloud/api/webhooks/photon/PathClose
+
+Unity does not host webhooks — Photon Cloud calls the Node backend directly.
+Client still POSTs /leave + /end after cancel/finish so lobby rows clear immediately.
+
+4) Unity client updates for Adnan’s API changes
+-----------------------------------------------
+  - x-nonce + x-timestamp on every POST/PUT (HttpApiClient)
+  - x-game-secret on POST /matches/:id/result and /walkover
+    → set value in Resources/TrucoClientSettings → gameSecret
+    (ask Adnan for the production secret string)
+  - POST /matches/:id/walkover used on disconnect walkover win
+  - After finish / leave / walkover: POST /leave then POST /end
+
+5) APK
+------
+Build a new APK from Unity after these changes (File → Build Settings → Android).
+Both devices must use the new App ID or they cannot see each other’s Photon rooms.

@@ -24,7 +24,7 @@ public class PlayFabLogin : MonoBehaviour
         //LoginWithCustomID();
 
         AppManager.Instance.HideLoadingUI();
-        TrucoLocalization.ForceSpanish();
+        TrucoLocalization.ApplyFromSettings();
         TrucoLoginScreenUiPolish.Apply();
         ApplySavedCredentialsToLoginFields();
     }

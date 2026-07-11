@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -67,6 +67,8 @@ public class match
 public class User
 {
     public string _id;
+    /// <summary>Some API payloads use <c>id</c> instead of <c>_id</c>.</summary>
+    public string id;
     public string username;
     public string email;
     public string role;
@@ -286,6 +288,12 @@ public class MatchResultSubmitRequest
 {
     public string winnerId;
     public string status;
+}
+
+[Serializable]
+public class MatchWalkoverRequest
+{
+    public string claimerId;
 }
 
 [Serializable]

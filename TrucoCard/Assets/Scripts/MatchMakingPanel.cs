@@ -1,6 +1,5 @@
 using Photon.Pun;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class MatchMakingPanel : MonoBehaviour
 {
@@ -41,12 +40,5 @@ public class MatchMakingPanel : MonoBehaviour
         Invoke(nameof(LoadGame), 3f);
     }
 
-    void LoadGame()
-    {
-        if (!PhotonNetwork.InRoom) return;
-        if (PhotonNetwork.IsMasterClient)
-            TrucoSceneTransition.GoPhoton("Gameplay");
-        else if (SceneManager.GetActiveScene().name != "Gameplay")
-            TrucoSceneTransition.Go("Gameplay");
-    }
+    void LoadGame() => TrucoOneVsOneGameplayLaunch.LoadFromCurrentRoom();
 }

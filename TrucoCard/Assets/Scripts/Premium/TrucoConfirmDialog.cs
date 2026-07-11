@@ -16,7 +16,13 @@ public static class TrucoConfirmDialog
     public static void Show(string title, string message, string noLabel, string yesLabel, Action onYes, Action onNo = null)
     {
         EnsureBuilt();
-        if (_root == null) return;
+        ReparentOnTop();
+        if (_root == null)
+        {
+            Debug.LogWarning("[TrucoConfirmDialog] Could not build dialog.");
+            AppManager.Instance?.DisplayNotification(message);
+            return;
+        }
         _title.text = title;
         _body.text = message;
         SetButtonLabel(_btnNo, noLabel);
@@ -34,6 +40,12 @@ public static class TrucoConfirmDialog
             onYes?.Invoke();
         });
         _root.SetActive(true);
+        var cv = _root.GetComponent<Canvas>();
+        if (cv != null)
+        {
+            cv.overrideSorting = true;
+            cv.sortingOrder = 40000;
+        }
         _root.transform.SetAsLastSibling();
     }
 
@@ -42,13 +54,44 @@ public static class TrucoConfirmDialog
         if (_root != null) _root.SetActive(false);
     }
 
+    public static bool IsVisible() => _root != null && _root.activeInHierarchy;
+
+    static void ReparentOnTop()
+    {
+        if (_root == null) return;
+        var overlayGo = GameObject.Find("TrucoConfirmDialogCanvas");
+        if (overlayGo == null) return;
+        var parent = overlayGo.transform;
+        if (_root.transform.parent != parent)
+        {
+            _root.transform.SetParent(parent, false);
+            var rt = _root.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
+        }
+    }
+
     static void EnsureBuilt()
     {
         if (_root != null) return;
-        var canvas = UnityEngine.Object.FindObjectOfType<Canvas>();
-        Transform parent = canvas != null ? canvas.transform : null;
-        var top = FindTopOverlayRoot();
-        if (top != null) parent = top;
+        Transform parent = null;
+        var overlayGo = GameObject.Find("TrucoConfirmDialogCanvas");
+        if (overlayGo == null)
+        {
+            overlayGo = new GameObject("TrucoConfirmDialogCanvas", typeof(RectTransform));
+            var cv = overlayGo.AddComponent<Canvas>();
+            cv.renderMode = RenderMode.ScreenSpaceOverlay;
+            cv.overrideSorting = true;
+            cv.sortingOrder = 40000;
+            overlayGo.AddComponent<GraphicRaycaster>();
+            UnityEngine.Object.DontDestroyOnLoad(overlayGo);
+        }
+        parent = overlayGo.transform;
         if (parent == null) return;
 
         _root = new GameObject(RootName, typeof(RectTransform));
@@ -60,7 +103,7 @@ public static class TrucoConfirmDialog
         rootRt.offsetMax = Vector2.zero;
         var rootCv = _root.AddComponent<Canvas>();
         rootCv.overrideSorting = true;
-        rootCv.sortingOrder = 33000;
+        rootCv.sortingOrder = 40000;
         _root.AddComponent<GraphicRaycaster>();
         var scrim = _root.AddComponent<Image>();
         scrim.color = TrucoUiTheme.OverlayScrim;

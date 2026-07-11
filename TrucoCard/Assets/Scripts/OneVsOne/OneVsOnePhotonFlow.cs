@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
@@ -24,10 +25,33 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public Purpose CurrentPurpose { get; private set; } = Purpose.None;
     public bool IsConnecting { get; private set; }
 
+    /// <summary>
+    /// True while create/join is still connecting — do not JoinLobby over this.
+    /// Once the host is already InRoom waiting for a guest, we are NOT busy for lobby UI
+    /// (otherwise JOIN on other rooms silently fails with photonBusy=True forever).
+    /// </summary>
+    public bool IsMatchmakingBusy =>
+        IsConnecting
+        || _matchFoundFired
+        || CurrentPurpose == Purpose.JoinHostedRoom
+        || (CurrentPurpose == Purpose.CreateHostedRoom && !PhotonNetwork.InRoom);
+
+    public static bool IsMatchmakingBusyGlobally =>
+        Instance != null && Instance.IsMatchmakingBusy;
+
     bool _deferredJoinAfterLeave;
     bool _deferredCreateAfterLeave;
+    bool _deferredJoinAfterLeaveLobby;
+    bool _deferredCreateAfterLeaveLobby;
     int _deferredCreateMaxPlayers;
     bool _matchFoundFired;
+    int _joinRetryCount;
+    Coroutine _joinRetryRoutine;
+
+    static int MaxJoinRetries => TrucoClientSettings.PhotonJoinMaxAttempts;
+    float JoinRetryDelaySeconds => TrucoClientSettings.PhotonJoinRetryIntervalSeconds;
+
+    static bool _applicationQuitting;
 
     /// <summary>Salas visibles en el lobby de Photon (nombre → jugadores en tiempo real).</summary>
     readonly Dictionary<string, int> _lobbyRoomPlayerCount = new Dictionary<string, int>(32, StringComparer.Ordinal);
@@ -51,7 +75,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             if (found != null) _matchMakingPanel = found;
         }
         _sessionUi = FindObjectOfType<OneVsOnePhotonSessionUi>(true);
+        Application.quitting += () => _applicationQuitting = true;
     }
+
+    void OnApplicationQuit() => _applicationQuitting = true;
 
     /// <summary>Llamar después de player-create y RegisterPhoton; session ya rellenada con SetHostContext.</summary>
     public void StartHostPhoton(int maxPlayers, Action<string> onError = null)
@@ -64,6 +91,9 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         IsConnecting = true;
         _matchFoundFired = false;
         CurrentPurpose = Purpose.CreateHostedRoom;
+        if (EnsureConnectedToFixedRegion()) return;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "StartHostPhoton → " + OneVsOneMatchSession.PhotonRoomName
+                  + " region=" + (PhotonNetwork.CloudRegion ?? "?"));
         PhotonNetwork.AutomaticallySyncScene = true;
         if (PhotonNetwork.InRoom)
         {
@@ -74,18 +104,21 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         }
         if (PhotonNetwork.IsConnected && PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
         {
-            CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, maxPlayers);
+            ProceedToCreateRoom(OneVsOneMatchSession.PhotonRoomName, maxPlayers);
             return;
         }
-        if (PhotonNetwork.IsConnected) return; // will continue in OnConnectedToMaster
+        if (PhotonNetwork.IsConnected)
+        {
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "Waiting for Photon MasterServer before CreateRoom…");
+            return;
+        }
         if (!PhotonNetwork.ConnectUsingSettings())
         {
             IsConnecting = false;
+            TrucoDebugLog.Error(TrucoDebugLog.Category.Photon, "ConnectUsingSettings failed (host create)");
             onError?.Invoke(TrucoTextosClient.PhotonConnectFailed);
         }
     }
-
-    /// <summary>Tras join en backend; session rellenada con SetGuestContext.</summary>
     public void StartJoinPhoton(Action<string> onError = null)
     {
         if (string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName))
@@ -95,7 +128,14 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         }
         IsConnecting = true;
         _matchFoundFired = false;
+        _joinRetryCount = 0;
+        StopJoinRetryRoutine();
         CurrentPurpose = Purpose.JoinHostedRoom;
+        if (EnsureConnectedToFixedRegion()) return;
+        TrucoDebugLog.Always(TrucoDebugLog.Category.Photon, "StartJoinPhoton → " + OneVsOneMatchSession.PhotonRoomName
+                  + " region=" + (PhotonNetwork.CloudRegion ?? "?")
+                  + " inLobby=" + PhotonNetwork.InLobby
+                  + " retries=" + MaxJoinRetries + "x" + JoinRetryDelaySeconds + "s");
         PhotonNetwork.AutomaticallySyncScene = true;
         if (PhotonNetwork.InRoom)
         {
@@ -105,13 +145,18 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         }
         if (PhotonNetwork.IsConnected && PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
         {
-            if (!PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName)) IsConnecting = false;
+            ProceedToJoinRoom();
             return;
         }
-        if (PhotonNetwork.IsConnected) return;
+        if (PhotonNetwork.IsConnected)
+        {
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "Waiting for Photon MasterServer before JoinRoom…");
+            return;
+        }
         if (!PhotonNetwork.ConnectUsingSettings())
         {
             IsConnecting = false;
+            TrucoDebugLog.Error(TrucoDebugLog.Category.Photon, "ConnectUsingSettings failed (guest join)");
             onError?.Invoke(TrucoTextosClient.PhotonConnectFailed);
         }
     }
@@ -122,25 +167,71 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         {
             _deferredJoinAfterLeave = false;
             if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
-                PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
+                ProceedToJoinRoom();
             return;
         }
         if (_deferredCreateAfterLeave)
         {
             _deferredCreateAfterLeave = false;
-            CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, _deferredCreateMaxPlayers);
+            ProceedToCreateRoom(OneVsOneMatchSession.PhotonRoomName, _deferredCreateMaxPlayers);
+            return;
         }
+        // Do NOT auto-cancel the backend match here. Accidental LeaveRoom (lobby
+        // refresh/purge) used to wipe the room the host just created. Intentional
+        // leave goes through Delete Room / Back confirm / app quit watchdog.
+        if (_matchFoundFired || OneVsOneMatchSession.GameStarted) return;
     }
 
     public override void OnConnectedToMaster()
     {
         TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         if (CurrentPurpose == Purpose.CreateHostedRoom)
-            CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, OneVsOneMatchSession.MaxPlayersPhoton);
+            ProceedToCreateRoom(OneVsOneMatchSession.PhotonRoomName, OneVsOneMatchSession.MaxPlayersPhoton);
         else if (CurrentPurpose == Purpose.JoinHostedRoom)
-            PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
+            ProceedToJoinRoom();
         else if (!PhotonNetwork.InRoom && !PhotonNetwork.InLobby && !PhotonNetwork.OfflineMode)
             PhotonNetwork.JoinLobby();
+    }
+
+    void ProceedToCreateRoom(string name, int maxPlayers)
+    {
+        if (PhotonNetwork.InLobby)
+        {
+            _deferredCreateAfterLeaveLobby = true;
+            _deferredCreateMaxPlayers = maxPlayers;
+            PhotonNetwork.LeaveLobby();
+            return;
+        }
+        CreateRoomWithOptions(name, maxPlayers);
+    }
+
+    void ProceedToJoinRoom()
+    {
+        if (PhotonNetwork.InLobby)
+        {
+            _deferredJoinAfterLeaveLobby = true;
+            PhotonNetwork.LeaveLobby();
+            return;
+        }
+        AttemptJoinTargetRoom();
+    }
+
+    public override void OnLeftLobby()
+    {
+        _lobbyRoomPlayerCount.Clear();
+        _lobbySyncReceived = false;
+        if (_deferredJoinAfterLeaveLobby)
+        {
+            _deferredJoinAfterLeaveLobby = false;
+            if (CurrentPurpose == Purpose.JoinHostedRoom)
+                AttemptJoinTargetRoom();
+            return;
+        }
+        if (_deferredCreateAfterLeaveLobby)
+        {
+            _deferredCreateAfterLeaveLobby = false;
+            CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, _deferredCreateMaxPlayers);
+        }
     }
 
     private void CreateRoomWithOptions(string name, int maxPlayers)
@@ -160,53 +251,183 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             CustomRoomProperties = props,
             CustomRoomPropertiesForLobby = new[] { "onev1", "matchId" }
         };
-        PhotonNetwork.CreateRoom(name, opts, TypedLobby.Default);
+        PhotonNetwork.JoinOrCreateRoom(name, opts, TypedLobby.Default);
     }
 
     public override void OnCreateRoomFailed(short returnCode, string message)
     {
-        // Photon room name collision (previous match room still alive) — join it instead of failing.
-        if (CurrentPurpose == Purpose.CreateHostedRoom
-            && !string.IsNullOrEmpty(message)
-            && message.IndexOf("already exist", StringComparison.OrdinalIgnoreCase) >= 0
+        // 32766 = GameIdAlreadyExists — reclaim by joining instead of failing the host flow.
+        bool alreadyExists = returnCode == 32766
+            || (!string.IsNullOrEmpty(message)
+                && message.IndexOf("already exist", StringComparison.OrdinalIgnoreCase) >= 0);
+        if (alreadyExists && CurrentPurpose == Purpose.CreateHostedRoom
             && !string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName))
         {
-            Debug.LogWarning("[OneVsOnePhoton] Room exists — joining instead: " + OneVsOneMatchSession.PhotonRoomName);
-            CurrentPurpose = Purpose.JoinHostedRoom;
-            if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer)
-                PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
+                "CreateRoom already exists — JoinRoom instead: " + OneVsOneMatchSession.PhotonRoomName);
+            IsConnecting = true;
+            CurrentPurpose = Purpose.CreateHostedRoom;
+            PhotonNetwork.JoinRoom(OneVsOneMatchSession.PhotonRoomName);
             return;
         }
+
+        TrucoDebugLog.Error(TrucoDebugLog.Category.Photon,
+            "CreateRoomFailed code=" + returnCode + " msg=" + message);
         IsConnecting = false;
         CurrentPurpose = Purpose.None;
         _deferredCreateAfterLeave = false;
         _deferredJoinAfterLeave = false;
+        _deferredCreateAfterLeaveLobby = false;
+        _deferredJoinAfterLeaveLobby = false;
         AppManager.Instance.DisplayNotification(string.Format(TrucoTextosClient.PhotonCreateFailed, message));
+    }
+
+    void AttemptJoinTargetRoom()
+    {
+        string room = OneVsOneMatchSession.PhotonRoomName;
+        if (string.IsNullOrEmpty(room))
+        {
+            IsConnecting = false;
+            CurrentPurpose = Purpose.None;
+            TrucoDebugLog.Error(TrucoDebugLog.Category.Photon, "AttemptJoinTargetRoom: empty room name");
+            return;
+        }
+        if (!PhotonNetwork.IsConnectedAndReady || PhotonNetwork.Server != ServerConnection.MasterServer)
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
+                "AttemptJoinTargetRoom deferred — not on Master yet (ready="
+                + PhotonNetwork.IsConnectedAndReady + " server=" + PhotonNetwork.Server + ")");
+            IsConnecting = true;
+            return;
+        }
+        if (PhotonNetwork.InLobby)
+        {
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "AttemptJoinTargetRoom: still InLobby → LeaveLobby");
+            _deferredJoinAfterLeaveLobby = true;
+            PhotonNetwork.LeaveLobby();
+            return;
+        }
+        TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
+            $"JoinRoom attempt #{_joinRetryCount + 1}/{MaxJoinRetries}: {room}"
+            + " region=" + (PhotonNetwork.CloudRegion ?? "?")
+            + " appVersion=" + (PhotonNetwork.PhotonServerSettings?.AppSettings?.AppVersion ?? "?"));
+        bool sent = PhotonNetwork.JoinRoom(room);
+        if (!sent)
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
+                "JoinRoom() returned false — will retry. State=" + PhotonNetwork.NetworkClientState);
+            IsConnecting = true;
+            if (CurrentPurpose == Purpose.JoinHostedRoom && _joinRetryCount < MaxJoinRetries)
+            {
+                _joinRetryCount++;
+                StopJoinRetryRoutine();
+                _joinRetryRoutine = StartCoroutine(JoinRetryRoutine());
+            }
+            else
+                FailJoinAndClearGuestSession("JoinRoom() rejected locally", clearGuestSession: false);
+        }
+    }
+
+    bool ShouldRetryJoin(short returnCode, string message) =>
+        OneVsOneLobbyFlowRules.ShouldRetryPhotonJoin(returnCode, message, _joinRetryCount, MaxJoinRetries);
+
+    void StopJoinRetryRoutine()
+    {
+        if (_joinRetryRoutine != null)
+        {
+            StopCoroutine(_joinRetryRoutine);
+            _joinRetryRoutine = null;
+        }
+    }
+
+    IEnumerator JoinRetryRoutine()
+    {
+        yield return new WaitForSecondsRealtime(JoinRetryDelaySeconds);
+        _joinRetryRoutine = null;
+        if (CurrentPurpose != Purpose.JoinHostedRoom) yield break;
+        if (string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName)) yield break;
+        if (!PhotonNetwork.IsConnectedAndReady || PhotonNetwork.Server != ServerConnection.MasterServer) yield break;
+        AttemptJoinTargetRoom();
+    }
+
+    void FailJoinAndClearGuestSession(string message, bool clearGuestSession = true)
+    {
+        StopJoinRetryRoutine();
+        _joinRetryCount = 0;
+        IsConnecting = false;
+        CurrentPurpose = Purpose.None;
+        _deferredJoinAfterLeave = false;
+        if (!OneVsOneMatchSession.IsHost && clearGuestSession)
+        {
+            OneVsOneMatchSession.Clear();
+            TrucoRoomPersistence.Clear();
+        }
+        string userMsg = string.IsNullOrEmpty(message)
+            ? TrucoTextosClient.ErrorUnirse
+            : TrucoTextosClient.ErrorUnirse + " " + message;
+        if (!clearGuestSession)
+            userMsg += " " + TrucoLocalization.T(TrucoLocalization.Key.RejoinPartida);
+        TrucoDebugLog.Error(TrucoDebugLog.Category.OneVsOne,
+            "Join abandoned: " + message + " clearSession=" + clearGuestSession);
+        TrucoNotificationLog.Warning("JOIN ABANDONED: " + userMsg);
+        AppManager.Instance.DisplayNotification(userMsg);
     }
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
-        IsConnecting = false;
-        CurrentPurpose = Purpose.None;
-        _deferredJoinAfterLeave = false;
-        AppManager.Instance.DisplayNotification(TrucoTextosClient.ErrorUnirse + " " + message);
+        TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
+            "JoinRoomFailed code=" + returnCode + " msg=" + message + " attempt=" + (_joinRetryCount + 1) +
+            "/" + MaxJoinRetries);
+
+        // Host reclaim after "already exists" — room vanished; create fresh.
+        if (CurrentPurpose == Purpose.CreateHostedRoom
+            && !string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName))
+        {
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "Host Join failed — CreateRoom again");
+            CreateRoomWithOptions(OneVsOneMatchSession.PhotonRoomName, OneVsOneMatchSession.MaxPlayersPhoton);
+            return;
+        }
+
+        if (CurrentPurpose == Purpose.JoinHostedRoom && ShouldRetryJoin(returnCode, message) && _joinRetryCount < MaxJoinRetries)
+        {
+            _joinRetryCount++;
+            if (_joinRetryCount == 1)
+                AppManager.Instance?.DisplayNotification(TrucoTextosClient.EsperandoAnfitrionPhoton);
+            StopJoinRetryRoutine();
+            _joinRetryRoutine = StartCoroutine(JoinRetryRoutine());
+            return;
+        }
+        FailJoinAndClearGuestSession(message, clearGuestSession: false);
+    }
+
+    /// <summary>Disconnect when a dev build landed on the wrong cloud region (FixedRegion must match).</summary>
+    bool EnsureConnectedToFixedRegion()
+    {
+        string target = PhotonNetwork.PhotonServerSettings?.AppSettings?.FixedRegion;
+        if (string.IsNullOrEmpty(target) || !PhotonNetwork.IsConnected) return false;
+        if (string.IsNullOrEmpty(PhotonNetwork.CloudRegion) || PhotonNetwork.CloudRegion == target) return false;
+        TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
+            "Reconnecting Photon: was " + PhotonNetwork.CloudRegion + " → " + target);
+        PhotonNetwork.Disconnect();
+        return true;
     }
 
     public override void OnDisconnected(DisconnectCause cause)
     {
+        StopJoinRetryRoutine();
+        _joinRetryCount = 0;
         _deferredJoinAfterLeave = false;
         _deferredCreateAfterLeave = false;
+        _deferredJoinAfterLeaveLobby = false;
+        _deferredCreateAfterLeaveLobby = false;
         _lobbyRoomPlayerCount.Clear();
         _lobbySyncReceived = false;
+        if (_applicationQuitting || Application.isPlaying == false) return;
+        if (CurrentPurpose != Purpose.None && !PhotonNetwork.OfflineMode)
+            PhotonNetwork.ConnectUsingSettings();
     }
 
     public override void OnJoinedLobby()
-    {
-        _lobbyRoomPlayerCount.Clear();
-        _lobbySyncReceived = false;
-    }
-
-    public override void OnLeftLobby()
     {
         _lobbyRoomPlayerCount.Clear();
         _lobbySyncReceived = false;
@@ -236,7 +457,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public void EnsureLobbyForRoomList()
     {
         if (PhotonNetwork.OfflineMode) return;
+        if (IsMatchmakingBusy) return;
         if (PhotonNetwork.InRoom) return;
+        if (!string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId) && !OneVsOneMatchSession.GameStarted)
+            return;
         if (!PhotonNetwork.IsConnected) { PhotonNetwork.ConnectUsingSettings(); return; }
         if (PhotonNetwork.Server != ServerConnection.MasterServer) return;
         if (!PhotonNetwork.InLobby) PhotonNetwork.JoinLobby(TypedLobby.Default);
@@ -267,14 +491,30 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         return Instance.TryGetLiveLobbyPlayerCount(photonRoomName, out count);
     }
 
+    public override void OnCreatedRoom()
+    {
+        TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
+            "Photon room created: " + OneVsOneMatchSession.PhotonRoomName
+            + " region=" + (PhotonNetwork.CloudRegion ?? "?"));
+    }
+
     public override void OnJoinedRoom()
     {
         IsConnecting = false;
+        _joinRetryCount = 0;
+        StopJoinRetryRoutine();
         TrucoRoomPersistence.SaveCurrentRoom();
         TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
+        TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
+            "OnJoinedRoom name=" + (PhotonNetwork.CurrentRoom?.Name ?? "?")
+            + " players=" + (PhotonNetwork.CurrentRoom?.PlayerCount ?? 0)
+            + " master=" + PhotonNetwork.IsMasterClient
+            + " purpose=" + CurrentPurpose
+            + " region=" + (PhotonNetwork.CloudRegion ?? "?"));
         if (PhotonNetwork.CurrentRoom == null) return;
 
-        if (TrucoLobbyMatchmakingUi.IsRoomListWaitingMode())
+        if (TrucoLobbyMatchmakingUi.IsRoomListWaitingMode() ||
+            OneVsOneMatchLifecycle.IsWaitingInPreGameLobby())
         {
             TrucoLobbyMatchmakingUi.HideWaitingOverlay();
             OnLobbyRoomCountsChanged?.Invoke();
@@ -300,30 +540,81 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     void FireMatchFound()
     {
         if (_matchFoundFired) return;
+        if (PhotonNetwork.CurrentRoom == null) return;
+        if (!OneVsOneLobbyFlowRules.IsReadyToLaunchGameplay(
+                PhotonNetwork.CurrentRoom.PlayerCount, OneVsOneMatchSession.MaxPlayersGameplay))
+            return;
         _matchFoundFired = true;
-        TrucoLobbyMatchmakingUi.ShowMatchFoundOverlay();
-        if (_sessionUi == null) _sessionUi = FindObjectOfType<OneVsOnePhotonSessionUi>(true);
-        if (_sessionUi != null)
+        CurrentPurpose = Purpose.None;
+        StopJoinRetryRoutine();
+        TrucoLobbyMatchmakingUi.HideWaitingOverlay();
+        TrucoDebugLog.Always(TrucoDebugLog.Category.OneVsOne,
+            "FireMatchFound players=" + PhotonNetwork.CurrentRoom.PlayerCount
+            + " master=" + PhotonNetwork.IsMasterClient
+            + " match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?"));
+
+        bool roomListMode = TrucoLobbyMatchmakingUi.IsRoomListWaitingMode();
+        bool launchedUi = false;
+        if (!roomListMode)
         {
-            if (_sessionUi.gameObject != null && !_sessionUi.gameObject.activeInHierarchy)
-                _sessionUi.gameObject.SetActive(true);
-            _sessionUi.MatchFound();
-        }
-        else
-        {
-            if (_matchMakingPanel == null)
-                _matchMakingPanel = FindObjectOfType<MatchMakingPanel>(true);
-            if (_matchMakingPanel != null)
+            if (_sessionUi == null) _sessionUi = FindObjectOfType<OneVsOnePhotonSessionUi>(true);
+            if (_sessionUi != null && _sessionUi.gameObject != null)
             {
-                if (_matchMakingPanel.gameObject != null && !_matchMakingPanel.gameObject.activeInHierarchy)
-                    _matchMakingPanel.gameObject.SetActive(true);
-                _matchMakingPanel.MatchFound();
+                if (!_sessionUi.gameObject.activeInHierarchy)
+                    _sessionUi.gameObject.SetActive(true);
+                _sessionUi.MatchFound();
+                launchedUi = true;
             }
+            else
+            {
+                if (_matchMakingPanel == null)
+                    _matchMakingPanel = FindObjectOfType<MatchMakingPanel>(true);
+                if (_matchMakingPanel != null)
+                {
+                    if (_matchMakingPanel.gameObject != null && !_matchMakingPanel.gameObject.activeInHierarchy)
+                        _matchMakingPanel.gameObject.SetActive(true);
+                    _matchMakingPanel.MatchFound();
+                    launchedUi = true;
+                }
+            }
+        }
+
+        if (roomListMode || !launchedUi)
+            StartCoroutine(LaunchGameplayCountdownRoutine());
+    }
+
+    IEnumerator LaunchGameplayCountdownRoutine()
+    {
+        AppManager.Instance?.DisplayNotification(TrucoTextosClient.PartidaEncontrada);
+        yield return new WaitForSecondsRealtime(1f);
+        AppManager.Instance?.HideNotification();
+        yield return new WaitForSecondsRealtime(2f);
+        TrucoOneVsOneGameplayLaunch.LoadFromCurrentRoom();
+        if (!PhotonNetwork.IsMasterClient)
+            StartCoroutine(GuestWaitForSyncedGameplay());
+    }
+
+    IEnumerator GuestWaitForSyncedGameplay()
+    {
+        float deadline = Time.unscaledTime + 12f;
+        while (Time.unscaledTime < deadline)
+        {
+            if (TrucoOneVsOneGameplayLaunch.IsGameplaySceneActive) yield break;
+            if (!PhotonNetwork.InRoom) yield break;
+            yield return null;
+        }
+        if (!TrucoOneVsOneGameplayLaunch.IsGameplaySceneActive && PhotonNetwork.InRoom)
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.OneVsOne,
+                "Guest scene sync timeout — loading Gameplay locally.");
+            TrucoSceneTransition.Go("Gameplay");
         }
     }
 
     public void ResetPurpose()
     {
+        StopJoinRetryRoutine();
+        _joinRetryCount = 0;
         CurrentPurpose = Purpose.None;
         _matchFoundFired = false;
     }

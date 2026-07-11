@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
 public static class HttpApiClient
 {
-
     private static string _cookieHeader;
     private static string _xsrfToken;
     private static string _accessToken;
@@ -16,71 +16,139 @@ public static class HttpApiClient
     /// </summary>
     public static async Task<string> GetAsync(string url)
     {
-        Debug.Log("[HttpApiClient] GET " + url);
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "GET " + url);
         return await SendRequestAsync(url, "GET");
     }
 
     /// <summary>
-    /// Perform POST request with JSON body and XSRF token if available.
+    /// Perform POST request with JSON body, replay-protection headers, and optional game secret.
     /// Automatically refreshes token on 401/403.
     /// </summary>
-    public static async Task<string> PostAsync(string url, string jsonBody = null)
+    public static async Task<string> PostAsync(string url, string jsonBody = null, bool requireGameSecret = false)
     {
-        Debug.Log("[HttpApiClient] POST " + url);
-        return await SendRequestAsync(url, "POST", jsonBody);
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "POST " + url);
+        return await SendRequestAsync(url, "POST", jsonBody, isRetry: false, authToken: null, requireGameSecret: requireGameSecret);
     }
 
-    private static async Task<string> SendRequestAsync(string url, string method, string jsonBody = null, bool isRetry = false, string authToken = null)
+    /// <summary>PUT with replay-protection headers (backend requires x-nonce / x-timestamp on mutating requests).</summary>
+    public static async Task<string> PutAsync(string url, string jsonBody = null, bool requireGameSecret = false)
+    {
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "PUT " + url);
+        return await SendRequestAsync(url, "PUT", jsonBody, isRetry: false, authToken: null, requireGameSecret: requireGameSecret);
+    }
+
+    private static async Task<string> SendRequestAsync(
+        string url,
+        string method,
+        string jsonBody = null,
+        bool isRetry = false,
+        string authToken = null,
+        bool requireGameSecret = false)
     {
         using (UnityWebRequest req = new UnityWebRequest(url, method))
         {
-            if (method == "POST" && !string.IsNullOrEmpty(jsonBody))
+            bool hasBody = (method == "POST" || method == "PUT" || method == "PATCH") && !string.IsNullOrEmpty(jsonBody);
+            if (hasBody)
             {
                 byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonBody);
                 req.uploadHandler = new UploadHandlerRaw(bodyRaw);
                 req.SetRequestHeader("Content-Type", "application/json");
             }
+            else if (method == "POST" || method == "PUT" || method == "PATCH")
+            {
+                // Empty JSON body so Content-Type is still set for APIs that expect JSON.
+                byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes("{}");
+                req.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                req.SetRequestHeader("Content-Type", "application/json");
+            }
 
             req.downloadHandler = new DownloadHandlerBuffer();
-            
-            // If an explicit token is provided for this request, use it.
-            // Otherwise, use the globally stored tokens.
+
             AttachAuthHeaders(req, authToken);
+
+            if (method == "POST" || method == "PUT" || method == "PATCH")
+                AttachReplayProtectionHeaders(req);
+
+            if (requireGameSecret)
+                AttachGameSecretHeader(req);
 
             var tcs = new TaskCompletionSource<UnityWebRequest>();
             req.SendWebRequest().completed += _ => tcs.TrySetResult(req);
             await tcs.Task;
 
             SaveCookies(req);
-            
-            // 🔹 Handle unauthorized/forbidden with session refresh (unless it is already a retry)
-            if ((req.responseCode == 401 || req.responseCode == 403) && !isRetry)
+
+            string responsePreview = req.downloadHandler != null ? req.downloadHandler.text : null;
+            bool isReplayReject = IsReplayProtectionReject(req.responseCode, responsePreview);
+
+            // Only refresh session on real auth failures — not on replay/timestamp rejects (403 Request Expired).
+            if ((req.responseCode == 401 || (req.responseCode == 403 && !isReplayReject)) && !isRetry)
             {
-                Debug.LogWarning($"[HttpApiClient] Request failed with {req.responseCode}. Trying refresh...");
+                TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+                    "Request failed with " + req.responseCode + ". Trying refresh...");
                 bool refreshed = await RefreshSessionAsync();
                 if (refreshed)
                 {
-                    Debug.Log("[HttpApiClient] Session refreshed. Retrying original request...");
-                    return await SendRequestAsync(url, method, jsonBody, true);
+                    TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Session refreshed. Retrying original request...");
+                    return await SendRequestAsync(url, method, jsonBody, true, authToken, requireGameSecret);
                 }
             }
 
-            string cleanMessage = req.downloadHandler.text;
+            string cleanMessage = responsePreview;
 
-            // 🔹 If server returned an error (e.g., 400, 401, 500)
             if (req.result != UnityWebRequest.Result.Success || req.responseCode >= 400)
             {
-                string rawText = req.downloadHandler.text;
-                Debug.Log($"{method} {url} failed ({req.responseCode}): {rawText}");
+                string rawText = responsePreview;
+                TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+                    method + " " + url + " failed (" + req.responseCode + "): " + rawText);
 
-                // 🔹 Try to extract "error" field from JSON
                 cleanMessage = ExtractErrorMessage(rawText);
-
                 throw new System.Exception(cleanMessage);
             }
 
             return cleanMessage;
         }
+    }
+
+    static bool IsReplayProtectionReject(long statusCode, string body)
+    {
+        if (statusCode != 400 && statusCode != 403) return false;
+        if (string.IsNullOrEmpty(body)) return false;
+        return body.IndexOf("Request Expired", StringComparison.OrdinalIgnoreCase) >= 0
+               || body.IndexOf("expired", StringComparison.OrdinalIgnoreCase) >= 0
+               || body.IndexOf("nonce", StringComparison.OrdinalIgnoreCase) >= 0
+               || body.IndexOf("timestamp", StringComparison.OrdinalIgnoreCase) >= 0
+               || body.IndexOf("replay", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    /// <summary>
+    /// Backend replay protection: unique nonce + Unix timestamp in <b>milliseconds</b> (Node Date.now()).
+    /// Seconds are rejected as "Request Expired" because the server compares against ms clocks.
+    /// </summary>
+    static void AttachReplayProtectionHeaders(UnityWebRequest req)
+    {
+        string nonce = Guid.NewGuid().ToString("N");
+        // Milliseconds — matches typical Node replay middleware (Date.now()).
+        string timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        req.SetRequestHeader("x-nonce", nonce);
+        req.SetRequestHeader("x-timestamp", timestamp);
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "replay headers nonce=" + nonce.Substring(0, 8) + "… tsMs=" + timestamp);
+    }
+
+    /// <summary>
+    /// Required for match result / walkover. Value from TrucoClientSettings (Resources).
+    /// Ask backend for the production secret if empty — requests will 403 without it.
+    /// </summary>
+    static void AttachGameSecretHeader(UnityWebRequest req)
+    {
+        string secret = TrucoClientSettings.GameSecret;
+        if (string.IsNullOrEmpty(secret))
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+                "x-game-secret missing — set TrucoClientSettings.gameSecret (backend will return 403 on /result).");
+            return;
+        }
+        req.SetRequestHeader("x-game-secret", secret);
     }
 
     private static string ExtractErrorMessage(string responseText)
@@ -108,7 +176,7 @@ public static class HttpApiClient
         return responseText;
     }
 
-    [System.Serializable]
+    [Serializable]
     private class ErrorResponse
     {
         public string error;
@@ -122,14 +190,12 @@ public static class HttpApiClient
 
         if (!string.IsNullOrEmpty(_xsrfToken))
             req.SetRequestHeader("X-XSRF-TOKEN", _xsrfToken);
-            
-        // Prioritize explicit token, then fall back to saved access token
+
         string tokenToUse = !string.IsNullOrEmpty(explicitToken) ? explicitToken : _accessToken;
-        
+
         if (!string.IsNullOrEmpty(tokenToUse))
         {
             req.SetRequestHeader("Authorization", "Bearer " + tokenToUse);
-            // Some APIs also look for the token in custom headers
             req.SetRequestHeader("x-auth-token", tokenToUse);
         }
     }
@@ -137,7 +203,7 @@ public static class HttpApiClient
     public static void SetAuthToken(string token)
     {
         _accessToken = token;
-        Debug.Log("[HttpApiClient] Auth token manually set.");
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Auth token manually set.");
     }
 
     /// <summary>Clears bearer/cookie session so further requests are unauthenticated (e.g. after logout).</summary>
@@ -155,12 +221,10 @@ public static class HttpApiClient
         if (string.IsNullOrEmpty(setCookie)) return;
 
         List<string> cookies = new List<string>();
-        
-        // Use a more robust split that doesn't break on commas in dates
-        // Unity merges multiple Set-Cookie headers with ", "
+
         string[] rawParts = setCookie.Split(',');
         string currentPart = "";
-        
+
         foreach (var rawPart in rawParts)
         {
             string part = rawPart.Trim();
@@ -172,9 +236,7 @@ public static class HttpApiClient
             }
             else
             {
-                // If the part doesn't contain an '=' or looks like a date continuation, append it
-                // Cookie attributes like expires=Thu, 01 Jan 2026 ... get split at the comma
-                if (!part.Contains("=") || 
+                if (!part.Contains("=") ||
                     currentPart.ToLower().EndsWith("expires=mon") || currentPart.ToLower().EndsWith("expires=tue") ||
                     currentPart.ToLower().EndsWith("expires=wed") || currentPart.ToLower().EndsWith("expires=thu") ||
                     currentPart.ToLower().EndsWith("expires=fri") || currentPart.ToLower().EndsWith("expires=sat") ||
@@ -184,7 +246,6 @@ public static class HttpApiClient
                 }
                 else
                 {
-                    // New cookie starts
                     ProcessCookieString(currentPart, cookies);
                     currentPart = part;
                 }
@@ -195,9 +256,9 @@ public static class HttpApiClient
 
         _cookieHeader = string.Join("; ", cookies);
 
-        Debug.Log($"[HttpApiClient] Saved cookies: {_cookieHeader}");
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Saved cookies: " + _cookieHeader);
         if (!string.IsNullOrEmpty(_xsrfToken))
-            Debug.Log($"[HttpApiClient] Saved XSRF token: {_xsrfToken}");
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Saved XSRF token: " + _xsrfToken);
     }
 
     private static void ProcessCookieString(string rawCookie, List<string> cookies)
@@ -220,22 +281,20 @@ public static class HttpApiClient
             _xsrfToken = val;
     }
 
-    /// <summary>
-    /// Refresh session tokens using refresh_token cookie.
-    /// </summary>
     private static async Task<bool> RefreshSessionAsync()
     {
         if (string.IsNullOrEmpty(_refreshToken))
         {
-            Debug.LogWarning("[HttpApiClient] No refresh token found. Cannot refresh session.");
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "No refresh token found. Cannot refresh session.");
             return false;
         }
 
-        Debug.Log("[HttpApiClient] Refreshing session...");
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Refreshing session...");
 
         using (UnityWebRequest req = UnityWebRequest.PostWwwForm(ApiConfig.RefreshToken, ""))
         {
             AttachAuthHeaders(req);
+            AttachReplayProtectionHeaders(req);
 
             var tcs = new TaskCompletionSource<UnityWebRequest>();
             req.SendWebRequest().completed += _ => tcs.TrySetResult(req);
@@ -243,12 +302,12 @@ public static class HttpApiClient
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"[HttpApiClient] Refresh failed: {req.error}");
+                TrucoDebugLog.Error(TrucoDebugLog.Category.Api, "Refresh failed: " + req.error);
                 return false;
             }
 
             SaveCookies(req);
-            Debug.Log("[HttpApiClient] Refresh successful.");
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Refresh successful.");
             return true;
         }
     }

@@ -1,14 +1,20 @@
 using System;
 using Photon.Pun;
 
-/// <summary>Confirms leaving a pre-game 1v1 lobby before navigation cancels the room.</summary>
+/// <summary>Confirms deleting a host room before leaving the pre-game lobby.</summary>
 public static class TrucoLobbyLeaveConfirm
 {
     public static void RunIfNeeded(Action onProceed)
     {
-        if (!OneVsOneMatchLifecycle.IsWaitingInPreGameLobby())
+        if (onProceed == null) return;
+        if (OneVsOneMatchLifecycle.IsGuestWaitingInLobby())
         {
-            onProceed?.Invoke();
+            AbandonLobbyAndProceed(onProceed);
+            return;
+        }
+        if (!OneVsOneMatchLifecycle.ShouldConfirmDeleteRoomOnLeave())
+        {
+            onProceed.Invoke();
             return;
         }
 
@@ -17,20 +23,35 @@ public static class TrucoLobbyLeaveConfirm
             TrucoTextosClient.ConfirmLeaveLobbyBody,
             TrucoTextosClient.ConfirmNoQuedarme,
             TrucoTextosClient.ConfirmSiSalir,
-            onYes: () => AbandonLobbyAndProceed(onProceed));
+            onYes: () => AbandonLobbyAndProceed(onProceed),
+            onNo: () => { });
+
+        if (!TrucoConfirmDialog.IsVisible())
+        {
+            AppManager.Instance?.DisplayNotification(
+                TrucoTextosClient.ConfirmLeaveLobbyBody,
+                () => AbandonLobbyAndProceed(onProceed));
+        }
     }
 
     public static async void AbandonLobbyAndProceed(Action onProceed)
     {
         string matchId = OneVsOneMatchSession.CurrentMatchId;
+        if (string.IsNullOrEmpty(matchId))
+            matchId = TrucoActiveHostMatchStore.GetRememberedMatchId();
         if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
         if (!string.IsNullOrEmpty(matchId))
             await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
         OneVsOneMatchSession.Clear();
+        TrucoMatchProgress.ClearAllMatchMemory();
+        TrucoActiveHostMatchStore.Clear();
         if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
         TrucoLobbyMatchmakingUi.HideWaitingOverlay();
         TrucoWalletHudRefresh.Apply();
         TrucoNotificationLog.Success(TrucoTextosClient.SalaCanceladaReembolso);
+        var list = UnityEngine.Object.FindObjectOfType<OneVsOneRoomListController>(true);
+        if (list != null && list.IsLobbyVisible)
+            list.Refresh(showLoading: false);
         onProceed?.Invoke();
     }
 }

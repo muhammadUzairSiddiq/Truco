@@ -25,7 +25,8 @@ public static class OneVsOneMatchSession
         IsHost = true;
         EntryFee = entryFee;
         WithFlor = withFlor;
-        Debug.Log($"[OneVsOne] Contexto anfitrión: match={matchId} room={photonName} entrada={entryFee} flor={withFlor}");
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+            "Host context: match=" + matchId + " room=" + photonName + " fee=" + entryFee + " flor=" + withFlor);
     }
 
     public static void SetGuestContext(string matchId, string photonName, int entryFee, bool withFlor = true)
@@ -35,7 +36,8 @@ public static class OneVsOneMatchSession
         IsHost = false;
         EntryFee = entryFee;
         WithFlor = withFlor;
-        Debug.Log($"[OneVsOne] Contexto invitado: match={matchId} room={photonName} flor={withFlor}");
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+            "Guest context: match=" + matchId + " room=" + photonName + " flor=" + withFlor);
     }
 
     public static void SetWithFlor(bool withFlor) => WithFlor = withFlor;
@@ -51,8 +53,9 @@ public static class OneVsOneMatchSession
         WithFlor = true;
         GameStarted = false;
         CachedOpponentUserId = null;
-        TrucoRoomPersistence.Clear();
     }
+
+    public static void ClearSavedRoomPersistence() => TrucoRoomPersistence.Clear();
 
     public static void SetCachedOpponentUserId(string userId)
     {

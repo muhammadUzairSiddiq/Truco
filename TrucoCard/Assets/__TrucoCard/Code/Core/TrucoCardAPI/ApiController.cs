@@ -137,6 +137,12 @@ public static class ApiController
         HttpApiClient.ClearAuthSession();
     }
 
+    public static async Task<bool> EnsureSessionUserLoadedAsync()
+    {
+        if (!string.IsNullOrEmpty(GetSessionUser?.Data?._id)) return true;
+        return await GetCurrentUserProfile();
+    }
+
     public static async Task<bool> GetCurrentUserProfile()
     {
         try
@@ -656,7 +662,11 @@ public static class ApiController
         catch (Exception e) { Debug.LogWarning("[ApiController] join parse (flat data): " + e.Message); }
 
         if (listRowHint != null && (flatOk || wrappedOk || flatDataOk))
+        {
+            if (string.IsNullOrEmpty(listRowHint.photonRoomName) && string.IsNullOrEmpty(listRowHint.photonRoom))
+                listRowHint.photonRoomName = listRowHint.ResolvePhotonRoomNameOrDefault(listRowHint._id);
             return listRowHint;
+        }
 
         return null;
     }
@@ -711,9 +721,20 @@ public static class ApiController
         try
         {
             string response = await HttpApiClient.GetAsync(ApiConfig.ListMatches);
-            Debug.Log("[ApiController] - GET /matches: " + response);
             var parsed = TryParsePlayerMatchListJson(response);
-            if (parsed != null) result = parsed;
+            int raw = parsed?.Count ?? 0;
+            if (parsed != null)
+            {
+                for (int i = 0; i < parsed.Count; i++)
+                {
+                    var m = parsed[i];
+                    if (m != null && m.IsLobbyLikeStatus())
+                        result.Add(m);
+                }
+            }
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+                "GET /matches raw=" + raw + " lobby-like=" + result.Count +
+                " (backend also returns cancelled/completed rows — filtered client-side)");
         }
         catch (Exception ex)
         {
@@ -728,7 +749,7 @@ public static class ApiController
         {
             string json = JsonUtility.ToJson(body);
             string response = await HttpApiClient.PostAsync(ApiConfig.PlayerCreateMatch, json);
-            Debug.Log("[ApiController] - player-create: " + response);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "player-create: " + response);
             if (string.IsNullOrEmpty(response) || !response.Contains("{"))
             {
                 onError?.Invoke(response ?? "Error al crear la sala (backend).");
@@ -759,7 +780,7 @@ public static class ApiController
             var body = new RegisterPhotonRoomRequest { photonRoomName = photonRoomName, roomName = photonRoomName };
             string json = JsonUtility.ToJson(body);
             string response = await HttpApiClient.PostAsync(ApiConfig.MatchRegisterPhotonRoom(matchId), json);
-            Debug.Log("[ApiController] - photon-room: " + response);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "photon-room: " + response);
             return true;
         }
         catch (Exception ex)
@@ -775,7 +796,7 @@ public static class ApiController
         {
             string body = string.IsNullOrEmpty(password) ? "{}" : JsonUtility.ToJson(new PlayerMatchJoinRequest { password = password });
             string response = await HttpApiClient.PostAsync(ApiConfig.PlayerJoinMatch(matchId), body);
-            Debug.Log("[ApiController] - join: " + response);
+            TrucoDebugLog.Always(TrucoDebugLog.Category.Api, "POST /join response: " + response);
             if (string.IsNullOrEmpty(response) || !response.Contains("{"))
             {
                 onError?.Invoke(response ?? "Error al unirse.");
@@ -784,9 +805,30 @@ public static class ApiController
             var match = TryParsePlayerJoinMatchJson(response, listRowHint, out string apiMsg);
             if (match != null)
             {
+                if (string.IsNullOrEmpty(match._id) && listRowHint != null)
+                    match._id = listRowHint._id;
                 await GetCurrentUserProfile();
                 return match;
             }
+
+            // Backend sometimes returns success + message without a match object.
+            if (IsJoinSuccessMessage(apiMsg) || IsJoinSuccessPayload(response))
+            {
+                TrucoDebugLog.Always(TrucoDebugLog.Category.Api,
+                    "POST /join success without match object — using list row / GET hydrate");
+                var hydrated = await GetMatch1v1(matchId);
+                if (hydrated != null)
+                {
+                    await GetCurrentUserProfile();
+                    return hydrated;
+                }
+                if (listRowHint != null)
+                {
+                    await GetCurrentUserProfile();
+                    return listRowHint;
+                }
+            }
+
             if (!string.IsNullOrEmpty(apiMsg))
                 onError?.Invoke(apiMsg);
             else
@@ -795,24 +837,76 @@ public static class ApiController
         }
         catch (Exception ex)
         {
+            TrucoDebugLog.Error(TrucoDebugLog.Category.Api, "POST /join exception: " + ex.Message);
+            if (OneVsOneLobbyFlowRules.IsMatchFullApiError(ex.Message))
+            {
+                var verify = await GetMatch1v1(matchId);
+                if (verify != null && verify.IsAlreadyRegisteredGuest())
+                {
+                    await GetCurrentUserProfile();
+                    return verify;
+                }
+            }
             onError?.Invoke(ex.Message);
             return null;
         }
     }
 
-    /// <summary>Fresh match row from backend before join (avoids stale list / "Match is full").</summary>
+    static bool IsJoinSuccessMessage(string message)
+    {
+        if (string.IsNullOrEmpty(message)) return false;
+        return message.IndexOf("joined", StringComparison.OrdinalIgnoreCase) >= 0
+               || message.IndexOf("unido", StringComparison.OrdinalIgnoreCase) >= 0
+               || message.IndexOf("Successfully joined", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    static bool IsJoinSuccessPayload(string response)
+    {
+        if (string.IsNullOrEmpty(response)) return false;
+        return response.IndexOf("\"success\":true", StringComparison.OrdinalIgnoreCase) >= 0
+               || response.IndexOf("\"ok\":true", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    public static Player1v1Match TryParseSingleMatchJson(string response)
+    {
+        if (string.IsNullOrEmpty(response) || !response.Contains("{")) return null;
+        try
+        {
+            var wrapped = JsonUtility.FromJson<PlayerCreateMatchResponse>(response);
+            if (wrapped?.match != null && !string.IsNullOrEmpty(wrapped.match._id))
+                return wrapped.match;
+        }
+        catch (Exception) { }
+        try
+        {
+            var join = JsonUtility.FromJson<PlayerJoinMatchResponse>(response);
+            if (join?.match != null && !string.IsNullOrEmpty(join.match._id))
+                return join.match;
+        }
+        catch (Exception) { }
+        try
+        {
+            var direct = JsonUtility.FromJson<Player1v1Match>(response);
+            if (direct != null && !string.IsNullOrEmpty(direct._id)) return direct;
+        }
+        catch (Exception) { }
+        try
+        {
+            var flat = JsonUtility.FromJson<PlayerJoinMatchFlattenedDataRoot>(response);
+            if (flat?.data != null && !string.IsNullOrEmpty(flat.data._id)) return flat.data;
+        }
+        catch (Exception) { }
+        return null;
+    }
+
     public static async Task<Player1v1Match> GetMatch1v1(string matchId)
     {
         if (string.IsNullOrEmpty(matchId)) return null;
         try
         {
             string response = await HttpApiClient.GetAsync(ApiConfig.GetMatch(matchId));
-            Debug.Log("[ApiController] - GET match: " + response);
-            if (string.IsNullOrEmpty(response) || !response.Contains("{")) return null;
-            var direct = JsonUtility.FromJson<Player1v1Match>(response);
-            if (direct != null && !string.IsNullOrEmpty(direct._id)) return direct;
-            var wrapped = JsonUtility.FromJson<PlayerJoinMatchFlattenedDataRoot>(response);
-            if (wrapped?.data != null && !string.IsNullOrEmpty(wrapped.data._id)) return wrapped.data;
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "GET match id=" + matchId);
+            return TryParseSingleMatchJson(response);
         }
         catch (Exception ex)
         {
@@ -822,7 +916,7 @@ public static class ApiController
     }
 
     /// <summary>
-    /// Master client: POST /result (rake + prize), POST /leave, GET /auth/me.
+    /// Master client: POST /result (rake + prize), POST /leave + /end, GET /auth/me.
     /// Only one client should submit the result to avoid double settlement.
     /// </summary>
     public static async System.Threading.Tasks.Task Finalize1v1MatchAsMaster(string matchId, string winnerUserId, System.Action onSettled = null)
@@ -832,7 +926,7 @@ public static class ApiController
         if (!string.IsNullOrEmpty(winnerUserId))
             resultOk = await SubmitMatchResult1v1(matchId, winnerUserId, msg =>
                 Debug.LogWarning("[ApiController] - match result failed: " + msg));
-        await TryNotifyPlayerLeftMatch1v1(matchId);
+        await CloseMatchRowAfterGameAsync(matchId);
         TrucoActiveHostMatchStore.Clear();
         await GetCurrentUserProfile();
         onSettled?.Invoke();
@@ -845,24 +939,60 @@ public static class ApiController
         }
     }
 
-    /// <summary>Non-master client after a match: leave row + refresh wallet (no /result).</summary>
+    /// <summary>Non-master client after a match: leave + end row + refresh wallet (no /result).</summary>
     public static async System.Threading.Tasks.Task Finalize1v1MatchAsGuest(string matchId, System.Action onSettled = null)
     {
         if (string.IsNullOrEmpty(matchId)) return;
-        await TryNotifyPlayerLeftMatch1v1(matchId);
+        await CloseMatchRowAfterGameAsync(matchId);
         TrucoActiveHostMatchStore.Clear();
         await GetCurrentUserProfile();
         onSettled?.Invoke();
     }
 
-    /// <summary>Pre-game cancel: full entry refund via POST /leave.</summary>
+    /// <summary>Pre-game cancel: POST /leave then /end so the lobby row disappears for everyone.</summary>
     public static async System.Threading.Tasks.Task CancelPreGameMatch1v1(string matchId)
     {
         if (string.IsNullOrEmpty(matchId)) return;
-        await TryNotifyPlayerLeftMatch1v1(matchId);
+        await CloseMatchRowAfterGameAsync(matchId);
         if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
             TrucoActiveHostMatchStore.Clear();
+        OneVsOneMatchSession.ClearSavedRoomPersistence();
         await GetCurrentUserProfile();
+    }
+
+    /// <summary>
+    /// Opponent abandoned: POST /walkover with claimerId, then close the match row.
+    /// Requires x-game-secret (same as /result).
+    /// </summary>
+    public static async System.Threading.Tasks.Task<bool> ClaimWalkover1v1(string matchId, string claimerUserId, Action<string> onError = null)
+    {
+        if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(claimerUserId)) return false;
+        try
+        {
+            var body = new MatchWalkoverRequest { claimerId = claimerUserId };
+            string json = JsonUtility.ToJson(body);
+            await HttpApiClient.PostAsync(ApiConfig.MatchWalkover(matchId), json, requireGameSecret: true);
+            TrucoRulesScenarioLog.Backend("POST /walkover OK", "match=" + matchId + " claimer=" + claimerUserId);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "walkover claimed match=" + matchId + " claimer=" + claimerUserId);
+            await CloseMatchRowAfterGameAsync(matchId);
+            await GetCurrentUserProfile();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex.Message);
+            TrucoRulesScenarioLog.BackendFail("POST /walkover", ex.Message);
+            Debug.LogWarning("[ApiController] - ClaimWalkover1v1: " + ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Leave + end so GET /matches drops the row (backend + Photon webhooks also clean zombies).</summary>
+    public static async System.Threading.Tasks.Task CloseMatchRowAfterGameAsync(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        await TryNotifyPlayerLeftMatch1v1(matchId);
+        await TryEndMatch1v1(matchId);
     }
 
     /// <summary>Backward-compatible alias — prefer <see cref="Finalize1v1MatchAsMaster"/>.</summary>
@@ -940,13 +1070,15 @@ public static class ApiController
         {
             var body = new MatchResultSubmitRequest { winnerId = winnerUserId, status = "completed" };
             string json = JsonUtility.ToJson(body);
-            await HttpApiClient.PostAsync(ApiConfig.MatchSubmitResult(matchId), json);
+            await HttpApiClient.PostAsync(ApiConfig.MatchSubmitResult(matchId), json, requireGameSecret: true);
+            TrucoRulesScenarioLog.Backend("POST /result OK", "match=" + matchId + " winner=" + winnerUserId);
             Debug.Log("[ApiController] - match result reported: " + matchId);
             return true;
         }
         catch (Exception ex)
         {
             onError?.Invoke(ex.Message);
+            TrucoRulesScenarioLog.BackendFail("POST /result", ex.Message);
             Debug.LogWarning("[ApiController] - SubmitMatchResult1v1: " + ex.Message);
             return false;
         }
@@ -956,18 +1088,67 @@ public static class ApiController
     /// Notifies server this user left the match (early quit, scene unload, etc.). Requires <c>POST …/matches/:id/leave</c> on API.
     /// Fails quietly if route is missing so older servers keep working.
     /// </summary>
-    public static async System.Threading.Tasks.Task TryNotifyPlayerLeftMatch1v1(string matchId)
+    public static async System.Threading.Tasks.Task<bool> TryNotifyPlayerLeftMatch1v1(string matchId)
     {
-        if (string.IsNullOrEmpty(matchId)) return;
+        if (string.IsNullOrEmpty(matchId)) return false;
         try
         {
             await HttpApiClient.PostAsync(ApiConfig.MatchPlayerLeave(matchId), "{}");
-            Debug.Log("[ApiController] - match leave notified: " + matchId);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "match leave notified: " + matchId);
+            return true;
         }
         catch (Exception ex)
         {
             Debug.LogWarning("[ApiController] - TryNotifyPlayerLeftMatch1v1 (add POST /matches/:id/leave on server if needed): " + ex.Message);
+            return false;
         }
+    }
+
+    public struct LobbyPurgeResult
+    {
+        public int attempted;
+        public int succeeded;
+        public int failed;
+        public int mineStillVisible;
+    }
+
+    static bool NeedsMatchHydration(Player1v1Match m) =>
+        m != null && (m.players == null || m.players.Length == 0)
+                  && string.IsNullOrEmpty(m.createdBy) && string.IsNullOrEmpty(m.hostId);
+
+    static async System.Threading.Tasks.Task<Player1v1Match> ResolveMatchForPurgeAsync(Player1v1Match m)
+    {
+        if (m == null || !NeedsMatchHydration(m)) return m;
+        var full = await GetMatch1v1(m._id);
+        return full ?? m;
+    }
+
+    static async System.Threading.Tasks.Task<bool> TryEndMatch1v1Bool(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return false;
+        try
+        {
+            await HttpApiClient.PostAsync(ApiConfig.MatchEnd(matchId), "{}");
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "match end requested: " + matchId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "TryEndMatch1v1: " + ex.Message);
+            return false;
+        }
+    }
+
+    static async System.Threading.Tasks.Task<bool> TryCloseLobbyMatchForUserAsync(Player1v1Match m, string userId)
+    {
+        if (m == null || string.IsNullOrEmpty(m._id) || string.IsNullOrEmpty(userId)) return false;
+        if (await TryNotifyPlayerLeftMatch1v1(m._id))
+            return true;
+        if (await TryEndMatch1v1Bool(m._id))
+            return true;
+        if (m.IsCurrentUserHostOfRoom() || OneVsOneLobbyFlowRules.MatchBelongsToUser(m, userId))
+            return await AdminForceCloseMatch1v1(m._id);
+        return false;
     }
 
     /// <summary>
@@ -987,6 +1168,99 @@ public static class ApiController
         {
             Debug.LogWarning("[ApiController] - TryEndMatch1v1 (set MatchEnd path in TrucoApiEndpoints when backend is ready): " + ex.Message);
         }
+    }
+
+    public static async System.Threading.Tasks.Task<int> LeaveAllMyActiveLobbyMatchesAsync(
+        string exceptMatchId = null)
+    {
+        var result = await PurgeAllMyLobbyMatchesAsync(exceptMatchId);
+        return result.succeeded;
+    }
+
+    /// <summary>POST /leave (and host fallbacks) on every lobby row tied to the logged-in user.</summary>
+    public static async System.Threading.Tasks.Task<LobbyPurgeResult> PurgeAllMyLobbyMatchesAsync(
+        string exceptMatchId = null)
+    {
+        var result = new LobbyPurgeResult();
+        if (!await EnsureSessionUserLoadedAsync()) return result;
+        string uid = GetSessionUser?.Data?._id;
+        if (string.IsNullOrEmpty(uid)) return result;
+
+        var list = await FetchPlayer1v1MatchList();
+        if (list == null || list.Count == 0) return result;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            var m = list[i];
+            if (m == null || string.IsNullOrEmpty(m._id)) continue;
+            if (!string.IsNullOrEmpty(exceptMatchId) && m._id == exceptMatchId) continue;
+            if (!m.IsLobbyLikeStatus()) continue;
+
+            if (OneVsOneLobbyFlowRules.MatchBelongsToUser(m, uid))
+            {
+                result.attempted++;
+                TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Purge my lobby match=" + m._id);
+                if (await TryCloseLobbyMatchForUserAsync(m, uid))
+                    result.succeeded++;
+                else
+                    result.failed++;
+                await System.Threading.Tasks.Task.Delay(100);
+                continue;
+            }
+
+            var resolved = await ResolveMatchForPurgeAsync(m);
+            if (!OneVsOneLobbyFlowRules.MatchBelongsToUser(resolved, uid)) continue;
+
+            result.attempted++;
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Purge lobby match (hydrated)=" + m._id);
+            if (await TryCloseLobbyMatchForUserAsync(resolved, uid))
+                result.succeeded++;
+            else
+                result.failed++;
+            await System.Threading.Tasks.Task.Delay(100);
+        }
+
+        if (result.attempted > 0)
+            await GetCurrentUserProfile();
+
+        var after = await FetchPlayer1v1MatchList();
+        if (after != null)
+        {
+            for (int i = 0; i < after.Count; i++)
+            {
+                var m = after[i];
+                if (m == null || !m.IsLobbyLikeStatus()) continue;
+                var resolved = await ResolveMatchForPurgeAsync(m);
+                if (OneVsOneLobbyFlowRules.MatchBelongsToUser(resolved, uid))
+                    result.mineStillVisible++;
+            }
+        }
+
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Lobby,
+            "Bulk purge finished attempted=" + result.attempted + " ok=" + result.succeeded +
+            " failed=" + result.failed + " mineStillVisible=" + result.mineStillVisible);
+        return result;
+    }
+
+    /// <summary>Admin/dev: force-close every lobby-like match visible on the dashboard.</summary>
+    public static async System.Threading.Tasks.Task<int> AdminForceCloseAllLobbyMatchesAsync(
+        System.Action<string> onError = null)
+    {
+        var list = await FetchLiveActiveMatchesForDashboard();
+        if (list == null || list.Count == 0) return 0;
+        int closed = 0;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var m = list[i];
+            if (m == null || string.IsNullOrEmpty(m._id)) continue;
+            if (!m.IsLobbyLikeStatus()) continue;
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Admin force-close match=" + m._id);
+            if (await AdminForceCloseMatch1v1(m._id, onError))
+                closed++;
+            await System.Threading.Tasks.Task.Delay(80);
+        }
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Lobby, "Admin force-close finished: " + closed + " matches");
+        return closed;
     }
 
     public static async Task<bool> AdminForceCloseMatch1v1(string matchId, Action<string> onError = null)

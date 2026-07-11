@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: PhotonServerSettings
   m_EditorClassIdentifier: 
   AppSettings:
-    AppIdRealtime: 552218c5-ee23-464f-9190-bfc2d7e3b60d
+    AppIdRealtime: 7667f450-aaf1-4e4c-ba90-dc36c320a887
     AppIdFusion: 
     AppIdChat: 
     AppIdVoice: 
-    AppVersion: 
+    AppVersion: trucopy-1.0.0
     UseNameServer: 1
-    FixedRegion: 
+    FixedRegion: asia
     Server: 
     Port: 0
     ProxyServer: 
@@ -28,9 +28,9 @@ MonoBehaviour:
     AuthMode: 0
     EnableLobbyStatistics: 0
     NetworkLogging: 1
-  DevRegion: in
-  PunLogging: 0
-  EnableSupportLogger: 0
+  DevRegion: 
+  PunLogging: 1
+  EnableSupportLogger: 1
   RunInBackground: 1
   StartInOfflineMode: 0
   RpcList:
@@ -71,6 +71,12 @@ MonoBehaviour:
   - AnnounceEnvidoPoints
   - AnnounceFlorPoints
   - RevealScoringCardsRpc
+  - RequestSyncFromClient
+  - SubmitMazoHandWin
+  - SyncMatchState
+  - RPC_ApplyMatchScores
+  - RequestAwardFromMaster
+  - RPC_NetworkAwardPoints
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

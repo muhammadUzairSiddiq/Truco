@@ -39,6 +39,7 @@ public static class TrucoReturnFromGameplayCleanup
         }
 
         OneVsOneMatchSession.Clear();
+        TrucoMatchProgress.ClearAllMatchMemory();
         if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
         TrucoLobbyMatchmakingUi.HideWaitingOverlay();
 

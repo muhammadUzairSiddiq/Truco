@@ -380,7 +380,8 @@ public static class TrucoRuntimeUiBuilders
         if (passIn != null) passIn.characterLimit = OneVsOnePrivateRoomCode.MaxPasswordLength;
 
         TrucoFormUiPolish.CreateSectionHeader(inner.transform, f, TrucoTextosClient.EntradaMonedas, kLabel);
-        var (t5, t10, t15) = TrucoFormUiPolish.CreateFeePillRow(inner.transform, f, kSegment + 2);
+        var (t5, t10, t15) = TrucoFormUiPolish.CreateFeeScrollSelector(
+            inner.transform, f, OneVsOneCreateRoomPanel.EntryFeeOptions, kSegment + 2, out var feeToggles);
 
         TrucoFormUiPolish.CreateSectionHeader(inner.transform, f, TrucoTextosClient.ModoJuego, kLabel);
         var (conFlorT, sinFlorT) = TrucoFormUiPolish.CreateSegmentedPair(
@@ -397,7 +398,7 @@ public static class TrucoRuntimeUiBuilders
         prizeTmp.fontSize = kLabel;
         prizeTmp.fontStyle = FontStyles.Bold;
         if (f != null) prizeTmp.font = f;
-        prizeTmp.color = TrucoUiTheme.EntryPrizeAccent;
+        prizeTmp.color = Color.white;
         prizeTmp.enableAutoSizing = true;
         prizeTmp.fontSizeMin = 20f;
         prizeTmp.fontSizeMax = kLabel;
@@ -433,7 +434,8 @@ public static class TrucoRuntimeUiBuilders
             t15,
             ok,
             cancel,
-            privT);
+            privT,
+            feeToggles);
         panel.BindPrizePreview(prizeTmp);
         panel.BindFlorToggle(conFlorT);
 
@@ -1061,6 +1063,7 @@ public static class Truco1v1SceneUiWiring
         {
             rootImg.enabled = true;
             rootImg.color = TrucoUiTheme.TournamentListScreenBg;
+            rootImg.raycastTarget = false;
         }
         if (scroll == null) return;
         var bg = scroll.GetComponent<Image>();
@@ -1068,8 +1071,11 @@ public static class Truco1v1SceneUiWiring
         if (scroll.viewport != null)
         {
             var vp = scroll.viewport.GetComponent<Image>();
-            // Warm grey list area so wood-brown rows contrast
-            if (vp != null) vp.color = new Color(0.75f, 0.71f, 0.66f, 0.92f);
+            if (vp != null)
+            {
+                vp.color = new Color(0.75f, 0.71f, 0.66f, 0.92f);
+                vp.raycastTarget = false;
+            }
         }
     }
 

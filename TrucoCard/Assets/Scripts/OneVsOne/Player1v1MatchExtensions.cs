@@ -1,4 +1,5 @@
 using System;
+using Photon.Pun;
 using UnityEngine;
 
 public static class Player1v1MatchExtensions
@@ -6,10 +7,20 @@ public static class Player1v1MatchExtensions
     public static string ResolvePhotonRoomName(this Player1v1Match m)
     {
         if (m == null) return null;
-        if (!string.IsNullOrEmpty(m.photonRoomName)) return m.photonRoomName;
-        if (!string.IsNullOrEmpty(m.photonRoom)) return m.photonRoom;
-        if (!string.IsNullOrEmpty(m.roomName) && m.roomName.Length > 2) return m.roomName;
+        if (!string.IsNullOrEmpty(m.photonRoomName)) return m.photonRoomName.Trim();
+        if (!string.IsNullOrEmpty(m.photonRoom)) return m.photonRoom.Trim();
+        // Never use display name (name/roomName) — Photon room is always tr1_{matchId} or API photonRoomName.
         if (!string.IsNullOrEmpty(m._id)) return OneVsOneMatchSession.BuildDefaultPhotonRoomName(m._id);
+        return null;
+    }
+
+    /// <summary>Resolves Photon room name for join/create; always falls back to tr1_{matchId}.</summary>
+    public static string ResolvePhotonRoomNameOrDefault(this Player1v1Match m, string matchIdFallback = null)
+    {
+        string room = m != null ? m.ResolvePhotonRoomName() : null;
+        if (!string.IsNullOrEmpty(room)) return room;
+        string id = !string.IsNullOrEmpty(matchIdFallback) ? matchIdFallback : m?._id;
+        if (!string.IsNullOrEmpty(id)) return OneVsOneMatchSession.BuildDefaultPhotonRoomName(id);
         return null;
     }
 
@@ -58,6 +69,10 @@ public static class Player1v1MatchExtensions
         return string.Format(TrucoTextosClient.EntryPrizeFormat, entryStake, ComputeOneVsOnePrize(entryStake));
     }
 
+    /// <summary>Guest already registered on backend — resume Photon, do not POST /join again.</summary>
+    public static bool IsAlreadyRegisteredGuest(this Player1v1Match m) =>
+        OneVsOneLobbyFlowRules.IsAlreadyRegisteredGuest(m.IsCurrentUserParticipant(), m.IsCurrentUserHostOfRoom());
+
     /// <summary>True if the logged-in user is already listed in this match's players array.</summary>
     public static bool IsCurrentUserParticipant(this Player1v1Match m)
     {
@@ -66,7 +81,7 @@ public static class Player1v1MatchExtensions
         for (int i = 0; i < m.players.Length; i++)
         {
             var p = m.players[i];
-            if (p != null && p._id == uid) return true;
+            if (p != null && OneVsOneLobbyFlowRules.ResolveUserId(p) == uid) return true;
         }
         return false;
     }
@@ -78,10 +93,18 @@ public static class Player1v1MatchExtensions
         if (!m.IsLobbyLikeStatus()) return false;
         if (m.GetTrucoPlayerCount() >= 2) return false;
         if (m.IsStaleFullVersusPhoton()) return false;
-        // Guest already registered in this match — don't offer join again (prevents double-charge / "Match is full").
+        // Guest already registered — don't offer ENTRAR again (use CONTINUAR via ShouldShowResumeInLobbyList).
         if (m.IsCurrentUserParticipant() && !m.IsCurrentUserHostOfRoom()) return false;
         return true;
     }
+
+    /// <summary>Guest already joined on backend — show CONTINUAR to connect Photon (not a new POST /join).</summary>
+    public static bool ShouldShowResumeInLobbyList(this Player1v1Match m) =>
+        OneVsOneLobbyFlowRules.ShouldShowResumeInLobbyList(
+            m != null && m.IsLobbyLikeStatus(),
+            m != null && m.IsCurrentUserParticipant(),
+            m != null && m.IsCurrentUserHostOfRoom(),
+            PhotonNetwork.InRoom && OneVsOneMatchSession.CurrentMatchId == m._id);
 
     /// <summary>Prize to show on a room row: trust the API value if present, else compute from entry.</summary>
     public static int GetPrizeForDisplay(this Player1v1Match m)
@@ -169,7 +192,7 @@ public static class Player1v1MatchExtensions
         string host = m.GetHostUserId();
         if (!string.IsNullOrEmpty(host) && host == uid) return true;
         // API list often omits createdBy; sole registered player is the host waiting for a rival.
-        if (m.players != null && m.players.Length == 1 && m.players[0] != null && m.players[0]._id == uid)
+        if (m.players != null && m.players.Length == 1 && OneVsOneLobbyFlowRules.ResolveUserId(m.players[0]) == uid)
             return true;
         return false;
     }

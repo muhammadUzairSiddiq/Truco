@@ -78,10 +78,41 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         if (SpectatorContext.IsSpectator) return;
         if (GameManager.Instance != null && GameManager.Instance._gameEnded) return;
         if (otherPlayer == null || otherPlayer.IsLocal) return;
-        // Soft disconnect (inactive) or hard leave — start the walkover countdown unless GameManager ends instantly.
-        if (!otherPlayer.IsInactive && PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.PlayerCount <= 1)
-            return;
         TryStartOpponentWatch();
+    }
+
+    public override void OnJoinedRoom()
+    {
+        base.OnJoinedRoom();
+        if (!IsGameplayScene() || SpectatorContext.IsSpectator) return;
+        if (_routine != null)
+        {
+            StopCoroutine(_routine);
+            _routine = null;
+        }
+        _ui?.Hide();
+        if (OneVsOneMatchSession.GameStarted && GameManager.Instance != null)
+        {
+            GameManager.Instance.RequestStateSyncAfterReconnect();
+            TurnManager.Instance?.RestartTurnTimersIfActive();
+            AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
+        }
+    }
+
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+    {
+        base.OnPlayerPropertiesUpdate(targetPlayer, changedProps);
+        if (!IsGameplayScene() || targetPlayer == null || targetPlayer.IsLocal) return;
+        if (!targetPlayer.IsInactive && _opponentWatch != null)
+        {
+            StopCoroutine(_opponentWatch);
+            _opponentWatch = null;
+            _opponentReconnectSecondsRemaining = 0;
+            _ui?.Hide();
+            AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
+            TurnManager.Instance?.RestartTurnTimersIfActive();
+            GameManager.Instance?.RequestStateSyncAfterReconnect();
+        }
     }
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
@@ -211,6 +242,11 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         _ui?.Hide();
         AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
         _routine = null;
+        if (OneVsOneMatchSession.GameStarted)
+        {
+            GameManager.Instance?.RequestStateSyncAfterReconnect();
+            TurnManager.Instance?.RestartTurnTimersIfActive();
+        }
     }
 
     /// <summary>When ReconnectAndRejoin fails, try Connect + JoinRoom with last saved room (1v1 / quick match).</summary>

@@ -19,7 +19,7 @@ public static class TrucoLoginScreenUiPolish
 
     public static void Apply()
     {
-        TrucoLocalization.ForceSpanish();
+        TrucoLocalization.ApplyFromSettings();
 
         foreach (var btn in Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
@@ -45,7 +45,48 @@ public static class TrucoLoginScreenUiPolish
                 case "Admin Login":
                     tmp.text = "Admin";
                     break;
+                case "Email":
+                case "E-mail":
+                    tmp.text = "Correo electrónico";
+                    break;
+                case "Password":
+                    tmp.text = "Contraseña";
+                    break;
+                case "Username":
+                case "User Name":
+                    tmp.text = "Nombre de usuario";
+                    break;
+                case "OTP":
+                case "Enter OTP":
+                    tmp.text = "Código OTP";
+                    break;
+                case "Verify":
+                case "Verify OTP":
+                    tmp.text = "Verificar";
+                    break;
+                case "Resend":
+                case "Resend OTP":
+                    tmp.text = "Reenviar código";
+                    break;
+                case "Forgot Password?":
+                case "Forgot password?":
+                    tmp.text = "¿Olvidaste tu contraseña?";
+                    break;
             }
+        }
+
+        foreach (var field in Object.FindObjectsByType<TMP_InputField>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (field == null || field.placeholder is not TMP_Text ph) continue;
+            string n = field.gameObject.name.ToLowerInvariant();
+            if (n.Contains("email") || n.Contains("correo"))
+                ph.text = "Correo electrónico";
+            else if (n.Contains("pass"))
+                ph.text = "Contraseña";
+            else if (n.Contains("user") || n.Contains("name"))
+                ph.text = "Nombre de usuario";
+            else if (n.Contains("otp"))
+                ph.text = "Código OTP";
         }
     }
 

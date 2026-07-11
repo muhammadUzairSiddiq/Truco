@@ -1,4 +1,4 @@
-﻿public static class ApiConfig
+public static class ApiConfig
 {
     public static string BaseUrl = "https://srv983121.hstgr.cloud/api";
 
@@ -26,7 +26,8 @@
             foreach (var e in so.endpoints)
                 if (e != null && !string.IsNullOrEmpty(e.key) && !string.IsNullOrEmpty(e.pathTemplate))
                     _overrides[e.key] = e.pathTemplate;
-        UnityEngine.Debug.Log($"[ApiConfig] Endpoints loaded from SO. Base={BaseUrl}, overrides={_overrides.Count}");
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Settings,
+            "Endpoints loaded from SO. Base=" + BaseUrl + ", overrides=" + _overrides.Count);
     }
 
     static string PathOf(string key, string defaultPath)
@@ -98,8 +99,11 @@
     /// <summary>After Photon room is created, register name so admin panel can see it.</summary>
     public static string MatchRegisterPhotonRoom(string id) => Url("MatchRegisterPhotonRoom", "/matches/{0}/photon-room", id);
 
-    /// <summary>POST body typically { "winnerId": "…" } — confirm in Swagger; may require admin or player role.</summary>
+    /// <summary>POST body typically { "winnerId": "…" } — requires x-game-secret + replay headers.</summary>
     public static string MatchSubmitResult(string id) => Url("MatchSubmitResult", "/matches/{0}/result", id);
+
+    /// <summary>Claim win when opponent abandons: body { "claimerId": "…" }. Requires x-game-secret.</summary>
+    public static string MatchWalkover(string id) => Url("MatchWalkover", "/matches/{0}/walkover", id);
 
     /// <summary>
     /// Player leaves match lobby / unregisters from active <c>players</c> (implement on server).

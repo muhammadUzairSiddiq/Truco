@@ -11,6 +11,19 @@ public class TrucoGameplayAudio : MonoBehaviour
 {
     public static TrucoGameplayAudio Instance { get; private set; }
 
+    const string MutePrefKey = "truco_audio_muted";
+    public static bool IsMuted
+    {
+        get => PlayerPrefs.GetInt(MutePrefKey, 0) == 1;
+        set
+        {
+            PlayerPrefs.SetInt(MutePrefKey, value ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+    }
+
+    public static void ToggleMute() => IsMuted = !IsMuted;
+
     /// <summary>Reto / callout clips (truco, envido, quiero…).</summary>
     [SerializeField] private AudioSource _calloutSource;
     /// <summary>Card table SFX only; keeps callouts clear when both fire close together.</summary>
@@ -79,7 +92,7 @@ public class TrucoGameplayAudio : MonoBehaviour
         // Visual callout (shown regardless of audio/TTS path) so both players can read the canto.
         if (UIMANAGER.Instance != null)
             UIMANAGER.Instance.ShowChallengeCallout(TrucoCalloutPhrases.ForEventCode(eventCode), true);
-        if (Instance == null) return;
+        if (Instance == null || IsMuted) return;
 #if UNITY_ANDROID && !UNITY_EDITOR
         var phrase = TrucoCalloutPhrases.ForEventCode(eventCode);
         if (!string.IsNullOrEmpty(phrase) && TrucoTtsService.UseTtsOnThisBuild && TrucoTtsService.Instance != null)
@@ -112,7 +125,7 @@ public class TrucoGameplayAudio : MonoBehaviour
         // Visual callout for the opponent's canto (shown regardless of audio/TTS path).
         if (UIMANAGER.Instance != null)
             UIMANAGER.Instance.ShowChallengeCallout(TrucoCalloutPhrases.ForEventCode(eventCode), false);
-        if (Instance == null) return;
+        if (Instance == null || IsMuted) return;
 #if UNITY_ANDROID && !UNITY_EDITOR
         var phrase = TrucoCalloutPhrases.ForEventCode(eventCode);
         if (!string.IsNullOrEmpty(phrase) && TrucoTtsService.UseTtsOnThisBuild && TrucoTtsService.Instance != null)
@@ -128,8 +141,26 @@ public class TrucoGameplayAudio : MonoBehaviour
 
     public static void PlayCardPlaced()
     {
-        if (Instance == null || Instance._cardSource == null || Instance._cardPlaced == null) return;
+        if (Instance == null || IsMuted || Instance._cardSource == null || Instance._cardPlaced == null) return;
         Instance._cardSource.PlayOneShot(Instance._cardPlaced);
+    }
+
+    /// <summary>Point declarations ("Tengo 25", "Flor: 30") — text banner + audio/TTS for both players.</summary>
+    public static void PlayDeclarationPhrase(string phrase, bool mine)
+    {
+        if (string.IsNullOrEmpty(phrase)) return;
+        if (UIMANAGER.Instance != null)
+            UIMANAGER.Instance.ShowDeclarationCallout(phrase, mine);
+        if (Instance == null || IsMuted) return;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (TrucoTtsService.UseTtsOnThisBuild && TrucoTtsService.Instance != null)
+        {
+            TrucoTtsService.SpeakChallengePhrase(phrase);
+            return;
+        }
+#endif
+        if (Instance._calloutSource != null && Instance._envido != null)
+            Instance._calloutSource.PlayOneShot(Instance._envido);
     }
 
     AudioClip ResolveClip(byte code)

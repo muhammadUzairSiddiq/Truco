@@ -22,7 +22,10 @@ public static class TrucoLanguageToggleUi
     public static void EnsureOnMainMenu(Transform mainRoot)
     {
         ResetForLeavingMainMenu();
-        TrucoLocalization.ForceSpanish();
+        TrucoLocalization.ApplyFromSettings();
+        if (!TrucoClientSettings.ShowLanguageToggleInMenu) return;
+        var panel = FindDeep(mainRoot, "MainMenuPanel") ?? mainRoot;
+        Build(panel);
     }
 
     static void Build(Transform menuPanel)

@@ -11,11 +11,22 @@ public static class TrucoGameplayTimerBanner
     {
         if (sec < 0) sec = 0;
         bool urgent = sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos;
-        int numSize = urgent ? 132 : 116;
-        return "<align=center><line-height=80%>"
-               + "<size=40><color=#FFFFFF><b>" + label + "</b></color></size><br>"
+        int numSize = urgent ? 68 : 58;
+        return "<align=center><line-height=95%>"
+               + "<size=28><color=#FFFFFF><b>" + label + "</b></color></size><br>"
                + "<size=" + numSize + "><color=#FFFFFF><b>" + sec + "</b></color></size>"
-               + "<size=38><color=#FFFFFF><b> s</b></color></size>"
+               + "<size=24><color=#FFFFFF><b> s</b></color></size>"
+               + "</line-height></align>";
+    }
+
+    /// <summary>Waiting message + countdown (challenger watching opponent respond to Truco/Envido).</summary>
+    public static string EsperandoConSegundos(string msg, int sec)
+    {
+        if (sec < 0) sec = 0;
+        return "<align=center><line-height=95%>"
+               + "<size=26><color=#FFFFFF><b>" + msg + "</b></color></size><br>"
+               + "<size=52><color=#FFFFFF><b>" + sec + "</b></color></size>"
+               + "<size=22><color=#FFFFFF><b> s</b></color></size>"
                + "</line-height></align>";
     }
 
