@@ -1,4 +1,4 @@
-﻿namespace MH.Multiplayer {
+namespace MH.Multiplayer {
     using Photon.Pun;
     using Photon.Realtime;
     using System;
@@ -54,6 +54,7 @@
             if (!PhotonNetwork.IsConnectedAndReady) {
                 Debug.Log("[MultiplayerController] - Connecting to Photon...");
                 PhotonNetwork.AutomaticallySyncScene = true;
+                TrucoPhotonRegionSettings.ApplyToPhoton();
                 if (PhotonNetwork.ConnectUsingSettings()) {
                     Debug.Log("[MultiplayerController] - Connected to Photon.");
                     JoinTournamentMatchMaking();

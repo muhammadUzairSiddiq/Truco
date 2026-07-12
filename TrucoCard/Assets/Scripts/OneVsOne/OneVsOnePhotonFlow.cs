@@ -182,6 +182,24 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         if (_matchFoundFired || OneVsOneMatchSession.GameStarted) return;
     }
 
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        base.OnPlayerLeftRoom(otherPlayer);
+        if (otherPlayer == null || otherPlayer.IsLocal) return;
+        if (OneVsOneMatchSession.GameStarted || _matchFoundFired) return;
+        if (string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId)) return;
+        // Pre-game: opponent left before cards — cancel once so both get refund path.
+        int others = PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.PlayerCount : 0;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "PreGame OnPlayerLeftRoom other=" + otherPlayer.ActorNumber
+            + " roomPlayers=" + others + " match=" + OneVsOneMatchSession.CurrentMatchId);
+        if (others >= 2) return;
+        string matchId = OneVsOneMatchSession.CurrentMatchId;
+        TrucoRulesScenarioLog.Backend("PreGame opponent left → CancelLobbyMatch", "match=" + matchId);
+        _ = OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
+        AppManager.Instance?.DisplayNotification(TrucoTextosClient.SalaEliminada);
+    }
+
     public override void OnConnectedToMaster()
     {
         TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
@@ -400,10 +418,11 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         FailJoinAndClearGuestSession(message, clearGuestSession: false);
     }
 
-    /// <summary>Disconnect when a dev build landed on the wrong cloud region (FixedRegion must match).</summary>
+    /// <summary>Disconnect when connected to the wrong cloud region (SO FixedRegion must match).</summary>
     bool EnsureConnectedToFixedRegion()
     {
-        string target = PhotonNetwork.PhotonServerSettings?.AppSettings?.FixedRegion;
+        TrucoPhotonRegionSettings.ApplyToPhoton();
+        string target = TrucoPhotonRegionSettings.RegionCode;
         if (string.IsNullOrEmpty(target) || !PhotonNetwork.IsConnected) return false;
         if (string.IsNullOrEmpty(PhotonNetwork.CloudRegion) || PhotonNetwork.CloudRegion == target) return false;
         TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
@@ -424,7 +443,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         _lobbySyncReceived = false;
         if (_applicationQuitting || Application.isPlaying == false) return;
         if (CurrentPurpose != Purpose.None && !PhotonNetwork.OfflineMode)
+        {
+            TrucoPhotonRegionSettings.ApplyToPhoton();
             PhotonNetwork.ConnectUsingSettings();
+        }
     }
 
     public override void OnJoinedLobby()
@@ -461,7 +483,12 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         if (PhotonNetwork.InRoom) return;
         if (!string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId) && !OneVsOneMatchSession.GameStarted)
             return;
-        if (!PhotonNetwork.IsConnected) { PhotonNetwork.ConnectUsingSettings(); return; }
+        if (!PhotonNetwork.IsConnected)
+        {
+            TrucoPhotonRegionSettings.ApplyToPhoton();
+            PhotonNetwork.ConnectUsingSettings();
+            return;
+        }
         if (PhotonNetwork.Server != ServerConnection.MasterServer) return;
         if (!PhotonNetwork.InLobby) PhotonNetwork.JoinLobby(TypedLobby.Default);
     }

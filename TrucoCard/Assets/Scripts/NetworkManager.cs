@@ -52,6 +52,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         }
         else
         {
+            TrucoPhotonRegionSettings.ApplyToPhoton();
             PhotonNetwork.ConnectUsingSettings();
         }
     }
@@ -65,6 +66,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         if (_clicked)
         {
+            TrucoPhotonRegionSettings.ApplyToPhoton();
             PhotonNetwork.ConnectUsingSettings();
         }
     }

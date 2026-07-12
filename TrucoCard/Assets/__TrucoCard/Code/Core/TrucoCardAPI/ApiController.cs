@@ -1016,11 +1016,34 @@ public static class ApiController
     public static async System.Threading.Tasks.Task CancelPreGameMatch1v1(string matchId)
     {
         if (string.IsNullOrEmpty(matchId)) return;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "CancelPreGameMatch1v1 match=" + matchId);
         await CloseMatchRowAfterGameAsync(matchId);
         if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
             TrucoActiveHostMatchStore.Clear();
         OneVsOneMatchSession.ClearSavedRoomPersistence();
         await GetCurrentUserProfile();
+    }
+
+    /// <summary>
+    /// Both players failed reconnect (or local reconnect failed with no stayer walkover yet).
+    /// Closes the match row via leave+end and logs — backend should refund locked entry when no winner was posted.
+    /// </summary>
+    public static async System.Threading.Tasks.Task CancelMutualDisconnect1v1(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        TrucoRulesScenarioLog.Backend("CancelMutualDisconnect1v1", "match=" + matchId);
+        TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+            "MUTUAL_DISCONNECT cancel+refund attempt match=" + matchId);
+        try
+        {
+            await CloseMatchRowAfterGameAsync(matchId);
+            await GetCurrentUserProfile();
+        }
+        catch (Exception ex)
+        {
+            TrucoRulesScenarioLog.BackendFail("CancelMutualDisconnect1v1", ex.Message);
+            Debug.LogWarning("[ApiController] CancelMutualDisconnect1v1: " + ex.Message);
+        }
     }
 
     /// <summary>

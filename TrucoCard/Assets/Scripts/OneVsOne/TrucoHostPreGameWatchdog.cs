@@ -5,7 +5,7 @@ using UnityEditor;
 #endif
 
 /// <summary>
-/// If the host leaves the app / editor while waiting in a 1v1 lobby (no cards dealt),
+/// If host or guest leaves the app / editor while waiting in a 1v1 lobby (no cards dealt),
 /// cancel the backend match so the room disappears everywhere and entry is refunded.
 /// </summary>
 public class TrucoHostPreGameWatchdog : MonoBehaviour
@@ -29,11 +29,11 @@ public class TrucoHostPreGameWatchdog : MonoBehaviour
     static void OnPlayModeChanged(PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.ExitingPlayMode)
-            ScheduleCancelHostLobby();
+            ScheduleCancelPreGameLobby();
     }
 #endif
 
-    void OnApplicationQuit() => ScheduleCancelHostLobby();
+    void OnApplicationQuit() => ScheduleCancelPreGameLobby();
 
     void OnDestroy()
     {
@@ -43,11 +43,17 @@ public class TrucoHostPreGameWatchdog : MonoBehaviour
 #endif
     }
 
-    public static void ScheduleCancelHostLobby()
+    /// <summary>Legacy name — host or guest pre-game quit.</summary>
+    public static void ScheduleCancelHostLobby() => ScheduleCancelPreGameLobby();
+
+    public static void ScheduleCancelPreGameLobby()
     {
         if (_cancelScheduled) return;
-        if (!OneVsOneMatchLifecycle.IsHostWaitingForGuest()) return;
+        if (!OneVsOneMatchLifecycle.IsWaitingInPreGameLobby()) return;
         _cancelScheduled = true;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+            "PreGameWatchdog cancel scheduled host=" + OneVsOneMatchSession.IsHost
+            + " match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?"));
         _ = CancelAsync();
     }
 

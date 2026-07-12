@@ -141,6 +141,9 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
     {
         _ui = TrucoReconnectionUi.Ensure(transform);
         float deadline = Time.unscaledTime + _opponentReconnectWindowSeconds;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "WaitForOpponentReconnect START window=" + _opponentReconnectWindowSeconds
+            + "s match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?"));
         while (Time.unscaledTime < deadline)
         {
             if (GameManager.Instance != null && GameManager.Instance._gameEnded)
@@ -256,7 +259,11 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         if (string.IsNullOrEmpty(room)) room = TrucoRoomPersistence.LastRoomName();
         if (string.IsNullOrEmpty(room)) yield break;
 
-        if (!PhotonNetwork.IsConnected) PhotonNetwork.ConnectUsingSettings();
+        if (!PhotonNetwork.IsConnected)
+        {
+            TrucoPhotonRegionSettings.ApplyToPhoton();
+            PhotonNetwork.ConnectUsingSettings();
+        }
 
         while (Time.unscaledTime < phase2EndTime)
         {

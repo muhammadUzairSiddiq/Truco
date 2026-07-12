@@ -19,7 +19,7 @@ MonoBehaviour:
     AppIdVoice: 
     AppVersion: trucopy-1.0.0
     UseNameServer: 1
-    FixedRegion: asia
+    FixedRegion: sa
     Server: 
     Port: 0
     ProxyServer: 
@@ -77,6 +77,8 @@ MonoBehaviour:
   - RPC_ApplyMatchScores
   - RequestAwardFromMaster
   - RPC_NetworkAwardPoints
+  - ApplyChallengeSnapshot
+  - RequestChallengeSnapshot
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

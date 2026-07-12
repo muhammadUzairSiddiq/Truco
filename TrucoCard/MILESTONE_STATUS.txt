@@ -1,0 +1,38 @@
+TrucoPy Unity — remaining milestone gaps (updated)
+=================================================
+Date: 2026-07-12
+
+Excluded (not Unity-owned):
+  ❌ Photon Dashboard webhooks live fire (PathJoin/Leave/Close) — client Photon account
+  ❌ Photon Custom Authentication — waiting backend Auth URL
+
+Completed this pass (without changing working turn/score/prize core):
+  ✅ Reconnect syncs active canto/bet state (challenge type, raiser/responder, truco level, envido)
+  ✅ Early ShowAllCards on ContraFlor Quiero removed; scoring cards flush on Envido/Flor winners
+  ✅ Pre-game opponent leave / host-or-guest quit → cancel lobby + refund path
+  ✅ Reconnect-fail no longer awards opponent from failing client; mutual cancel+log instead
+     (stayer still wins via WinByOpponentWalkover)
+  ✅ Male TTS selection hardened + GAP logs ([TTS] GAP …) when device has no male voice
+
+Debug tags to filter in logcat / Editor:
+  [TTS]                      — voice selection / speak
+  [Truco/Photon] or Photon   — reconnect + challenge snapshot
+  [Truco/OneVsOne]           — card reveal defer, pre-game cancel
+  [Truco/Api] / Backend      — CancelMutualDisconnect, walkover
+  TrucoRulesScenarioLog      — MUTUAL_OR_SELF, BroadcastMatchState challenge fields
+
+Still device-dependent:
+  ⚠ Male audio requires a male Spanish TTS voice installed on the phone.
+    If log shows "[TTS] GAP no male Spanish voice" — install Google male es voice.
+
+Full checklist (Unity-owned):
+  ✅ App ID / secret / nonce / walkover API client
+  ✅ Room purge / 0-0 / 30s restart / Mazo timeout
+  ✅ Truco hand rules (parda / primera / flor-after-truco)
+  ✅ Audio+text callouts (TTS gender = device)
+  ✅ Reconnect score/turn + challenge state
+  ✅ Card reveal timing (ContraFlor/Envido flush)
+  ✅ Pre-game dual leave cancel
+  ✅ Post-start: stayer walkover; both-fail → cancel row (backend refund depends on leave+end)
+  ❌ Webhooks Dashboard
+  ❌ Custom Auth

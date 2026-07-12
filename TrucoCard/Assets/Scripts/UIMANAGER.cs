@@ -103,6 +103,68 @@ public class UIMANAGER : MonoBehaviour
         CancelChallengeResponseCountdown();
     }
 
+    /// <summary>
+    /// Rebuild canto UI after reconnect from peer snapshot. Does not change scores.
+    /// </summary>
+    public void RestoreChallengeStateFromSync(ChallengeType type, bool pending, int raiserActor,
+        int responderActor, int trucoLevel, bool envidoPlayed)
+    {
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "RestoreChallengeStateFromSync type=" + type + " pending=" + pending
+            + " raiser=" + raiserActor + " responder=" + responderActor
+            + " trucoLv=" + trucoLevel + " envido=" + envidoPlayed
+            + " local=" + PhotonNetwork.LocalPlayer.ActorNumber);
+        _envidoPlayed = envidoPlayed;
+        trucoPlayed = trucoLevel > 0;
+        invokedChallenges.Clear();
+        if (trucoLevel >= 1) invokedChallenges.Add(ChallengeType.Truco);
+        if (trucoLevel >= 2) invokedChallenges.Add(ChallengeType.Retruco);
+        if (trucoLevel >= 3) invokedChallenges.Add(ChallengeType.Vale4);
+        if (envidoPlayed)
+        {
+            invokedChallenges.Add(ChallengeType.Envido);
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+        }
+        unAnsweredChallenges.Clear();
+        _isChallengepPending = pending;
+        if (!pending || type == ChallengeType.None || responderActor <= 0)
+        {
+            CancelChallengeResponseCountdown();
+            return;
+        }
+        if (raiserActor > 0)
+            unAnsweredChallenges[type] = raiserActor;
+        if (GameManager.Instance != null)
+            GameManager.Instance.lastChallengeType = type;
+        bool iRespond = responderActor == PhotonNetwork.LocalPlayer.ActorNumber;
+        if (!iRespond)
+        {
+            CancelChallengeResponseCountdown();
+            DisableButtons();
+            UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
+            return;
+        }
+        switch (type)
+        {
+            case ChallengeType.Truco: TrucoChallenged(); break;
+            case ChallengeType.Retruco: RetrucoChallenged(); break;
+            case ChallengeType.Vale4: Vale4Challenged(); break;
+            case ChallengeType.Envido: EnvidoChallenged(); break;
+            case ChallengeType.RealEnvido: RealEnvidoChallenged(); break;
+            case ChallengeType.FaltaEnvido: FaltaEnvidoChallenged(); break;
+            case ChallengeType.Flor: FlorChallenged(); break;
+            case ChallengeType.ContraFlor: ContraFlorChallenged(); break;
+            case ChallengeType.FlorChica: FlorChicaChallenged(); break;
+            case ChallengeType.ConFlorQuiero: ConFlorQuieroChallenged(); break;
+            default:
+                TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon, "RestoreChallenge unknown type=" + type);
+                break;
+        }
+        BeginChallengeResponseCountdown();
+        GameManager.Instance?.SetCanPlayCard(false);
+    }
+
     public void ClearTurnBanner() => DisableTurnText();
 
     /// <summary>Start the 30 s response countdown on the player who received a canto. Auto-declines on timeout (anti-freeze).</summary>
@@ -929,7 +991,9 @@ public class UIMANAGER : MonoBehaviour
             envido.SetActive(false);
             realEnvido.SetActive(false);
             faltaEnvido.SetActive(false);
-            GameManager.Instance.ShowAllCards();
+            // Do NOT ShowAllCards — reveal only via GetScore → QueueFlorCardReveal → Flush.
+            TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+                "Quiero ContraFlor — defer card reveal (no early ShowAllCards)");
             unAnsweredChallenges.Clear();
         }
         queiro.SetActive(false);

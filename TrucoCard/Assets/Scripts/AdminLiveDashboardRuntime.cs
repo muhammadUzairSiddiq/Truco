@@ -162,7 +162,11 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
         if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom();
         float wait = 0f;
         while (PhotonNetwork.InRoom && wait < 3f) { wait += Time.deltaTime; yield return null; }
-        if (!PhotonNetwork.IsConnected) PhotonNetwork.ConnectUsingSettings();
+        if (!PhotonNetwork.IsConnected)
+        {
+            TrucoPhotonRegionSettings.ApplyToPhoton();
+            PhotonNetwork.ConnectUsingSettings();
+        }
         float t = 0f;
         while (!PhotonNetwork.IsConnectedAndReady && t < 15f) { t += Time.deltaTime; yield return null; }
         if (!PhotonNetwork.IsConnectedAndReady) { if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("Could not connect to Photon"); SpectatorContext.Clear(); _connectRoutine = null; yield break; }

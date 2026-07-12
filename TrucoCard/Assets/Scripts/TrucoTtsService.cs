@@ -1,10 +1,12 @@
 #if UNITY_ANDROID && !UNITY_EDITOR
 using System.Collections.Generic;
+using System.Text;
 #endif
 using UnityEngine;
 
 /// <summary>
 /// Mobile TTS for Truco callouts. Prefers a male Spanish voice on Android (es-PY / es-ES).
+/// Device-dependent: if no male voice is installed, pitch is lowered and a gap log is emitted.
 /// </summary>
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(-80)]
@@ -26,6 +28,8 @@ public class TrucoTtsService : MonoBehaviour
     AndroidJavaObject _tts;
     TtsOnInitListener _listener;
     readonly List<string> _pending = new List<string>(8);
+    string _chosenVoiceName = "?";
+    bool _choseMale;
 #endif
 
     void Awake()
@@ -43,16 +47,19 @@ public class TrucoTtsService : MonoBehaviour
                 _activity = up.GetStatic<AndroidJavaObject>("currentActivity");
             _listener = new TtsOnInitListener(status =>
             {
+                Debug.Log("[TTS] onInit status=" + status + " (0=SUCCESS)");
                 if (status == 0)
                 {
                     try
                     {
                         var locPy = new AndroidJavaObject("java.util.Locale", "es", "PY");
                         int r = _tts.Call<int>("setLanguage", locPy);
+                        Debug.Log("[TTS] setLanguage es-PY result=" + r);
                         if (r == -1 || r == -2)
                         {
                             var locEs = new AndroidJavaObject("java.util.Locale", "es", "ES");
-                            _tts.Call<int>("setLanguage", locEs);
+                            int r2 = _tts.Call<int>("setLanguage", locEs);
+                            Debug.Log("[TTS] setLanguage es-ES result=" + r2);
                         }
                         _tts.Call<float>("setSpeechRate", 0.92f);
                         _tts.Call<float>("setPitch", 0.65f);
@@ -63,12 +70,14 @@ public class TrucoTtsService : MonoBehaviour
                     foreach (var s in _pending) SpeakInternal(s);
                     _pending.Clear();
                 }
-                else Debug.LogWarning("[TTS] onInit status=" + status);
+                else Debug.LogWarning("[TTS] onInit FAILED status=" + status);
             });
             if (_activity != null)
                 _tts = new AndroidJavaObject("android.speech.tts.TextToSpeech", _activity, _listener);
         }
         catch (System.Exception e) { Debug.LogWarning("[TTS] init: " + e.Message); }
+#else
+        Debug.Log("[TTS] disabled on this build (Editor/non-Android) — no spoken callouts");
 #endif
     }
 
@@ -103,8 +112,15 @@ public class TrucoTtsService : MonoBehaviour
     void SpeakOrQueue(string phrase)
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
+        Debug.Log("[TTS] SpeakOrQueue phrase=\"" + phrase + "\" ready=" + IsReady
+                  + " voice=" + _chosenVoiceName + " male=" + _choseMale
+                  + " pending=" + _pending.Count);
         if (IsReady && _tts != null) SpeakInternal(phrase);
-        else _pending.Add(phrase);
+        else
+        {
+            if (_pending.Count >= 4) _pending.RemoveAt(0);
+            _pending.Add(phrase);
+        }
 #endif
     }
 
@@ -115,12 +131,12 @@ public class TrucoTtsService : MonoBehaviour
         try
         {
             int q = 0;
-            _tts.Call<int>("speak", phrase, q, (AndroidJavaObject)null, "t" + phrase.GetHashCode());
+            int code = _tts.Call<int>("speak", phrase, q, (AndroidJavaObject)null, "t" + phrase.GetHashCode());
+            Debug.Log("[TTS] speak code=" + code + " (0=SUCCESS) phrase=\"" + phrase + "\" voice=" + _chosenVoiceName);
         }
         catch (System.Exception e) { Debug.LogWarning("[TTS] speak: " + e.Message); }
     }
 
-    // android.speech.tts.Voice gender constants
     const int GenderNotSpecified = -1;
     const int GenderNeutral = 0;
     const int GenderMale = 1;
@@ -139,7 +155,6 @@ public class TrucoTtsService : MonoBehaviour
     {
         if (string.IsNullOrEmpty(name)) return false;
         name = name.ToLowerInvariant();
-        // "female".Contains("male") is true — exclude female first
         if (IsFemaleVoiceName(name)) return false;
         return name.Contains("male") || name.Contains("hombre") || name.Contains("-m-")
                || name.Contains("_m_") || name.Contains("man") || name.Contains("masc");
@@ -151,7 +166,12 @@ public class TrucoTtsService : MonoBehaviour
         try
         {
             var voices = _tts.Call<AndroidJavaObject>("getVoices");
-            if (voices == null) return;
+            if (voices == null)
+            {
+                Debug.LogWarning("[TTS] GAP getVoices=null — cannot pick male");
+                _tts.Call<float>("setPitch", 0.55f);
+                return;
+            }
             var iterator = voices.Call<AndroidJavaObject>("iterator");
             if (iterator == null) return;
 
@@ -159,6 +179,8 @@ public class TrucoTtsService : MonoBehaviour
             AndroidJavaObject maleEs = null;
             AndroidJavaObject maleAny = null;
             AndroidJavaObject neutralEs = null;
+            var dump = new StringBuilder(256);
+            int scanned = 0;
 
             while (iterator.Call<bool>("hasNext"))
             {
@@ -173,6 +195,9 @@ public class TrucoTtsService : MonoBehaviour
                 int gender = GenderNotSpecified;
                 try { gender = voice.Call<int>("getGender"); }
                 catch { /* older engines */ }
+                scanned++;
+                dump.Append('[').Append(name).Append("|").Append(country)
+                    .Append("|g=").Append(gender).Append(']');
 
                 if (gender == GenderFemale || IsFemaleVoiceName(name)) continue;
 
@@ -190,19 +215,27 @@ public class TrucoTtsService : MonoBehaviour
                     neutralEs = voice;
             }
 
-            var chosen = malePy ?? maleEs ?? maleAny ?? neutralEs;
+            Debug.Log("[TTS] Spanish voices scanned=" + scanned + " " + dump);
+
+            var chosen = malePy ?? maleEs ?? maleAny;
+            _choseMale = chosen != null;
+            if (chosen == null) chosen = neutralEs;
+
             if (chosen != null)
             {
                 _tts.Call<int>("setVoice", chosen);
-                string chosenName = chosen.Call<string>("getName") ?? "?";
-                _tts.Call<float>("setPitch", 0.62f);
-                Debug.Log("[TTS] voice set male-prefer: " + chosenName);
+                _chosenVoiceName = chosen.Call<string>("getName") ?? "?";
+                _tts.Call<float>("setPitch", _choseMale ? 0.62f : 0.52f);
+                if (_choseMale)
+                    Debug.Log("[TTS] MALE voice selected: " + _chosenVoiceName);
+                else
+                    Debug.LogWarning("[TTS] GAP no male Spanish voice — using neutral/fallback: "
+                                     + _chosenVoiceName + " (lowered pitch). Install a male es TTS voice on device.");
             }
             else
             {
-                // Last resort: deepen default Spanish voice
-                _tts.Call<float>("setPitch", 0.55f);
-                Debug.LogWarning("[TTS] no male Spanish voice found — lowered pitch only");
+                _tts.Call<float>("setPitch", 0.5f);
+                Debug.LogWarning("[TTS] GAP no usable Spanish voice — pitch-only fallback");
             }
         }
         catch (System.Exception e) { Debug.LogWarning("[TTS] male voice: " + e.Message); }

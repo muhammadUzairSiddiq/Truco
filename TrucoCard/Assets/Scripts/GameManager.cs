@@ -295,14 +295,19 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         ActiveChallenges.Clear();
     }
 
-    /// <summary>Called after reconnect so the returning client catches up on score / turn.</summary>
+    /// <summary>Called after reconnect so the returning client catches up on score / turn / canto state.</summary>
     public void RequestStateSyncAfterReconnect()
     {
         if (_isSpectator || _gameEnded || !PhotonNetwork.InRoom) return;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "RequestStateSyncAfterReconnect master=" + PhotonNetwork.IsMasterClient
+            + " lastCh=" + lastChallengeType + " chPts=" + challengePoints + " mazo=" + mazoPoints);
         if (PhotonNetwork.IsMasterClient)
             BroadcastMatchState();
         else
             photonView.RPC(nameof(RequestSyncFromClient), RpcTarget.MasterClient);
+        // Peer who still has live canto UI pushes snapshot (covers master reconnect wipe).
+        photonView.RPC(nameof(RequestChallengeSnapshot), RpcTarget.Others);
     }
 
     [PunRPC]
@@ -310,6 +315,60 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         if (!PhotonNetwork.IsMasterClient || _gameEnded) return;
         BroadcastMatchState();
+    }
+
+    [PunRPC]
+    void RequestChallengeSnapshot()
+    {
+        if (_isSpectator || _gameEnded || UIMANAGER.Instance == null) return;
+        bool pending = UIMANAGER.Instance._isChallengepPending
+                       || UIMANAGER.Instance.unAnsweredChallenges.Count > 0
+                       || lastChallengeType != ChallengeType.None;
+        if (!pending)
+        {
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "RequestChallengeSnapshot — nothing pending locally");
+            return;
+        }
+        BuildChallengeSnapshot(out int type, out int chPts, out int mzPts, out int pendingFlag,
+            out int raiser, out int responder, out int trucoLv, out int envidoFlag);
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "RequestChallengeSnapshot → send type=" + type + " raiser=" + raiser
+            + " responder=" + responder + " pending=" + pendingFlag);
+        photonView.RPC(nameof(ApplyChallengeSnapshot), RpcTarget.Others,
+            type, chPts, mzPts, pendingFlag, raiser, responder, trucoLv, envidoFlag);
+    }
+
+    void BuildChallengeSnapshot(out int type, out int chPts, out int mzPts, out int pendingFlag,
+        out int raiser, out int responder, out int trucoLv, out int envidoFlag)
+    {
+        type = (int)lastChallengeType;
+        chPts = challengePoints;
+        mzPts = mazoPoints;
+        pendingFlag = 0;
+        raiser = 0;
+        responder = 0;
+        trucoLv = 0;
+        envidoFlag = 0;
+        if (UIMANAGER.Instance == null) return;
+        envidoFlag = UIMANAGER.Instance._envidoPlayed ? 1 : 0;
+        if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Vale4)) trucoLv = 3;
+        else if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Retruco)) trucoLv = 2;
+        else if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Truco)) trucoLv = 1;
+        if (UIMANAGER.Instance.unAnsweredChallenges.Count > 0)
+        {
+            foreach (var kv in UIMANAGER.Instance.unAnsweredChallenges)
+            {
+                type = (int)kv.Key;
+                raiser = kv.Value;
+            }
+            pendingFlag = 1;
+            if (TryGetOrderedTrucoActors(out int low, out int high))
+                responder = raiser == low ? high : low;
+        }
+        else if (UIMANAGER.Instance._isChallengepPending || lastChallengeType != ChallengeType.None)
+        {
+            pendingFlag = UIMANAGER.Instance._isChallengepPending ? 1 : 0;
+        }
     }
 
     void BroadcastMatchState()
@@ -321,14 +380,22 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         int turnActor = TurnManager.Instance != null
             ? TurnManager.Instance.GetCurrentTurnActorNumber()
             : PhotonNetwork.LocalPlayer.ActorNumber;
-        photonView.RPC(nameof(SyncMatchState), RpcTarget.Others, scoreLow, scoreHigh, turnActor, DataHandler.Instance.roundNumber, HandResolved ? 1 : 0);
+        BuildChallengeSnapshot(out int type, out int chPts, out int mzPts, out int pendingFlag,
+            out int raiser, out int responder, out int trucoLv, out int envidoFlag);
+        photonView.RPC(nameof(SyncMatchState), RpcTarget.Others,
+            scoreLow, scoreHigh, turnActor, DataHandler.Instance.roundNumber, HandResolved ? 1 : 0,
+            type, chPts, mzPts, pendingFlag, raiser, responder, trucoLv, envidoFlag);
         TrucoRulesScenarioLog.Ok("BroadcastMatchState by actor",
             "a" + lowActor + "=" + scoreLow + " a" + highActor + "=" + scoreHigh
-            + " turn=" + turnActor + " round=" + DataHandler.Instance.roundNumber);
+            + " turn=" + turnActor + " round=" + DataHandler.Instance.roundNumber
+            + " ch=" + (ChallengeType)type + " pending=" + pendingFlag
+            + " raiser=" + raiser + " responder=" + responder);
     }
 
     [PunRPC]
-    void SyncMatchState(int scoreLowActor, int scoreHighActor, int turnActor, int roundNum, int handResolvedFlag)
+    void SyncMatchState(int scoreLowActor, int scoreHighActor, int turnActor, int roundNum, int handResolvedFlag,
+        int challengeType, int challengePts, int mazoPts, int pendingFlag,
+        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag)
     {
         if (_isSpectator || _gameEnded) return;
         ApplyAuthoritativeScores(scoreLowActor, scoreHighActor);
@@ -337,6 +404,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             "scoreLow=" + scoreLowActor + " scoreHigh=" + scoreHighActor
             + " turnActor=" + turnActor + " round=" + roundNum
             + " handResolved=" + handResolvedFlag
+            + " ch=" + (ChallengeType)challengeType + " pending=" + pendingFlag
+            + " responder=" + responderActor
             + " me=" + (myPlayerScoreHandler != null ? myPlayerScoreHandler.GetCurrentScore() : -1)
             + " opp=" + (otherPlayerScoreHandler != null ? otherPlayerScoreHandler.GetCurrentScore() : -1));
         if (handResolvedFlag == 1 && !HandResolved)
@@ -349,8 +418,39 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             TurnManager.Instance?.StopAllTurnTimers();
             return;
         }
+        ApplyChallengeSnapshot(challengeType, challengePts, mazoPts, pendingFlag,
+            raiserActor, responderActor, trucoLevel, envidoPlayedFlag);
+        if (pendingFlag == 1
+            && responderActor == PhotonNetwork.LocalPlayer.ActorNumber
+            && challengeType > 0)
+        {
+            // Responder must answer canto — do not resume card play yet.
+            SetCanPlayCard(false);
+            TurnManager.Instance?.StopAllTurnTimers();
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+                "SyncMatchState — local owes challenge response, skip ResumeTurn");
+            return;
+        }
         TurnManager.Instance?.ResumeTurnAfterSync(turnActor);
         TurnManager.Instance?.RestartTurnTimersIfActive();
+    }
+
+    [PunRPC]
+    void ApplyChallengeSnapshot(int challengeType, int challengePts, int mazoPts, int pendingFlag,
+        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag)
+    {
+        if (_isSpectator || _gameEnded) return;
+        lastChallengeType = (ChallengeType)challengeType;
+        challengePoints = challengePts;
+        mazoPoints = mazoPts;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "ApplyChallengeSnapshot type=" + lastChallengeType + " pts=" + challengePts
+            + " mazo=" + mazoPts + " pending=" + pendingFlag
+            + " raiser=" + raiserActor + " responder=" + responderActor
+            + " trucoLv=" + trucoLevel + " envido=" + envidoPlayedFlag);
+        UIMANAGER.Instance?.RestoreChallengeStateFromSync(
+            lastChallengeType, pendingFlag == 1, raiserActor, responderActor,
+            trucoLevel, envidoPlayedFlag == 1);
     }
 
     private void Start()
@@ -395,7 +495,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     /// <summary>Public for <see cref="TrucoPunReconnectionManager"/> / UI exit.</summary>
     public bool IsTournamentGameplay() => _isInTournament;
 
-    /// <summary>After reconnect window expires: 1v1 = report opponent as winner; tournament = leave + loss; return to main menu. Server is source of truth for coins; client submits result when possible.</summary>
+    /// <summary>After reconnect window expires: 1v1 = if match started and we could not rejoin, treat as mutual disconnect (cancel+refund attempt) unless a stayer already claimed walkover. Tournament = leave + loss.</summary>
     public void HandleReconnectionFailedExit()
     {
         if (_isSpectator)
@@ -417,20 +517,33 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             return;
         }
         string matchIdSnapshot = OneVsOneMatchSession.CurrentMatchId;
+        bool gameHadStarted = OneVsOneMatchSession.GameStarted;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "HandleReconnectionFailedExit match=" + (matchIdSnapshot ?? "?")
+            + " gameStarted=" + gameHadStarted
+            + " inRoom=" + PhotonNetwork.InRoom
+            + " resultPosted=" + _1v1ResultPosted);
+        // Do NOT award the opponent from the failing client — the stayer uses WinByOpponentWalkover.
+        // If both fail to reconnect, both call mutual cancel (leave+end) for refund/cleanup.
         if (!_1v1ResultPosted && !string.IsNullOrEmpty(matchIdSnapshot))
         {
-            var winner = ResolveOpponentUserIdForSettlement();
-            if (!string.IsNullOrEmpty(winner))
+            _1v1ResultPosted = true;
+            if (gameHadStarted)
             {
-                _1v1ResultPosted = true;
-                _ = ApiController.Finalize1v1MatchSettlement(matchIdSnapshot, winner, submitResult: true);
+                TrucoRulesScenarioLog.Backend("MUTUAL_OR_SELF reconnect-fail → cancel row (no local walkover claim)",
+                    "match=" + matchIdSnapshot);
+                _ = ApiController.CancelMutualDisconnect1v1(matchIdSnapshot);
+            }
+            else
+            {
+                TrucoRulesScenarioLog.Backend("Pre-game reconnect-fail → CancelPreGame",
+                    "match=" + matchIdSnapshot);
+                _ = ApiController.CancelPreGameMatch1v1(matchIdSnapshot);
             }
         }
-        if (ApiController.GetSessionUser?.Data?.stats != null)
+        if (ApiController.GetSessionUser?.Data?.stats != null && gameHadStarted)
             ApiController.GetSessionUser.Data.stats.losses++;
         OneVsOneMatchSession.Clear();
-        if (!_1v1ResultPosted && !string.IsNullOrEmpty(matchIdSnapshot))
-            _ = ApiController.CancelPreGameMatch1v1(matchIdSnapshot);
         AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexionPerdida1v1);
         TrucoSceneTransition.Go("MainMenu");
     }
@@ -685,7 +798,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             }
             else if (lastChallengeType == ChallengeType.ContraFlor)
             {
-                ShowAllCards();
+                TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+                    "RECV Quiero ContraFlor — defer card reveal (no early ShowAllCards)");
                 photonView.RPC(nameof(GetScore), RpcTarget.MasterClient, ChallengeType.ContraFlor);
             }
             else if (lastChallengeType == ChallengeType.Truco)
@@ -1163,6 +1277,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     private void ConFlorQuieroWinner(int ID, int _points)
     {
         if (_isSpectator) return;
+        FlushPendingScoringCardReveal();
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "ConFlorQuieroWinner flush scoring cards id=" + ID);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             myPlayerScoreHandler.UpdateScore(_points, true);
@@ -1227,6 +1343,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public void EnvidoWinner(int ID, int _points)
     {
         if (_isSpectator) return;
+        FlushPendingScoringCardReveal();
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "EnvidoWinner flush scoring cards id=" + ID);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             Debug.Log("You win!");
@@ -1253,6 +1371,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     private void ContraFlorWinner(int ID)
     {
         if (_isSpectator) return;
+        FlushPendingScoringCardReveal();
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "ContraFlorWinner flush scoring cards id=" + ID);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             int score = myPlayerScoreHandler.GetCurrentScore();
@@ -1280,6 +1400,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     private void FaltaEnvidoWinner(int ID, int _points)
     {
         if (_isSpectator) return;
+        FlushPendingScoringCardReveal();
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "FaltaEnvidoWinner flush scoring cards id=" + ID);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             myPlayerScoreHandler.UpdateScore(_points, true);
@@ -1656,6 +1778,10 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (_gameEnded) return;
         TrucoRulesScenarioLog.Ok("Walkover WIN (rival reconnect failed)",
             "match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?"));
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+            "WinByOpponentWalkover claimer=" + (PhotonPlayerHelper.GetLocalTrucoPlayerUserId() ?? "?")
+            + " match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?")
+            + " inRoom=" + PhotonNetwork.InRoom);
         AppManager.Instance?.DisplayNotification(TrucoTextosClient.GanaPorAbandono);
         string matchId = OneVsOneMatchSession.CurrentMatchId;
         string claimerId = PhotonPlayerHelper.GetLocalTrucoPlayerUserId();
