@@ -29,9 +29,11 @@ auth endpoint so Photon itself rejects clients without a backend token.
 
 3) Photon Webhooks (configure in Photon Dashboard)
 --------------------------------------------------
+  BaseUrl:   https://srv983121.hstgr.cloud
   PathJoin:  https://srv983121.hstgr.cloud/api/webhooks/photon/PathJoin
   PathLeave: https://srv983121.hstgr.cloud/api/webhooks/photon/PathLeave
   PathClose: https://srv983121.hstgr.cloud/api/webhooks/photon/PathClose
+  PHOTON_WEBHOOK_SECRET (Dashboard + backend only): Ph0t0n_TrUc0_S3cr3t_2026_XyZ
 
 Unity does not host webhooks — Photon Cloud calls the Node backend directly.
 Client still POSTs /leave + /end after cancel/finish so lobby rows clear immediately.
@@ -40,8 +42,8 @@ Client still POSTs /leave + /end after cancel/finish so lobby rows clear immedia
 -----------------------------------------------
   - x-nonce + x-timestamp on every POST/PUT (HttpApiClient)
   - x-game-secret on POST /matches/:id/result and /walkover
-    → set value in Resources/TrucoClientSettings → gameSecret
-    (ask Adnan for the production secret string)
+    → Resources/TrucoClientSettings.gameSecret = Un1ty_TrUc0_G4m3_Auth_9876_AbC
+    (GAME_CLIENT_SECRET from backend)
   - POST /matches/:id/walkover used on disconnect walkover win
   - After finish / leave / walkover: POST /leave then POST /end
 

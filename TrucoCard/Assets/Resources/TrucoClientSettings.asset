@@ -18,6 +18,6 @@ MonoBehaviour:
   showLanguageToggleInMenu: 1
   debugLogsEnabled: 1
   autoLeaveAllMyLobbyMatchesOnRoomListOpen: 1
-  gameSecret: 
+  gameSecret: Un1ty_TrUc0_G4m3_Auth_9876_AbC
   photonJoinRetryTotalSeconds: 8
   photonJoinRetryIntervalSeconds: 1

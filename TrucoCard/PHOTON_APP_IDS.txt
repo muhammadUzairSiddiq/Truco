@@ -26,8 +26,12 @@ How the production App ID is protected today:
   2. Backend JWT auth gates create/join/result/leave (REST).
   3. Replay protection (x-nonce + x-timestamp) on POST/PUT.
   4. x-game-secret required on POST /matches/:id/result (and walkover).
+     Unity value (GAME_CLIENT_SECRET): set in Resources/TrucoClientSettings.gameSecret
+     = Un1ty_TrUc0_G4m3_Auth_9876_AbC
   5. Photon Webhooks (PathJoin / PathLeave / PathClose) → Node backend
      for disconnect / zombie room cleanup (Milestone 3A).
+     PHOTON_WEBHOOK_SECRET (Dashboard custom header / backend only — NOT in Unity):
+     = Ph0t0n_TrUc0_S3cr3t_2026_XyZ
 
 Recommended next step (Hammad Photon dashboard):
   Enable Custom Authentication pointing at the Node auth endpoint so
