@@ -5,8 +5,9 @@ using UnityEditor;
 #endif
 
 /// <summary>
-/// If host or guest leaves the app / editor while waiting in a 1v1 lobby (no cards dealt),
+/// If host or guest leaves the app while waiting in a 1v1 lobby (no cards dealt),
 /// cancel the backend match so the room disappears everywhere and entry is refunded.
+/// Android force-kill usually fires <see cref="OnApplicationPause"/> (not Quit) — that path is required.
 /// </summary>
 public class TrucoHostPreGameWatchdog : MonoBehaviour
 {
@@ -29,11 +30,25 @@ public class TrucoHostPreGameWatchdog : MonoBehaviour
     static void OnPlayModeChanged(PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.ExitingPlayMode)
-            ScheduleCancelPreGameLobby();
+            ScheduleCancelPreGameLobby("EditorExitPlayMode");
     }
 #endif
 
-    void OnApplicationQuit() => ScheduleCancelPreGameLobby();
+    void OnApplicationQuit() => ScheduleCancelPreGameLobby("ApplicationQuit");
+
+    /// <summary>
+    /// Mobile: swipe-from-recents / home often only pauses. Fire cancel immediately so PathLeave + /leave run.
+    /// </summary>
+    void OnApplicationPause(bool pauseStatus)
+    {
+        if (!pauseStatus) return;
+        ScheduleCancelPreGameLobby("ApplicationPause");
+    }
+
+    void OnApplicationFocus(bool hasFocus)
+    {
+        // Do not cancel on focus loss alone (notification shade / keyboard). Pause covers home/recents kill.
+    }
 
     void OnDestroy()
     {
@@ -44,25 +59,38 @@ public class TrucoHostPreGameWatchdog : MonoBehaviour
     }
 
     /// <summary>Legacy name — host or guest pre-game quit.</summary>
-    public static void ScheduleCancelHostLobby() => ScheduleCancelPreGameLobby();
+    public static void ScheduleCancelHostLobby() => ScheduleCancelPreGameLobby("Legacy");
 
-    public static void ScheduleCancelPreGameLobby()
+    public static void ScheduleCancelPreGameLobby(string reason = null)
     {
         if (_cancelScheduled) return;
-        if (!OneVsOneMatchLifecycle.IsWaitingInPreGameLobby()) return;
+        // Never cancel after match started / gameplay — forfeit/walkover paths own that.
+        if (OneVsOneMatchSession.GameStarted) return;
+        var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (scene == "Gameplay") return;
+
+        string matchId = OneVsOneMatchSession.CurrentMatchId;
+        if (string.IsNullOrEmpty(matchId))
+            matchId = TrucoActiveHostMatchStore.GetRememberedMatchId();
+        bool waiting = OneVsOneMatchLifecycle.IsWaitingInPreGameLobby()
+                       || (!string.IsNullOrEmpty(matchId) && !OneVsOneMatchSession.GameStarted);
+        if (!waiting || string.IsNullOrEmpty(matchId)) return;
+
         _cancelScheduled = true;
         TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
-            "PreGameWatchdog cancel scheduled host=" + OneVsOneMatchSession.IsHost
-            + " match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?"));
-        _ = CancelAsync();
+            "PreGameWatchdog cancel reason=" + (reason ?? "?")
+            + " host=" + OneVsOneMatchSession.IsHost
+            + " match=" + matchId
+            + " scene=" + scene);
+        _ = CancelAsync(matchId);
     }
 
-    static async System.Threading.Tasks.Task CancelAsync()
+    static async System.Threading.Tasks.Task CancelAsync(string matchId)
     {
         try
         {
-            string matchId = OneVsOneMatchSession.CurrentMatchId;
             if (string.IsNullOrEmpty(matchId)) return;
+            // Leave Photon first so Dashboard PathLeave can fire for backend zombie cleanup.
             if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
             await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
             OneVsOneMatchSession.Clear();
@@ -70,6 +98,13 @@ public class TrucoHostPreGameWatchdog : MonoBehaviour
             TrucoRoomPersistence.Clear();
             if (OneVsOnePhotonFlow.Instance != null)
                 OneVsOnePhotonFlow.Instance.ResetPurpose();
+            TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+                "PreGameWatchdog cancel DONE match=" + matchId);
+        }
+        catch (System.Exception ex)
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.OneVsOne,
+                "PreGameWatchdog cancel FAILED: " + ex.Message);
         }
         finally
         {

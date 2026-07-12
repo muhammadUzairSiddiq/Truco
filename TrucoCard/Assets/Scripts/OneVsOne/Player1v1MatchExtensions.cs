@@ -138,11 +138,26 @@ public static class Player1v1MatchExtensions
         return live == 0;
     }
 
-    /// <summary>Player count shown in list: for stale rows use live Photon count so UI shows 0/2, not 2/2.</summary>
+    /// <summary>
+    /// Host created lobby (API still 1/2) but Photon room is gone (host killed app / left).
+    /// Guests must not JOIN — room should be removed.
+    /// </summary>
+    public static bool IsHostAbandonedVersusPhoton(this Player1v1Match m)
+    {
+        if (m == null || !m.IsLobbyLikeStatus()) return false;
+        if (m.IsCurrentUserHostOfRoom()) return false;
+        if (m.GetApiReportedPlayerCount() >= 2) return false;
+        string room = m.ResolvePhotonRoomName();
+        if (string.IsNullOrEmpty(room)) return false;
+        if (!OneVsOnePhotonFlow.TryGetLiveLobbyPlayerCountForMatch(room, out int live)) return false;
+        return live <= 0;
+    }
+
+    /// <summary>Player count shown in list: for stale/abandoned rows use live Photon count so UI shows 0/2.</summary>
     public static int GetTrucoPlayerCountForUi(this Player1v1Match m)
     {
         if (m == null) return 0;
-        if (m.IsStaleFullVersusPhoton())
+        if (m.IsStaleFullVersusPhoton() || m.IsHostAbandonedVersusPhoton())
         {
             string room = m.ResolvePhotonRoomName();
             if (!string.IsNullOrEmpty(room) && OneVsOnePhotonFlow.TryGetLiveLobbyPlayerCountForMatch(room, out int live))
@@ -201,6 +216,7 @@ public static class Player1v1MatchExtensions
     {
         if (m == null) return false;
         if (m.IsStaleFullVersusPhoton()) return false;
+        if (m.IsHostAbandonedVersusPhoton()) return false;
         if (m.GetTrucoPlayerCount() >= 2) return false;
         if (m.IsCurrentUserHostOfRoom()) return false;
         return true;

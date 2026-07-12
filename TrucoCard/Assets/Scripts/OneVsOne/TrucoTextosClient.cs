@@ -17,6 +17,7 @@ public static class TrucoTextosClient
     public static string SalaLlena => TrucoLocalization.T(TrucoLocalization.Key.SalaLlena);
     public static string SalaExpiradaEtiqueta => TrucoLocalization.T(TrucoLocalization.Key.SalaExpiradaEtiqueta);
     public static string SalaExpiradaAviso => TrucoLocalization.T(TrucoLocalization.Key.SalaExpiradaAviso);
+    public static string AnfitrionSalioSala => TrucoLocalization.T(TrucoLocalization.Key.AnfitrionSalioSala);
     public static string CrearSala => TrucoLocalization.T(TrucoLocalization.Key.CrearSala);
     public static string EliminarSala => TrucoLocalization.T(TrucoLocalization.Key.EliminarSala);
     public static string SalaEliminada => TrucoLocalization.T(TrucoLocalization.Key.SalaEliminada);
@@ -50,6 +51,10 @@ public static class TrucoTextosClient
     public static string SaldoInsuficiente => TrucoLocalization.T(TrucoLocalization.Key.SaldoInsuficiente);
     public static string ErrorCrearSala => TrucoLocalization.T(TrucoLocalization.Key.ErrorCrearSala);
     public static string ErrorUnirse => TrucoLocalization.T(TrucoLocalization.Key.ErrorUnirse);
+    public static string ErrorGenerico => TrucoLocalization.T(TrucoLocalization.Key.ErrorGenerico);
+    public static string ErrorPremioNoConfirmado => TrucoLocalization.T(TrucoLocalization.Key.ErrorPremioNoConfirmado);
+    public static string ErrorConexion => TrucoLocalization.T(TrucoLocalization.Key.ErrorConexion);
+    public static string ErrorEliminarSala => TrucoLocalization.T(TrucoLocalization.Key.ErrorEliminarSala);
     public static string Conectando => TrucoLocalization.T(TrucoLocalization.Key.Conectando);
     public static string IngresaContrasena => TrucoLocalization.T(TrucoLocalization.Key.IngresaContrasena);
 

@@ -365,6 +365,7 @@ public static class TrucoOneVsOneMainMenuFactory
         tmp.text = label;
         tmp.fontSize = fontSize;
         tmp.alignment = TextAlignmentOptions.Center;
+        tmp.raycastTarget = false;
         if (font != null) tmp.font = font;
         return b;
     }
@@ -391,6 +392,7 @@ public static class TrucoOneVsOneMainMenuFactory
         tmp.fontSize = 22;
         tmp.color = new Color(0.1f, 0.1f, 0.1f, 1f);
         tmp.alignment = TextAlignmentOptions.Center;
+        tmp.raycastTarget = false;
         if (font != null) tmp.font = font;
         return b;
     }

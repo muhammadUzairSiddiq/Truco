@@ -96,6 +96,7 @@ public static class TrucoLocalization
             case Key.SalaLlena: return "Llena";
             case Key.SalaExpiradaEtiqueta: return "Expirado";
             case Key.SalaExpiradaAviso: return "La sala expiró. Creá o unite a otra sala.";
+            case Key.AnfitrionSalioSala: return "El anfitrión salió. Sala eliminada.";
             case Key.CrearSala: return "Crear sala";
             case Key.ActualizarLista: return "Actualizar";
             case Key.Volver: return "Volver";
@@ -120,6 +121,10 @@ public static class TrucoLocalization
             case Key.SaldoInsuficiente: return "No tenés saldo suficiente para la entrada. Revisá en la tienda o recargá.";
             case Key.ErrorCrearSala: return "No se pudo crear la sala. Intentá otra vez.";
             case Key.ErrorUnirse: return "No se pudo unir a la sala.";
+            case Key.ErrorGenerico: return "Algo salió mal. Intentá de nuevo.";
+            case Key.ErrorPremioNoConfirmado: return "La partida terminó. Si el premio no aparece en tu saldo, contactá soporte.";
+            case Key.ErrorConexion: return "Problema de conexión. Revisá tu internet e intentá de nuevo.";
+            case Key.ErrorEliminarSala: return "No se pudo eliminar la sala. Intentá de nuevo.";
             case Key.Conectando: return "Conectando al servidor de partida…";
             case Key.IngresaContrasena: return "Ingresá la contraseña de la sala.";
             case Key.TiempoEsgotadoJugada: return "Se acabó el tiempo. Mazo — perdés los puntos de la mano.";
@@ -209,6 +214,7 @@ public static class TrucoLocalization
             case Key.SalaLlena: return "Full";
             case Key.SalaExpiradaEtiqueta: return "Expired";
             case Key.SalaExpiradaAviso: return "This room expired. Create or join another room.";
+            case Key.AnfitrionSalioSala: return "The host left. Room removed.";
             case Key.CrearSala: return "Create room";
             case Key.ActualizarLista: return "Refresh";
             case Key.Volver: return "Back";
@@ -233,6 +239,10 @@ public static class TrucoLocalization
             case Key.SaldoInsuficiente: return "Insufficient balance for entry. Check the store or top up.";
             case Key.ErrorCrearSala: return "Could not create the room. Try again.";
             case Key.ErrorUnirse: return "Could not join the room.";
+            case Key.ErrorGenerico: return "Something went wrong. Please try again.";
+            case Key.ErrorPremioNoConfirmado: return "Match finished. If the prize is missing from your balance, contact support.";
+            case Key.ErrorConexion: return "Connection problem. Check your internet and try again.";
+            case Key.ErrorEliminarSala: return "Could not delete the room. Try again.";
             case Key.Conectando: return "Connecting to match server…";
             case Key.IngresaContrasena: return "Enter the room password.";
             case Key.TiempoEsgotadoJugada: return "Time is up. Mazo — you lose the hand points.";
@@ -308,11 +318,11 @@ public static class TrucoLocalization
     {
         ImportantTitle, Ok, Espere,
         Partida1v1, SalasDisponibles, SeleccionarMesa, EntradaAbrev, PremioAbrev, JugadoresEnSala,
-        TuSalaEsperando, SalaLlena, SalaExpiradaEtiqueta, SalaExpiradaAviso,
+        TuSalaEsperando, SalaLlena, SalaExpiradaEtiqueta, SalaExpiradaAviso, AnfitrionSalioSala,
         CrearSala, ActualizarLista, Volver, BuscandoOponente, EsperandoRivalSala, PartidaEncontrada, CargandoJuego,
         NombreSala, TipoSala, Publica, Privada, ContrasenaSala, CodigoSala4, CodigoPrivadaInfo, CodigoInvalido4,
         CodigoEtiqueta, TuCodigoSala, CodigoParaUnir, EntradaMonedas, Unirse, Entrar,
-        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, Conectando, IngresaContrasena,
+        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, ErrorGenerico, ErrorPremioNoConfirmado, ErrorConexion, ErrorEliminarSala, Conectando, IngresaContrasena,
         TiempoEsgotadoJugada, CuentaRegresiva, TuTurno, TurnoRival, RivalAusente, Responde,
         EsperandoRespuestaRival, EsperandoJugadaRival, TiempoRespuestaAgotado,
         GanastePremio, GanaPorAbandono, RivalReconectando, Reconectando, ReconectandoOverlay,

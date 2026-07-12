@@ -20,6 +20,8 @@ public class OneVsOneRoomRowView : MonoBehaviour
     private System.Action<Player1v1Match, OneVsOneRoomRowView> _onJoin;
     private string _cachedHostCode;
 
+    public Player1v1Match BoundMatch => _data;
+
     /// <summary>Fallback when the row has no in-bar code strip (e.g. auto lobby factory).</summary>
     public void SetRuntimeBinding(
         TextMeshProUGUI title,
@@ -122,7 +124,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
             _joinButton.interactable = canJoin;
         }
 
-        bool stale = m.IsStaleFullVersusPhoton();
+        bool stale = m.IsStaleFullVersusPhoton() || m.IsHostAbandonedVersusPhoton();
         if (_joinButtonLabel != null)
         {
             if (stale)
@@ -139,7 +141,9 @@ public class OneVsOneRoomRowView : MonoBehaviour
             _expiredBelowJoin.gameObject.SetActive(stale);
             if (stale)
             {
-                _expiredBelowJoin.text = TrucoTextosClient.SalaExpiradaEtiqueta;
+                _expiredBelowJoin.text = m.IsHostAbandonedVersusPhoton()
+                    ? TrucoTextosClient.AnfitrionSalioSala
+                    : TrucoTextosClient.SalaExpiradaEtiqueta;
                 _expiredBelowJoin.color = new Color(0.82f, 0.14f, 0.1f, 1f);
                 _expiredBelowJoin.alignment = TextAlignmentOptions.Center;
             }
@@ -179,6 +183,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
         if (!can)
         {
             if (_data.IsStaleFullVersusPhoton()) joinTxt = null;
+            else if (_data.IsHostAbandonedVersusPhoton()) joinTxt = null;
             else if (_data.IsCurrentUserHostOfRoom()) joinTxt = TrucoTextosClient.TuSalaEsperando;
             else if (_data.GetTrucoPlayerCount() >= 2) joinTxt = TrucoTextosClient.SalaLlena;
         }

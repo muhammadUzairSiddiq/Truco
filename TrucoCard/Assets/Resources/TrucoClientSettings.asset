@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4c3d2e1f0a9876543210fedcba98765, type: 3}
   m_Name: TrucoClientSettings
   m_EditorClassIdentifier: 
-  spanishEnabled: 0
-  englishEnabled: 1
-  defaultLanguage: 1
+  spanishEnabled: 1
+  englishEnabled: 0
+  defaultLanguage: 0
   showLanguageToggleInMenu: 1
   debugLogsEnabled: 1
   autoLeaveAllMyLobbyMatchesOnRoomListOpen: 1

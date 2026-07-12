@@ -996,11 +996,8 @@ public static class ApiController
 
         if (submitResult && !resultOk)
         {
-            string detail = string.IsNullOrEmpty(lastErr) ? "unknown" : lastErr;
             AppManager.Instance?.DisplayNotification(
-                TrucoLocalization.IsEnglish
-                    ? "Match finished, but the server did not confirm the prize. " + detail
-                    : "Partida terminada, pero el servidor no confirmó el premio. " + detail);
+                TrucoUserFacingErrors.ForPrizeSettlementFailure(lastErr));
         }
     }
 

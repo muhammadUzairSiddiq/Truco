@@ -380,14 +380,14 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             OneVsOneMatchSession.Clear();
             TrucoRoomPersistence.Clear();
         }
-        string userMsg = string.IsNullOrEmpty(message)
-            ? TrucoTextosClient.ErrorUnirse
-            : TrucoTextosClient.ErrorUnirse + " " + message;
+        string userMsg = TrucoUserFacingErrors.ForApiOrPhoton(message);
+        if (string.IsNullOrEmpty(message))
+            userMsg = TrucoTextosClient.ErrorUnirse;
         if (!clearGuestSession)
-            userMsg += " " + TrucoLocalization.T(TrucoLocalization.Key.RejoinPartida);
+            userMsg = TrucoTextosClient.ErrorUnirse + " " + TrucoLocalization.T(TrucoLocalization.Key.RejoinPartida);
         TrucoDebugLog.Error(TrucoDebugLog.Category.OneVsOne,
             "Join abandoned: " + message + " clearSession=" + clearGuestSession);
-        TrucoNotificationLog.Warning("JOIN ABANDONED: " + userMsg);
+        TrucoNotificationLog.Warning("JOIN ABANDONED: " + message);
         AppManager.Instance.DisplayNotification(userMsg);
     }
 
