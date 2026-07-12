@@ -163,9 +163,10 @@ public class UIMANAGER : MonoBehaviour
         ChallengeNoQueiro();
     }
 
-    // ───────── Visual callout banner: shows which canto each player declared (truco/envido/flor/…) ─────────
+    // ───────── Visual callout banner: canto/declaration — sits BELOW the turn status lane ─────────
     private GameObject _calloutGo;
     private TMPro.TMP_Text _calloutTmp;
+    private RectTransform _calloutRt;
 
     /// <summary>Show a short banner with the canto/declaration so BOTH players can see it (not only hear it).</summary>
     public void ShowChallengeCallout(string phrase, bool mine)
@@ -173,12 +174,14 @@ public class UIMANAGER : MonoBehaviour
         if (string.IsNullOrEmpty(phrase)) return;
         EnsureCalloutLabel();
         if (_calloutTmp == null || _calloutGo == null) return;
+        LayoutStatusBanners();
         string who = mine ? "Vos" : "Rival";
         string color = mine ? "#7CFC9B" : "#FFC24A";
-        _calloutTmp.text = $"<color={color}><b>{who}:</b></color> {phrase}";
+        _calloutTmp.text = $"<color={color}><b>{who}</b></color>  ·  {phrase}";
         _calloutGo.SetActive(true);
+        _calloutGo.transform.SetAsLastSibling();
         CancelInvoke(nameof(HideCallout));
-        Invoke(nameof(HideCallout), 2.4f);
+        Invoke(nameof(HideCallout), 2.2f);
     }
 
     /// <summary>Show a free-form declaration (e.g. "Tengo 31", "Son buenas", "Flor: 38").</summary>
@@ -196,29 +199,55 @@ public class UIMANAGER : MonoBehaviour
         if (canvas == null) return;
         _calloutGo = new GameObject("ChallengeCallout", typeof(RectTransform));
         _calloutGo.transform.SetParent(canvas.transform, false);
-        var rt = _calloutGo.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 1f);
-        rt.anchorMax = new Vector2(0.5f, 1f);
-        rt.pivot = new Vector2(0.5f, 1f);
-        rt.anchoredPosition = new Vector2(0f, -120f);
-        rt.sizeDelta = new Vector2(680f, 80f);
+        _calloutRt = _calloutGo.GetComponent<RectTransform>();
+        _calloutRt.anchorMin = new Vector2(0.5f, 1f);
+        _calloutRt.anchorMax = new Vector2(0.5f, 1f);
+        _calloutRt.pivot = new Vector2(0.5f, 1f);
+        _calloutRt.anchoredPosition = new Vector2(0f, -210f);
+        _calloutRt.sizeDelta = new Vector2(620f, 56f);
         var bg = _calloutGo.AddComponent<Image>();
-        bg.color = new Color(0f, 0f, 0f, 0.58f);
+        bg.color = new Color(0.04f, 0.05f, 0.08f, 0.82f);
         bg.raycastTarget = false;
         var txtGo = new GameObject("Text", typeof(RectTransform));
         txtGo.transform.SetParent(_calloutGo.transform, false);
         var trt = txtGo.GetComponent<RectTransform>();
         trt.anchorMin = Vector2.zero;
         trt.anchorMax = Vector2.one;
-        trt.offsetMin = new Vector2(18f, 8f);
-        trt.offsetMax = new Vector2(-18f, -8f);
+        trt.offsetMin = new Vector2(16f, 6f);
+        trt.offsetMax = new Vector2(-16f, -6f);
         _calloutTmp = txtGo.AddComponent<TMPro.TextMeshProUGUI>();
         _calloutTmp.alignment = TMPro.TextAlignmentOptions.Center;
+        _calloutTmp.verticalAlignment = TMPro.VerticalAlignmentOptions.Middle;
         _calloutTmp.raycastTarget = false;
         _calloutTmp.enableAutoSizing = true;
-        _calloutTmp.fontSizeMin = 26f;
-        _calloutTmp.fontSizeMax = 50f;
+        _calloutTmp.fontSizeMin = 16f;
+        _calloutTmp.fontSizeMax = 26f;
+        _calloutTmp.enableWordWrapping = true;
+        _calloutTmp.overflowMode = TMPro.TextOverflowModes.Ellipsis;
+        _calloutTmp.color = Color.white;
         _calloutGo.SetActive(false);
+    }
+
+    /// <summary>Keep turn status + canto callout in separate vertical lanes (no overlap).</summary>
+    void LayoutStatusBanners()
+    {
+        if (turnText != null)
+        {
+            var textRt = turnText.GetComponent<RectTransform>();
+            if (textRt != null)
+            {
+                textRt.anchorMin = new Vector2(0.5f, 1f);
+                textRt.anchorMax = new Vector2(0.5f, 1f);
+                textRt.pivot = new Vector2(0.5f, 1f);
+                textRt.anchoredPosition = new Vector2(0f, -56f);
+                textRt.sizeDelta = new Vector2(640f, 96f);
+            }
+        }
+        if (_calloutRt != null)
+        {
+            _calloutRt.anchoredPosition = new Vector2(0f, -168f);
+            _calloutRt.sizeDelta = new Vector2(620f, 56f);
+        }
     }
 
     private void Awake()
@@ -232,10 +261,29 @@ public class UIMANAGER : MonoBehaviour
         if (turnText != null)
         {
             var tmp = turnText.GetComponent<TMPro.TMP_Text>();
-            if (tmp != null) tmp.raycastTarget = false;
+            if (tmp != null)
+            {
+                tmp.raycastTarget = false;
+                ConfigureTurnTextStyle(tmp);
+            }
         }
+        LayoutStatusBanners();
         EnsureTurnBannerBackground();
         if (!SpectatorContext.IsSpectator) EnsureMuteButton();
+    }
+
+    static void ConfigureTurnTextStyle(TMPro.TMP_Text tmp)
+    {
+        if (tmp == null) return;
+        // Rich-text sizes are authored in TrucoGameplayTimerBanner — disable auto-size so lines don't fight each other.
+        tmp.enableAutoSizing = false;
+        tmp.fontSize = 26f;
+        tmp.enableWordWrapping = true;
+        tmp.overflowMode = TMPro.TextOverflowModes.Ellipsis;
+        tmp.alignment = TMPro.TextAlignmentOptions.Center;
+        tmp.verticalAlignment = TMPro.VerticalAlignmentOptions.Middle;
+        tmp.margin = new Vector4(12f, 6f, 12f, 6f);
+        tmp.color = Color.white;
     }
 
     void EnsureMuteButton()
@@ -286,45 +334,61 @@ public class UIMANAGER : MonoBehaviour
     void EnsureTurnBannerBackground()
     {
         if (turnText == null) return;
-        if (turnTextBackground != null) return;
+        LayoutStatusBanners();
         var textRt = turnText.GetComponent<RectTransform>();
         if (textRt == null) return;
-        var t = textRt.parent;
-        if (t == null) return;
-        if (t.Find("TurnTimerBannerBg") != null) return;
-        var go = new GameObject("TurnTimerBannerBg");
-        go.transform.SetParent(t, false);
-        if (_cachedUiWhiteSprite == null)
+        if (turnTextBackground == null)
         {
-            var tex = Texture2D.whiteTexture;
-            _cachedUiWhiteSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+            var t = textRt.parent;
+            if (t == null) return;
+            var existing = t.Find("TurnTimerBannerBg");
+            if (existing != null)
+                turnTextBackground = existing.GetComponent<RectTransform>();
+            else
+            {
+                var go = new GameObject("TurnTimerBannerBg");
+                go.transform.SetParent(t, false);
+                if (_cachedUiWhiteSprite == null)
+                {
+                    var tex = Texture2D.whiteTexture;
+                    _cachedUiWhiteSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                }
+                var im = go.AddComponent<Image>();
+                im.sprite = _cachedUiWhiteSprite;
+                im.type = Image.Type.Simple;
+                im.raycastTarget = false;
+                im.color = TurnBannerBgNormal;
+                go.transform.SetSiblingIndex(textRt.GetSiblingIndex());
+                turnTextBackground = go.GetComponent<RectTransform>();
+            }
         }
-        var im = go.AddComponent<Image>();
-        im.sprite = _cachedUiWhiteSprite;
-        im.type = Image.Type.Simple;
-        im.raycastTarget = false;
-        im.color = TurnBannerBgNormal;
-        go.transform.SetSiblingIndex(textRt.GetSiblingIndex());
-        var bg = go.GetComponent<RectTransform>();
-        bg.anchorMin = textRt.anchorMin;
-        bg.anchorMax = textRt.anchorMax;
-        bg.pivot = textRt.pivot;
-        bg.anchoredPosition = textRt.anchoredPosition + new Vector2(0f, -8f);
-        bg.sizeDelta = new Vector2(Mathf.Max(textRt.sizeDelta.x + 64f, 380f), Mathf.Max(textRt.sizeDelta.y + 48f, 120f));
-        turnTextBackground = bg;
+        SyncTurnBannerBackgroundRect(textRt);
         turnText.transform.SetAsLastSibling();
+    }
+
+    void SyncTurnBannerBackgroundRect(RectTransform textRt)
+    {
+        if (turnTextBackground == null || textRt == null) return;
+        turnTextBackground.anchorMin = textRt.anchorMin;
+        turnTextBackground.anchorMax = textRt.anchorMax;
+        turnTextBackground.pivot = textRt.pivot;
+        turnTextBackground.anchoredPosition = textRt.anchoredPosition;
+        turnTextBackground.sizeDelta = new Vector2(
+            Mathf.Max(textRt.sizeDelta.x + 24f, 560f),
+            Mathf.Max(textRt.sizeDelta.y + 8f, 92f));
     }
 
     void ApplyTurnBannerSize(bool largeCountdown)
     {
-        if (turnTextBackground == null || turnText == null) return;
+        if (turnText == null) return;
+        LayoutStatusBanners();
         var textRt = turnText.GetComponent<RectTransform>();
         if (textRt == null) return;
-        turnTextBackground.sizeDelta = largeCountdown
-            ? new Vector2(Mathf.Max(textRt.sizeDelta.x + 80f, 420f), Mathf.Max(textRt.sizeDelta.y + 56f, 140f))
-            : new Vector2(Mathf.Max(textRt.sizeDelta.x + 64f, 380f), Mathf.Max(textRt.sizeDelta.y + 48f, 120f));
-        if (turnTextBackground != null && textRt != null)
-            turnTextBackground.anchoredPosition = textRt.anchoredPosition + new Vector2(0f, -8f);
+        // Same compact lane for timers and short messages — avoids ballooning into name/score UI.
+        textRt.sizeDelta = largeCountdown
+            ? new Vector2(640f, 100f)
+            : new Vector2(640f, 88f);
+        SyncTurnBannerBackgroundRect(textRt);
     }
 
     /// <param name="autoHideSeconds">Si es &lt; 0, el banner queda visible hasta el próximo <see cref="UpdateTurnText"/> (p. ej. durante la cuenta de 30 s).</param>
@@ -343,12 +407,16 @@ public class UIMANAGER : MonoBehaviour
         var tmp = turnText.GetComponent<TMPro.TMP_Text>();
         if (tmp != null)
         {
-            tmp.text = message;
-            tmp.fontStyle = TMPro.FontStyles.Bold;
-            tmp.color = Color.white;
+            ConfigureTurnTextStyle(tmp);
+            tmp.text = message ?? string.Empty;
+            tmp.fontStyle = TMPro.FontStyles.Normal;
             tmp.raycastTarget = false;
         }
+        // Status lane stays above callout; mute stays top-right.
+        if (turnTextBackground != null) turnTextBackground.SetAsLastSibling();
         turnText.transform.SetAsLastSibling();
+        if (_calloutGo != null && _calloutGo.activeSelf)
+            _calloutGo.transform.SetAsLastSibling();
         if (autoHideSeconds >= 0f)
             Invoke(nameof(DisableTurnText), autoHideSeconds);
     }

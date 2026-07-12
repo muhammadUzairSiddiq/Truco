@@ -54,8 +54,8 @@ public class TrucoTtsService : MonoBehaviour
                             var locEs = new AndroidJavaObject("java.util.Locale", "es", "ES");
                             _tts.Call<int>("setLanguage", locEs);
                         }
-                        _tts.Call<float>("setSpeechRate", 0.95f);
-                        _tts.Call<float>("setPitch", 0.72f);
+                        _tts.Call<float>("setSpeechRate", 0.92f);
+                        _tts.Call<float>("setPitch", 0.65f);
                         TrySelectMaleSpanishVoice();
                     }
                     catch (System.Exception e) { Debug.LogWarning("[TTS] setLanguage: " + e.Message); }
@@ -120,20 +120,29 @@ public class TrucoTtsService : MonoBehaviour
         catch (System.Exception e) { Debug.LogWarning("[TTS] speak: " + e.Message); }
     }
 
+    // android.speech.tts.Voice gender constants
+    const int GenderNotSpecified = -1;
+    const int GenderNeutral = 0;
+    const int GenderMale = 1;
+    const int GenderFemale = 2;
+
     static bool IsFemaleVoiceName(string name)
     {
         if (string.IsNullOrEmpty(name)) return false;
         name = name.ToLowerInvariant();
         return name.Contains("female") || name.Contains("mujer") || name.Contains("woman")
-               || name.Contains("-f-") || name.Contains("_f_") || name.Contains("fem");
+               || name.Contains("-f-") || name.Contains("_f_")
+               || (name.Contains("fem") && !name.Contains("male"));
     }
 
     static bool IsMaleVoiceName(string name)
     {
         if (string.IsNullOrEmpty(name)) return false;
         name = name.ToLowerInvariant();
+        // "female".Contains("male") is true — exclude female first
+        if (IsFemaleVoiceName(name)) return false;
         return name.Contains("male") || name.Contains("hombre") || name.Contains("-m-")
-               || name.Contains("_m_") || name.Contains("man");
+               || name.Contains("_m_") || name.Contains("man") || name.Contains("masc");
     }
 
     void TrySelectMaleSpanishVoice()
@@ -146,9 +155,10 @@ public class TrucoTtsService : MonoBehaviour
             var iterator = voices.Call<AndroidJavaObject>("iterator");
             if (iterator == null) return;
 
-            AndroidJavaObject maleVoice = null;
-            AndroidJavaObject fallbackEs = null;
-            const int genderMale = 500;
+            AndroidJavaObject malePy = null;
+            AndroidJavaObject maleEs = null;
+            AndroidJavaObject maleAny = null;
+            AndroidJavaObject neutralEs = null;
 
             while (iterator.Call<bool>("hasNext"))
             {
@@ -159,22 +169,40 @@ public class TrucoTtsService : MonoBehaviour
                 if (loc.Call<string>("getLanguage") != "es") continue;
 
                 string name = voice.Call<string>("getName") ?? string.Empty;
-                if (IsFemaleVoiceName(name)) continue;
+                string country = loc.Call<string>("getCountry") ?? string.Empty;
+                int gender = GenderNotSpecified;
+                try { gender = voice.Call<int>("getGender"); }
+                catch { /* older engines */ }
 
-                int gender = voice.Call<int>("getGender");
-                if (gender == genderMale || IsMaleVoiceName(name))
+                if (gender == GenderFemale || IsFemaleVoiceName(name)) continue;
+
+                bool isMale = gender == GenderMale || IsMaleVoiceName(name);
+                bool isPy = country == "PY";
+                bool isEs = country == "ES" || country == "MX" || country == "AR" || country == "UY";
+
+                if (isMale)
                 {
-                    maleVoice = voice;
-                    break;
+                    if (isPy && malePy == null) malePy = voice;
+                    else if (isEs && maleEs == null) maleEs = voice;
+                    else if (maleAny == null) maleAny = voice;
                 }
-                if (fallbackEs == null) fallbackEs = voice;
+                else if (neutralEs == null && gender != GenderFemale)
+                    neutralEs = voice;
             }
 
-            var chosen = maleVoice ?? fallbackEs;
+            var chosen = malePy ?? maleEs ?? maleAny ?? neutralEs;
             if (chosen != null)
             {
                 _tts.Call<int>("setVoice", chosen);
-                _tts.Call<float>("setPitch", 0.68f);
+                string chosenName = chosen.Call<string>("getName") ?? "?";
+                _tts.Call<float>("setPitch", 0.62f);
+                Debug.Log("[TTS] voice set male-prefer: " + chosenName);
+            }
+            else
+            {
+                // Last resort: deepen default Spanish voice
+                _tts.Call<float>("setPitch", 0.55f);
+                Debug.LogWarning("[TTS] no male Spanish voice found — lowered pitch only");
             }
         }
         catch (System.Exception e) { Debug.LogWarning("[TTS] male voice: " + e.Message); }
