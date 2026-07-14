@@ -157,6 +157,10 @@ public class UIMANAGER : MonoBehaviour
             invokedChallenges.Add(ChallengeType.RealEnvido);
             invokedChallenges.Add(ChallengeType.FaltaEnvido);
         }
+        // Flor locks Envido for the hand after reconnect too.
+        if (type == ChallengeType.Flor || type == ChallengeType.ContraFlor
+            || type == ChallengeType.ConFlorQuiero || type == ChallengeType.FlorChica)
+            invokedChallenges.Add(ChallengeType.Flor);
         unAnsweredChallenges.Clear();
         _isChallengepPending = pending;
         if (!pending || type == ChallengeType.None || responderActor <= 0)
@@ -559,7 +563,7 @@ public class UIMANAGER : MonoBehaviour
             DisableButtons();
             return;
         }
-        // Challenge response UI (Quiero/No quiero) is configured by TrucoChallenged et al.
+        // Challenge response UI (Quiero/No quiero / Flor) is configured by *Challenged methods.
         if (_isChallengepPending && unAnsweredChallenges.Count > 0)
             return;
 
@@ -585,8 +589,14 @@ public class UIMANAGER : MonoBehaviour
         {
             if (vale4 != null) vale4.SetActive(true);
         }
+
+        // Flor locks all Envido variants for the rest of the hand.
+        bool florLocked = invokedChallenges.Contains(ChallengeType.Flor)
+                          || invokedChallenges.Contains(ChallengeType.ContraFlor)
+                          || invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
+                          || invokedChallenges.Contains(ChallengeType.FlorChica);
         
-        if (GameManager.Instance.cardPlayed)
+        if (GameManager.Instance.cardPlayed || florLocked)
         {
             envido.SetActive(false);
             realEnvido.SetActive(false);
@@ -658,6 +668,10 @@ public class UIMANAGER : MonoBehaviour
     public void ShowMyCard(Transform cardTransform,CardSuit suit, int value)
     {
         if (cardTransform == null || myDisplayCardsPosition == null || myDisplayCardsPosition.Count == 0) return;
+        // Always refresh sprite — without this, moved cards can stay as blank white Images.
+        var card = cardTransform.GetComponent<Card>();
+        if (card != null)
+            card.SetupCard(suit, value);
         int idx = Mathf.Min(_myDisplayCardIndex, myDisplayCardsPosition.Count - 1);
         PrepareTrickLayout(cardTransform, true);
         cardTransform.LeanMove(myDisplayCardsPosition[idx].position, 0.5f).setEaseInOutCubic();
@@ -1617,22 +1631,31 @@ public class UIMANAGER : MonoBehaviour
     public void FlorChallenged()
     {
         _isChallengepPending = true;
+        if (!invokedChallenges.Contains(ChallengeType.Flor))
+            invokedChallenges.Add(ChallengeType.Flor);
+        DisableButtons();
+        // After Flor, Envido family stays off — only Flor responses + later Truco chain.
         envido.SetActive(false);
         realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
         flor.SetActive(false);
         conFlorQuiero.SetActive(true);
         florChica.SetActive(true);
         contraFlor.SetActive(true);
         queiro.SetActive(false);
         noQueiro.SetActive(false);
+        if (mazo != null) mazo.SetActive(true);
     }
 
     // This is called When Other player Challenges us with this Challenge
     public void FlorChicaChallenged()
     {
         _isChallengepPending = false;
+        if (!invokedChallenges.Contains(ChallengeType.Flor))
+            invokedChallenges.Add(ChallengeType.Flor);
         envido.SetActive(false);
         realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
         flor.SetActive(false);
         contraFlor.SetActive(false);
         conFlorQuiero.SetActive(false);
@@ -1649,8 +1672,11 @@ public class UIMANAGER : MonoBehaviour
     {
         _isChallengepPending = false;
         invokedChallenges.Add(ChallengeType.ConFlorQuiero);
+        if (!invokedChallenges.Contains(ChallengeType.Flor))
+            invokedChallenges.Add(ChallengeType.Flor);
         envido.SetActive(false);
         realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
         flor.SetActive(false);
         contraFlor.SetActive(false);
         conFlorQuiero.SetActive(false);
@@ -1666,8 +1692,11 @@ public class UIMANAGER : MonoBehaviour
     public void ContraFlorChallenged()
     {
         _isChallengepPending = true;
+        if (!invokedChallenges.Contains(ChallengeType.Flor))
+            invokedChallenges.Add(ChallengeType.Flor);
         envido.SetActive(false);
         realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
         flor.SetActive(false);
         contraFlor.SetActive(false);
         conFlorQuiero.SetActive(false);

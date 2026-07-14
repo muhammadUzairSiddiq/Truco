@@ -93,8 +93,8 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         _ui?.Hide();
         if (OneVsOneMatchSession.GameStarted && GameManager.Instance != null)
         {
+            // Timers resume only after SyncMatchState — early restart freezes stale mano state.
             GameManager.Instance.RequestStateSyncAfterReconnect();
-            TurnManager.Instance?.RestartTurnTimersIfActive();
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
         }
     }
@@ -110,7 +110,6 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
             _opponentReconnectSecondsRemaining = 0;
             _ui?.Hide();
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
-            TurnManager.Instance?.RestartTurnTimersIfActive();
             GameManager.Instance?.RequestStateSyncAfterReconnect();
         }
     }
@@ -247,8 +246,8 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         _routine = null;
         if (OneVsOneMatchSession.GameStarted)
         {
+            // Do not RestartTurnTimers here — wait for SyncMatchState (hand may already be over).
             GameManager.Instance?.RequestStateSyncAfterReconnect();
-            TurnManager.Instance?.RestartTurnTimersIfActive();
         }
     }
 

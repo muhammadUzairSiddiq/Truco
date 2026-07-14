@@ -280,6 +280,23 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     /// <summary>NuevaMano scene reload already queued — do not deal/start another hand.</summary>
     public bool IsRestartScheduled() => _restartScheduled;
 
+    /// <summary>True once this mano has cards — used to block mid-hand re-deal on master rotate.</summary>
+    public bool HasHandBeenDealt()
+    {
+        if (cardPlayed) return true;
+        if (_player1Cards != null && _player1Cards.Count > 0) return true;
+        if (_player2Cards != null && _player2Cards.Count > 0) return true;
+        if (cards != null)
+        {
+            for (int i = 0; i < cards.Count; i++)
+            {
+                if (cards[i] != null && cards[i].value > 0)
+                    return true;
+            }
+        }
+        return false;
+    }
+
     void ResetHandState()
     {
         HandResolved = false;
@@ -412,12 +429,18 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             + " opp=" + (otherPlayerScoreHandler != null ? otherPlayerScoreHandler.GetCurrentScore() : -1));
         if (handResolvedFlag == 1 && !HandResolved)
             MarkHandResolved();
-        // After Mazo/Winner do not revive the folder's turn — wait for NuevaMano.
+        // After Mazo/Winner: catch up to NuevaMano instead of freezing with timer + stale table.
         if (HandResolved || _restartScheduled || _handOutcomeCommitted || handResolvedFlag == 1)
         {
             SetMyTurn(false);
             SetCanPlayCard(false);
             TurnManager.Instance?.StopAllTurnTimers();
+            UIMANAGER.Instance?.DisableButtons();
+            if (!_gameEnded && !_restartScheduled && handResolvedFlag == 1)
+            {
+                if (!EvaluateMatchOutcomeAfterPoints())
+                    ResetGame();
+            }
             return;
         }
         ApplyChallengeSnapshot(challengeType, challengePts, mazoPts, pendingFlag,
@@ -883,7 +906,13 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             }
             TrucoRulesScenarioLog.Opp("RECV Flor challenge", "fromActor=" + photonEvent.Sender);
             lastChallengeType = ChallengeType.Flor;
+            if (!UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Flor))
+                UIMANAGER.Instance.invokedChallenges.Add(ChallengeType.Flor);
+            if (photonEvent.Sender > 0)
+                UIMANAGER.Instance.unAnsweredChallenges[ChallengeType.Flor] = photonEvent.Sender;
             UIMANAGER.Instance.FlorChallenged();
+            SetCanPlayCard(false);
+            UIMANAGER.Instance.BeginChallengeResponseCountdown();
         }
         else if (photonEvent.Code == UIMANAGER.FLOR_CHICA_CHALLENGE)
         {
@@ -1843,6 +1872,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         else
         {
+            // Lose panel owns the copy — no IMPORTANT toast that can look like a win/prize message.
             losePanel.SetActive(true);
             TrucoMatchEndUiPolish.Apply(losePanel, false, entryFee);
             ToggleMenuBtns(true);
@@ -1864,10 +1894,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         TryReport1v1MatchToBackend(ApiController.GetSessionUser?.Data?._id,
             () => TrucoMatchEndUiPolish.RefreshBalance(winPanel));
         TrucoMatchProgress.ClearAllMatchMemory();
-        AppManager.Instance?.DisplayNotification(TrucoTextosClient.GanastePartida);
-        int prize = Player1v1MatchExtensions.ComputeOneVsOnePrize(entryFee);
-        if (prize > 0)
-            AppManager.Instance?.DisplayNotification(string.Format(TrucoTextosClient.GanastePremio, prize));
+        // Win panel owns title + prize + balance — no IMPORTANT prize/support toasts.
         UIMANAGER.Instance.DisableButtons();
 
         if (_isInTournament && !_tournamentMatchFinalized)

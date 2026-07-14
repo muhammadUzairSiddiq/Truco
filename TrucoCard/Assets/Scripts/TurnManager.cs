@@ -61,11 +61,17 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
-        // Only block while NuevaMano reload is pending or match ended — not on a fresh scene deal.
+        // Never re-deal mid-hand (disconnect → master rotate). That blanks cards and desyncs the mano.
         if (GameManager.Instance != null &&
-            (GameManager.Instance._gameEnded || GameManager.Instance.IsRestartScheduled()))
+            (GameManager.Instance._gameEnded
+             || GameManager.Instance.IsRestartScheduled()
+             || GameManager.Instance.HandResolved
+             || GameManager.Instance.HasHandBeenDealt()))
         {
-            TrucoRulesScenarioLog.Ok("OnMasterClientSwitched skipped deal (restart/match end)");
+            TrucoRulesScenarioLog.Ok("OnMasterClientSwitched skipped deal",
+                "restart=" + GameManager.Instance.IsRestartScheduled()
+                + " handResolved=" + GameManager.Instance.HandResolved
+                + " dealt=" + GameManager.Instance.HasHandBeenDealt());
             return;
         }
         if (newMasterClient != null && newMasterClient.Equals(PhotonNetwork.LocalPlayer))

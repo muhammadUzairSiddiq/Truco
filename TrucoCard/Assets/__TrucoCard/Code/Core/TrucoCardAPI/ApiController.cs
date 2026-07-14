@@ -994,10 +994,14 @@ public static class ApiController
             + " delta=" + (balBefore >= 0 && balAfter >= 0 ? (balAfter - balBefore).ToString() : "?"));
         onSettled?.Invoke();
 
+        // Never show prize/support popups here — win/lose panels + balance refresh own the UX.
+        // Failed /result is logged only (server may already have settled via walkover).
         if (submitResult && !resultOk)
         {
-            AppManager.Instance?.DisplayNotification(
-                TrucoUserFacingErrors.ForPrizeSettlementFailure(lastErr));
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+                "SETTLE /result failed (no player toast). winner=" + (winnerUserId ?? "?")
+                + " local=" + (GetSessionUser?.Data?._id ?? "?")
+                + " err=" + (lastErr ?? "?"));
         }
     }
 
@@ -1006,7 +1010,8 @@ public static class ApiController
         if (string.IsNullOrEmpty(msg)) return false;
         string m = msg.ToLowerInvariant();
         return m.Contains("already") || m.Contains("completed") || m.Contains("finished")
-               || m.Contains("settled") || m.Contains("duplicate");
+               || m.Contains("settled") || m.Contains("duplicate")
+               || m.Contains("walkover") || m.Contains("closed") || m.Contains("ended");
     }
 
     /// <summary>Pre-game cancel: POST /leave then /end so the lobby row disappears for everyone.</summary>

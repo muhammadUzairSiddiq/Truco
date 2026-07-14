@@ -122,7 +122,7 @@ public static class TrucoLocalization
             case Key.ErrorCrearSala: return "No se pudo crear la sala. Intentá otra vez.";
             case Key.ErrorUnirse: return "No se pudo unir a la sala.";
             case Key.ErrorGenerico: return "Algo salió mal. Intentá de nuevo.";
-            case Key.ErrorPremioNoConfirmado: return "La partida terminó. Si el premio no aparece en tu saldo, contactá soporte.";
+            case Key.ErrorPremioNoConfirmado: return "Hubo un problema al acreditar el premio. Contactá soporte.";
             case Key.ErrorConexion: return "Problema de conexión. Revisá tu internet e intentá de nuevo.";
             case Key.ErrorEliminarSala: return "No se pudo eliminar la sala. Intentá de nuevo.";
             case Key.Conectando: return "Conectando al servidor de partida…";
@@ -240,7 +240,7 @@ public static class TrucoLocalization
             case Key.ErrorCrearSala: return "Could not create the room. Try again.";
             case Key.ErrorUnirse: return "Could not join the room.";
             case Key.ErrorGenerico: return "Something went wrong. Please try again.";
-            case Key.ErrorPremioNoConfirmado: return "Match finished. If the prize is missing from your balance, contact support.";
+            case Key.ErrorPremioNoConfirmado: return "There was a problem crediting your prize. Contact support.";
             case Key.ErrorConexion: return "Connection problem. Check your internet and try again.";
             case Key.ErrorEliminarSala: return "Could not delete the room. Try again.";
             case Key.Conectando: return "Connecting to match server…";
