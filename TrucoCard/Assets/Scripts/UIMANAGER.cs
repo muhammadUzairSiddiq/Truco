@@ -64,7 +64,9 @@ public class UIMANAGER : MonoBehaviour
     
     public bool _envidoPlayed = false;
     public bool trucoPlayed = false;
-    
+    /// <summary>Actor who last raised Truco/Retruco/Vale4 — opponent alone may raise the next level.</summary>
+    public int LastTrucoRaiseActor { get; private set; }
+
     public Dictionary<ChallengeType,int> unAnsweredChallenges = new Dictionary<ChallengeType, int>();
     private bool _cantChallenge = false;
     private int _myDisplayCardIndex = 0;
@@ -98,24 +100,53 @@ public class UIMANAGER : MonoBehaviour
         _challengeAccepted = false;
         trucoPlayed = false;
         _envidoPlayed = false;
+        LastTrucoRaiseActor = 0;
         unAnsweredChallenges.Clear();
         invokedChallenges.Clear();
         CancelChallengeResponseCountdown();
+    }
+
+    public void MarkTrucoRaiseByLocal()
+    {
+        if (PhotonNetwork.LocalPlayer != null)
+            LastTrucoRaiseActor = PhotonNetwork.LocalPlayer.ActorNumber;
+    }
+
+    public void MarkTrucoRaiseByActor(int actorNumber)
+    {
+        if (actorNumber > 0)
+            LastTrucoRaiseActor = actorNumber;
+    }
+
+    /// <summary>True if local may press Retruco/Vale4 (must not be the player who made the last raise).</summary>
+    bool CanRaiseNextTrucoLevel()
+    {
+        if (PhotonNetwork.LocalPlayer == null) return false;
+        if (LastTrucoRaiseActor <= 0) return true;
+        return PhotonNetwork.LocalPlayer.ActorNumber != LastTrucoRaiseActor;
     }
 
     /// <summary>
     /// Rebuild canto UI after reconnect from peer snapshot. Does not change scores.
     /// </summary>
     public void RestoreChallengeStateFromSync(ChallengeType type, bool pending, int raiserActor,
-        int responderActor, int trucoLevel, bool envidoPlayed)
+        int responderActor, int trucoLevel, bool envidoPlayed, int lastTrucoRaiseActor = 0)
     {
         TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
             "RestoreChallengeStateFromSync type=" + type + " pending=" + pending
             + " raiser=" + raiserActor + " responder=" + responderActor
             + " trucoLv=" + trucoLevel + " envido=" + envidoPlayed
+            + " lastRaise=" + lastTrucoRaiseActor
             + " local=" + PhotonNetwork.LocalPlayer.ActorNumber);
         _envidoPlayed = envidoPlayed;
         trucoPlayed = trucoLevel > 0;
+        if (lastTrucoRaiseActor > 0)
+            LastTrucoRaiseActor = lastTrucoRaiseActor;
+        else if (pending && raiserActor > 0
+                 && (type == ChallengeType.Truco || type == ChallengeType.Retruco || type == ChallengeType.Vale4))
+            LastTrucoRaiseActor = raiserActor;
+        else if (trucoLevel == 0)
+            LastTrucoRaiseActor = 0;
         invokedChallenges.Clear();
         if (trucoLevel >= 1) invokedChallenges.Add(ChallengeType.Truco);
         if (trucoLevel >= 2) invokedChallenges.Add(ChallengeType.Retruco);
@@ -538,12 +569,22 @@ public class UIMANAGER : MonoBehaviour
                 button.SetActive(true);
         }
 
+        // Truco chain: only the opponent of the last raise may offer Retruco / Vale4.
+        if (truco != null) truco.SetActive(false);
+        if (retruco != null) retruco.SetActive(false);
+        if (vale4 != null) vale4.SetActive(false);
         if (!invokedChallenges.Contains(ChallengeType.Truco))
-            truco.SetActive(true);
-        else if (!invokedChallenges.Contains(ChallengeType.Retruco))
-            retruco.SetActive(true);
-        else if (!invokedChallenges.Contains(ChallengeType.Vale4))
-            vale4.SetActive(true);
+        {
+            if (truco != null) truco.SetActive(true);
+        }
+        else if (!invokedChallenges.Contains(ChallengeType.Retruco) && CanRaiseNextTrucoLevel())
+        {
+            if (retruco != null) retruco.SetActive(true);
+        }
+        else if (!invokedChallenges.Contains(ChallengeType.Vale4) && CanRaiseNextTrucoLevel())
+        {
+            if (vale4 != null) vale4.SetActive(true);
+        }
         
         if (GameManager.Instance.cardPlayed)
         {
@@ -686,6 +727,7 @@ public class UIMANAGER : MonoBehaviour
     {
         TrucoGameplayAudio.PlayLocalRaise(TRUCO_CHALLENGE);
         MarkChallengeSentNow();
+        MarkTrucoRaiseByLocal();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Truco);
         _cantChallenge = true;
@@ -713,6 +755,7 @@ public class UIMANAGER : MonoBehaviour
     {
         TrucoGameplayAudio.PlayLocalRaise(RETRUCO_CHALLENGE);
         MarkChallengeSentNow();
+        MarkTrucoRaiseByLocal();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Retruco);
         _cantChallenge = true;
@@ -746,6 +789,7 @@ public class UIMANAGER : MonoBehaviour
     {
         TrucoGameplayAudio.PlayLocalRaise(VALE4_CHALLENGE);
         MarkChallengeSentNow();
+        MarkTrucoRaiseByLocal();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Vale4);
         _cantChallenge = true;

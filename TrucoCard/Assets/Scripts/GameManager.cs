@@ -330,16 +330,16 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             return;
         }
         BuildChallengeSnapshot(out int type, out int chPts, out int mzPts, out int pendingFlag,
-            out int raiser, out int responder, out int trucoLv, out int envidoFlag);
+            out int raiser, out int responder, out int trucoLv, out int envidoFlag, out int lastRaise);
         TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
             "RequestChallengeSnapshot → send type=" + type + " raiser=" + raiser
             + " responder=" + responder + " pending=" + pendingFlag);
         photonView.RPC(nameof(ApplyChallengeSnapshot), RpcTarget.Others,
-            type, chPts, mzPts, pendingFlag, raiser, responder, trucoLv, envidoFlag);
+            type, chPts, mzPts, pendingFlag, raiser, responder, trucoLv, envidoFlag, lastRaise);
     }
 
     void BuildChallengeSnapshot(out int type, out int chPts, out int mzPts, out int pendingFlag,
-        out int raiser, out int responder, out int trucoLv, out int envidoFlag)
+        out int raiser, out int responder, out int trucoLv, out int envidoFlag, out int lastTrucoRaise)
     {
         type = (int)lastChallengeType;
         chPts = challengePoints;
@@ -349,8 +349,10 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         responder = 0;
         trucoLv = 0;
         envidoFlag = 0;
+        lastTrucoRaise = 0;
         if (UIMANAGER.Instance == null) return;
         envidoFlag = UIMANAGER.Instance._envidoPlayed ? 1 : 0;
+        lastTrucoRaise = UIMANAGER.Instance.LastTrucoRaiseActor;
         if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Vale4)) trucoLv = 3;
         else if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Retruco)) trucoLv = 2;
         else if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Truco)) trucoLv = 1;
@@ -381,10 +383,10 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             ? TurnManager.Instance.GetCurrentTurnActorNumber()
             : PhotonNetwork.LocalPlayer.ActorNumber;
         BuildChallengeSnapshot(out int type, out int chPts, out int mzPts, out int pendingFlag,
-            out int raiser, out int responder, out int trucoLv, out int envidoFlag);
+            out int raiser, out int responder, out int trucoLv, out int envidoFlag, out int lastRaise);
         photonView.RPC(nameof(SyncMatchState), RpcTarget.Others,
             scoreLow, scoreHigh, turnActor, DataHandler.Instance.roundNumber, HandResolved ? 1 : 0,
-            type, chPts, mzPts, pendingFlag, raiser, responder, trucoLv, envidoFlag);
+            type, chPts, mzPts, pendingFlag, raiser, responder, trucoLv, envidoFlag, lastRaise);
         TrucoRulesScenarioLog.Ok("BroadcastMatchState by actor",
             "a" + lowActor + "=" + scoreLow + " a" + highActor + "=" + scoreHigh
             + " turn=" + turnActor + " round=" + DataHandler.Instance.roundNumber
@@ -395,7 +397,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     void SyncMatchState(int scoreLowActor, int scoreHighActor, int turnActor, int roundNum, int handResolvedFlag,
         int challengeType, int challengePts, int mazoPts, int pendingFlag,
-        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag)
+        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag, int lastTrucoRaiseActor = 0)
     {
         if (_isSpectator || _gameEnded) return;
         ApplyAuthoritativeScores(scoreLowActor, scoreHighActor);
@@ -419,7 +421,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             return;
         }
         ApplyChallengeSnapshot(challengeType, challengePts, mazoPts, pendingFlag,
-            raiserActor, responderActor, trucoLevel, envidoPlayedFlag);
+            raiserActor, responderActor, trucoLevel, envidoPlayedFlag, lastTrucoRaiseActor);
         if (pendingFlag == 1
             && responderActor == PhotonNetwork.LocalPlayer.ActorNumber
             && challengeType > 0)
@@ -437,7 +439,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     [PunRPC]
     void ApplyChallengeSnapshot(int challengeType, int challengePts, int mazoPts, int pendingFlag,
-        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag)
+        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag, int lastTrucoRaiseActor = 0)
     {
         if (_isSpectator || _gameEnded) return;
         lastChallengeType = (ChallengeType)challengeType;
@@ -447,10 +449,11 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             "ApplyChallengeSnapshot type=" + lastChallengeType + " pts=" + challengePts
             + " mazo=" + mazoPts + " pending=" + pendingFlag
             + " raiser=" + raiserActor + " responder=" + responderActor
-            + " trucoLv=" + trucoLevel + " envido=" + envidoPlayedFlag);
+            + " trucoLv=" + trucoLevel + " envido=" + envidoPlayedFlag
+            + " lastRaise=" + lastTrucoRaiseActor);
         UIMANAGER.Instance?.RestoreChallengeStateFromSync(
             lastChallengeType, pendingFlag == 1, raiserActor, responderActor,
-            trucoLevel, envidoPlayedFlag == 1);
+            trucoLevel, envidoPlayedFlag == 1, lastTrucoRaiseActor);
     }
 
     private void Start()
@@ -724,7 +727,10 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             otherPlayerDeniedFlor = true;
             lastChallengeType = ChallengeType.Truco;
             if (photonEvent.Sender > 0)
+            {
                 UIMANAGER.Instance.unAnsweredChallenges[ChallengeType.Truco] = photonEvent.Sender;
+                UIMANAGER.Instance.MarkTrucoRaiseByActor(photonEvent.Sender);
+            }
             TrucoRulesScenarioLog.Opp("RECV Truco", "fromActor=" + photonEvent.Sender + " responseTimer=30s");
             UIMANAGER.Instance.TrucoChallenged();
             SetCanPlayCard(false);
@@ -734,6 +740,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             TrucoRulesScenarioLog.Opp("RECV Retruco", "fromActor=" + photonEvent.Sender);
             challengePoints = 2;
+            if (photonEvent.Sender > 0)
+                UIMANAGER.Instance.MarkTrucoRaiseByActor(photonEvent.Sender);
             UIMANAGER.Instance.RetrucoChallenged();
             lastChallengeType = ChallengeType.Retruco;
             SetCanPlayCard(false);
@@ -743,6 +751,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             TrucoRulesScenarioLog.Opp("RECV Vale4", "fromActor=" + photonEvent.Sender);
             challengePoints = 3;
+            if (photonEvent.Sender > 0)
+                UIMANAGER.Instance.MarkTrucoRaiseByActor(photonEvent.Sender);
             UIMANAGER.Instance.Vale4Challenged();
             lastChallengeType = ChallengeType.Vale4;
             SetCanPlayCard(false);
@@ -1343,8 +1353,9 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public void EnvidoWinner(int ID, int _points)
     {
         if (_isSpectator) return;
-        FlushPendingScoringCardReveal();
-        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "EnvidoWinner flush scoring cards id=" + ID);
+        // Announce scores only — do NOT reveal cards mid-hand (flush on Winner / hand end).
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+            "EnvidoWinner points only (cards deferred) id=" + ID + " pts=" + _points);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             Debug.Log("You win!");
@@ -1359,10 +1370,12 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         SyncScoresAfterPointChange();
         if (myPlayerScoreHandler.GetCurrentScore() >= 15)
         {
+            FlushPendingScoringCardReveal();
             GameWon();
         }
         else if (otherPlayerScoreHandler.GetCurrentScore() >= 15)
         {
+            FlushPendingScoringCardReveal();
             GameLost();
         }
     }
@@ -1400,8 +1413,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     private void FaltaEnvidoWinner(int ID, int _points)
     {
         if (_isSpectator) return;
-        FlushPendingScoringCardReveal();
-        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "FaltaEnvidoWinner flush scoring cards id=" + ID);
+        TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+            "FaltaEnvidoWinner points (cards deferred unless hand/match ends) id=" + ID);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             myPlayerScoreHandler.UpdateScore(_points, true);
@@ -1415,9 +1428,15 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             UIMANAGER.Instance.DisableButtons();
         }
         if (myPlayerScoreHandler.GetCurrentScore() >= 15)
+        {
+            FlushPendingScoringCardReveal();
             GameWon();
+        }
         else if (otherPlayerScoreHandler.GetCurrentScore() >= 15)
+        {
+            FlushPendingScoringCardReveal();
             GameLost();
+        }
         else
         {
             if (!UIMANAGER.Instance.trucoPlayed)
@@ -1428,6 +1447,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                     SetCanPlayCard(true);
                 return;
             }
+            FlushPendingScoringCardReveal();
             SyncScoresAfterPointChange();
             PhotonNetwork.AutomaticallySyncScene = true;
             ResetGame();
