@@ -50,7 +50,10 @@ public static class TrucoClientSettings
     public static bool EnglishEnabled => Instance != null && Instance.englishEnabled;
     public static bool DebugLogsEnabled => Instance == null || Instance.debugLogsEnabled;
     public static bool ShowLanguageToggleInMenu =>
-        Instance != null && Instance.showLanguageToggleInMenu && SpanishEnabled && EnglishEnabled;
+        SpanishEnabled && EnglishEnabled;
+
+    /// <summary>Profile avatar screen always shows region + language (player prefs are source of truth).</summary>
+    public static bool ShowProfilePrefsBar => true;
 
     public static bool AutoLeaveAllMyLobbyMatchesOnRoomListOpen =>
         Instance == null || Instance.autoLeaveAllMyLobbyMatchesOnRoomListOpen;
@@ -81,10 +84,8 @@ public static class TrucoClientSettings
         if (es && !en) return TrucoLocalization.Lang.Spanish;
         if (en && !es) return TrucoLocalization.Lang.English;
         if (!es && !en) return TrucoLocalization.Lang.Spanish;
-        if (IsLanguageAllowed(preferred)) return preferred;
-        var def = Instance != null
-            ? (TrucoLocalization.Lang)Instance.defaultLanguage
-            : TrucoLocalization.Lang.Spanish;
-        return IsLanguageAllowed(def) ? def : TrucoLocalization.Lang.Spanish;
+        // Both enabled: keep player / PlayerPrefs choice — never force SO defaultLanguage.
+        if (preferred == TrucoLocalization.Lang.English) return TrucoLocalization.Lang.English;
+        return TrucoLocalization.Lang.Spanish;
     }
 }

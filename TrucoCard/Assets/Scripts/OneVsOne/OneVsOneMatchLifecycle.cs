@@ -50,13 +50,17 @@ public static class OneVsOneMatchLifecycle
         }
     }
 
-    public static async Task CancelLobbyMatchAsync(string matchId)
+    public static async Task<bool> CancelLobbyMatchAsync(string matchId, int expectedRefund = 0)
   {
-    if (string.IsNullOrEmpty(matchId)) return;
-    await ApiController.CancelPreGameMatch1v1(matchId);
-    TrucoActiveHostMatchStore.Clear();
-    TrucoRoomPersistence.Clear();
-    OneVsOneMatchSession.ClearSavedRoomPersistence();
+    if (string.IsNullOrEmpty(matchId)) return false;
+    bool ok = await ApiController.CancelPreGameMatch1v1(matchId, expectedRefund);
+    if (ok)
+    {
+      TrucoActiveHostMatchStore.Clear();
+      TrucoRoomPersistence.Clear();
+      OneVsOneMatchSession.ClearSavedRoomPersistence();
+    }
+    return ok;
   }
 
   /// <summary>POST /leave on every active lobby row for the logged-in user (refunds entry).</summary>

@@ -1,15 +1,22 @@
 using System;
 using UnityEngine;
 
-/// <summary>Spanish / English UI strings. Language + debug logging controlled by Resources/TrucoClientSettings.</summary>
+/// <summary>Spanish / English UI strings. PlayerPrefs + profile screen toggle language.</summary>
 public static class TrucoLocalization
 {
     public enum Lang { Spanish = 0, English = 1 }
 
     const string PrefKey = "truco_ui_lang";
+    const string ExplicitPickKey = "truco_ui_lang_explicit";
 
     static Lang _current = Lang.Spanish;
     static bool _loaded;
+
+    public static Lang DefaultLanguage => Lang.Spanish;
+
+    /// <summary>True after the player tapped ENG/SPN on the profile screen.</summary>
+    public static bool HasUserPickedLanguage =>
+        PlayerPrefs.GetInt(ExplicitPickKey, 0) == 1;
 
     public static Lang Current
     {
@@ -27,21 +34,32 @@ public static class TrucoLocalization
     {
         TrucoClientSettings.EnsureLoaded();
         Load();
-        ApplyFromSettings();
+        EnsureSpanishDefaultUnlessUserPicked();
     }
 
-    /// <summary>Re-apply language from <see cref="TrucoClientSettingsSO"/> (call after SO change or main menu open).</summary>
+    /// <summary>Spanish until the player explicitly picks ENG/SPN (ignores stale PlayerPrefs).</summary>
+    public static void EnsureSpanishDefaultUnlessUserPicked()
+    {
+        if (!_loaded) Load();
+        if (HasUserPickedLanguage) return;
+        if (_current == Lang.Spanish) return;
+        _current = Lang.Spanish;
+        PlayerPrefs.SetInt(PrefKey, (int)Lang.Spanish);
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>Clamp to languages allowed in TrucoClientSettings (does not override player choice with SO defaults).</summary>
     public static void ApplyFromSettings()
     {
         if (!_loaded) Load();
-        var resolved = TrucoClientSettings.ResolveLanguage(_current);
-        if (_current == resolved) return;
-        _current = resolved;
+        var clamped = TrucoClientSettings.ResolveLanguage(_current);
+        if (_current == clamped) return;
+        _current = clamped;
         PlayerPrefs.SetInt(PrefKey, (int)_current);
         PlayerPrefs.Save();
         OnLanguageChanged?.Invoke();
         TrucoDebugLog.Log(TrucoDebugLog.Category.Localization,
-            "Language → " + _current + " (ES=" + TrucoClientSettings.SpanishEnabled +
+            "Language clamped → " + _current + " (ES=" + TrucoClientSettings.SpanishEnabled +
             " EN=" + TrucoClientSettings.EnglishEnabled + ")");
     }
 
@@ -49,7 +67,13 @@ public static class TrucoLocalization
     {
         _loaded = true;
         TrucoClientSettings.EnsureLoaded();
-        _current = TrucoClientSettings.ResolveLanguage((Lang)PlayerPrefs.GetInt(PrefKey, (int)Lang.Spanish));
+        if (!HasUserPickedLanguage)
+        {
+            _current = DefaultLanguage;
+            return;
+        }
+        _current = TrucoClientSettings.ResolveLanguage(
+            (Lang)PlayerPrefs.GetInt(PrefKey, (int)DefaultLanguage));
     }
 
     public static void SetLanguage(Lang lang)
@@ -63,7 +87,13 @@ public static class TrucoLocalization
             return;
         }
         if (!_loaded) Load();
-        if (_current == lang) return;
+        PlayerPrefs.SetInt(ExplicitPickKey, 1);
+        if (_current == lang)
+        {
+            PlayerPrefs.SetInt(PrefKey, (int)lang);
+            PlayerPrefs.Save();
+            return;
+        }
         _current = lang;
         PlayerPrefs.SetInt(PrefKey, (int)lang);
         PlayerPrefs.Save();
@@ -71,8 +101,16 @@ public static class TrucoLocalization
         OnLanguageChanged?.Invoke();
     }
 
-    /// <summary>Legacy entry point — now delegates to <see cref="ApplyFromSettings"/>.</summary>
-    public static void ForceSpanish() => ApplyFromSettings();
+    /// <summary>Force Spanish and clear explicit pick (dev / reset).</summary>
+    public static void ForceSpanish()
+    {
+        _current = Lang.Spanish;
+        PlayerPrefs.SetInt(PrefKey, (int)Lang.Spanish);
+        PlayerPrefs.DeleteKey(ExplicitPickKey);
+        PlayerPrefs.Save();
+        _loaded = true;
+        OnLanguageChanged?.Invoke();
+    }
 
     public static bool IsEnglish => Current == Lang.English;
 
@@ -163,6 +201,11 @@ public static class TrucoLocalization
             case Key.ChampionCongrats: return "¡Felicitaciones, sos el campeón!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
+            case Key.LangSection: return "Idioma";
+            case Key.RegionLabel: return "Región";
+            case Key.RegionSouthAmerica: return "Sudamérica";
+            case Key.RegionAsia: return "Asia";
+            case Key.RegionEurope: return "Europa";
             case Key.ModoJuego: return "Modo de juego";
             case Key.ConFlor: return "Con Flor";
             case Key.SinFlor: return "Sin Flor";
@@ -281,6 +324,11 @@ public static class TrucoLocalization
             case Key.ChampionCongrats: return "Congratulations, you are the champion!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
+            case Key.LangSection: return "Language";
+            case Key.RegionLabel: return "Region";
+            case Key.RegionSouthAmerica: return "South America";
+            case Key.RegionAsia: return "Asia";
+            case Key.RegionEurope: return "Europe";
             case Key.ModoJuego: return "Game mode";
             case Key.ConFlor: return "w/ Flor";
             case Key.SinFlor: return "No Flor";
@@ -330,7 +378,8 @@ public static class TrucoLocalization
         GanastePartida, PerdistePartida, PerdisteMano, NuevaMano, FaltaPanelCrear,
         ValidandoContrasena, ContrasenaInvalida, ContrasenaIncorrecta, EntryPrizeFormat,
         CodigoMinPlaceholder, PleaseWait, PhotonCreateFailed, PhotonSyncWarning, PhotonConnectFailed, EsperandoAnfitrionPhoton, ChampionCongrats,
-        LangEng, LangSpn,
+        LangEng, LangSpn, LangSection,
+        RegionLabel, RegionSouthAmerica, RegionAsia, RegionEurope,
         ModoJuego, ConFlor, SinFlor,
         ConfirmLeaveLobbyTitle, ConfirmLeaveLobbyBody, ConfirmNoQuedarme, ConfirmSiSalir, SalaCanceladaReembolso,
         NotificacionesTitulo, NotificacionesVacio, LogExito, LogPendiente, LogAviso, LogInfo,

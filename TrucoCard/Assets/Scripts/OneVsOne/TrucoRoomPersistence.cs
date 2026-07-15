@@ -41,6 +41,8 @@ public static class TrucoRoomPersistence
 
     public static string LastMatchId() => PlayerPrefs.GetString(KeyMatch, "");
 
+    public static int LastEntryFee() => PlayerPrefs.GetInt(KeyEntry, 0);
+
     public static void RestoreSessionFromSaved(Player1v1Match match)
     {
         if (match == null) return;

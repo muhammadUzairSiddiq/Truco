@@ -23,7 +23,7 @@ public class TrucoClientSettingsSO : ScriptableObject
     [Tooltip("Used when both languages are enabled and the player has no saved preference.")]
     public DefaultLanguageOption defaultLanguage = DefaultLanguageOption.Spanish;
 
-    [Tooltip("Show ENG/SPN buttons on the main menu (only when both languages are enabled).")]
+    [Tooltip("Show region + ENG/SPN on the profile / avatar screen (language buttons only when both languages are enabled).")]
     public bool showLanguageToggleInMenu = true;
 
     [Header("Debug")]

@@ -37,6 +37,16 @@ public class TrucoPhotonRegionSettingsSOEditor : Editor
             TrucoPhotonRegionSettings.ApplyAsset(so);
             SyncPhotonServerSettingsAsset(so.RegionCode);
         }
+        GUI.backgroundColor = so.region == TrucoPhotonRegionSettingsSO.CloudRegion.Europe
+            ? new Color(0.75f, 0.65f, 1f) : Color.white;
+        if (GUILayout.Button("Use Europe", GUILayout.Height(32)))
+        {
+            Undo.RecordObject(so, "Photon region Europe");
+            so.region = TrucoPhotonRegionSettingsSO.CloudRegion.Europe;
+            EditorUtility.SetDirty(so);
+            TrucoPhotonRegionSettings.ApplyAsset(so);
+            SyncPhotonServerSettingsAsset(so.RegionCode);
+        }
         GUI.backgroundColor = Color.white;
         EditorGUILayout.EndHorizontal();
 
@@ -75,6 +85,12 @@ public class TrucoPhotonRegionSettingsSOEditor : Editor
     static void MenuAsia()
     {
         SetViaMenu(TrucoPhotonRegionSettingsSO.CloudRegion.Asia);
+    }
+
+    [MenuItem("TrucoCard/Photon Region/Europe")]
+    static void MenuEurope()
+    {
+        SetViaMenu(TrucoPhotonRegionSettingsSO.CloudRegion.Europe);
     }
 
     static void SetViaMenu(TrucoPhotonRegionSettingsSO.CloudRegion region)

@@ -22,5 +22,7 @@ MonoBehaviour:
     pathTemplate: /matches/{0}/walkover
   - key: MatchSubmitResult
     pathTemplate: /matches/{0}/result
+  - key: MatchRequestToken
+    pathTemplate: /matches/{0}/match-token
   - key: MatchPlayerLeave
     pathTemplate: /matches/{0}/leave

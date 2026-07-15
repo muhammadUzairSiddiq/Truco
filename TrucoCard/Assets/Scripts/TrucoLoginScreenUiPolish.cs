@@ -19,7 +19,7 @@ public static class TrucoLoginScreenUiPolish
 
     public static void Apply()
     {
-        TrucoLocalization.ApplyFromSettings();
+        TrucoLocalization.EnsureSpanishDefaultUnlessUserPicked();
 
         foreach (var btn in Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {

@@ -919,20 +919,22 @@ public static class ApiController
     /// Settle 1v1: POST /result (prize) with retries, then leave+end, then refresh wallet.
     /// Both clients may call this with the same winnerId — server should treat duplicate as OK.
     /// </summary>
-    public static async System.Threading.Tasks.Task Finalize1v1MatchAsMaster(string matchId, string winnerUserId, System.Action onSettled = null)
+    public static async System.Threading.Tasks.Task<bool> Finalize1v1MatchAsMaster(string matchId, string winnerUserId, System.Action onSettled = null)
         => await Finalize1v1MatchSettlement(matchId, winnerUserId, submitResult: true, onSettled);
 
     /// <summary>Guest also submits /result when it knows the winner (master alone was unreliable after mano master rotate).</summary>
-    public static async System.Threading.Tasks.Task Finalize1v1MatchAsGuest(string matchId, string winnerUserId = null, System.Action onSettled = null)
+    public static async System.Threading.Tasks.Task<bool> Finalize1v1MatchAsGuest(string matchId, string winnerUserId = null, System.Action onSettled = null)
         => await Finalize1v1MatchSettlement(matchId, winnerUserId, submitResult: !string.IsNullOrEmpty(winnerUserId), onSettled);
 
-    public static async System.Threading.Tasks.Task Finalize1v1MatchSettlement(
+    /// <returns>True when POST /result succeeded or was already settled; false when skipped or failed.</returns>
+    public static async System.Threading.Tasks.Task<bool> Finalize1v1MatchSettlement(
         string matchId,
         string winnerUserId,
         bool submitResult,
-        System.Action onSettled = null)
+        System.Action onSettled = null,
+        string loserUserId = null)
     {
-        if (string.IsNullOrEmpty(matchId)) return;
+        if (string.IsNullOrEmpty(matchId)) return false;
 
         int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
         bool secretOk = HttpApiClient.HasGameSecretConfigured();
@@ -959,10 +961,10 @@ public static class ApiController
             }
             else
             {
-                const int maxAttempts = 3;
+                const int maxAttempts = 5;
                 for (int attempt = 1; attempt <= maxAttempts; attempt++)
                 {
-                    resultOk = await SubmitMatchResult1v1(matchId, winnerUserId, msg =>
+                    resultOk = await SubmitMatchResult1v1(matchId, winnerUserId, loserUserId, msg =>
                     {
                         lastErr = msg;
                         Debug.LogWarning("[ApiController] - match result failed (attempt " + attempt + "): " + msg);
@@ -981,8 +983,9 @@ public static class ApiController
             }
         }
 
-        // Close lobby row even if result failed (avoid zombie rooms), but surface failure clearly.
-        await CloseMatchRowAfterGameAsync(matchId);
+        // Winner closes the row (/end only). Loser only refreshes wallet — never POST /leave post-game.
+        if (submitResult)
+            await CloseCompletedMatchRowAsync(matchId);
         TrucoActiveHostMatchStore.Clear();
         await GetCurrentUserProfile();
         int balAfter = GetSessionUser?.Data?.wallet?.balance ?? -1;
@@ -999,10 +1002,12 @@ public static class ApiController
         if (submitResult && !resultOk)
         {
             TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
-                "SETTLE /result failed (no player toast). winner=" + (winnerUserId ?? "?")
+                "SETTLE /result failed. winner=" + (winnerUserId ?? "?")
                 + " local=" + (GetSessionUser?.Data?._id ?? "?")
                 + " err=" + (lastErr ?? "?"));
         }
+
+        return resultOk;
     }
 
     static bool IsAlreadySettledError(string msg)
@@ -1014,16 +1019,39 @@ public static class ApiController
                || m.Contains("walkover") || m.Contains("closed") || m.Contains("ended");
     }
 
-    /// <summary>Pre-game cancel: POST /leave then /end so the lobby row disappears for everyone.</summary>
-    public static async System.Threading.Tasks.Task CancelPreGameMatch1v1(string matchId)
+    /// <summary>Pre-game cancel: POST /leave (refund) then /end so the lobby row disappears.</summary>
+    public static async System.Threading.Tasks.Task<bool> CancelPreGameMatch1v1(string matchId, int expectedRefund = 0)
     {
-        if (string.IsNullOrEmpty(matchId)) return;
-        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "CancelPreGameMatch1v1 match=" + matchId);
-        await CloseMatchRowAfterGameAsync(matchId);
+        if (string.IsNullOrEmpty(matchId)) return false;
+        int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+            "CancelPreGameMatch1v1 match=" + matchId + " balBefore=" + balBefore + " expectRefund=" + expectedRefund);
+        bool leaveOk = await CloseLobbyMatchForRefundAsync(matchId);
         if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
             TrucoActiveHostMatchStore.Clear();
         OneVsOneMatchSession.ClearSavedRoomPersistence();
-        await GetCurrentUserProfile();
+
+        for (int i = 0; i < 3; i++)
+        {
+            await GetCurrentUserProfile();
+            int balAfter = GetSessionUser?.Data?.wallet?.balance ?? -1;
+            bool balanceRefunded = WalletGainedAtLeast(balBefore, balAfter, expectedRefund);
+            TrucoRulesScenarioLog.Backend("CancelPreGame done",
+                "match=" + matchId + " leaveOk=" + leaveOk
+                + " balBefore=" + balBefore + " balAfter=" + balAfter
+                + " expectRefund=" + expectedRefund
+                + " delta=" + (balBefore >= 0 && balAfter >= 0 ? (balAfter - balBefore).ToString() : "?"));
+            if (leaveOk || balanceRefunded)
+            {
+                TrucoWalletHudRefresh.Apply();
+                return true;
+            }
+            if (i < 2)
+                await System.Threading.Tasks.Task.Delay(400 * (i + 1));
+        }
+
+        TrucoWalletHudRefresh.Apply();
+        return false;
     }
 
     /// <summary>
@@ -1038,7 +1066,7 @@ public static class ApiController
             "MUTUAL_DISCONNECT cancel+refund attempt match=" + matchId);
         try
         {
-            await CloseMatchRowAfterGameAsync(matchId);
+            await CloseLobbyMatchForRefundAsync(matchId);
             await GetCurrentUserProfile();
         }
         catch (Exception ex)
@@ -1057,12 +1085,15 @@ public static class ApiController
         if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(claimerUserId)) return false;
         try
         {
+            string matchToken = await RequestMatchToken1v1(matchId, onError);
             var body = new MatchWalkoverRequest { claimerId = claimerUserId };
             string json = JsonUtility.ToJson(body);
-            await HttpApiClient.PostAsync(ApiConfig.MatchWalkover(matchId), json, requireGameSecret: true);
+            TrucoRulesScenarioLog.Backend("POST /walkover attempt",
+                "match=" + matchId + " claimer=" + claimerUserId + " hasToken=" + !string.IsNullOrEmpty(matchToken));
+            await HttpApiClient.PostAsync(ApiConfig.MatchWalkover(matchId), json, requireGameSecret: true, matchToken: matchToken);
             TrucoRulesScenarioLog.Backend("POST /walkover OK", "match=" + matchId + " claimer=" + claimerUserId);
             TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "walkover claimed match=" + matchId + " claimer=" + claimerUserId);
-            await CloseMatchRowAfterGameAsync(matchId);
+            await CloseCompletedMatchRowAsync(matchId);
             await GetCurrentUserProfile();
             return true;
         }
@@ -1075,12 +1106,44 @@ public static class ApiController
         }
     }
 
+    /// <summary>Pre-game: /leave refunds entry, then /end closes the row. Returns true when /leave succeeded.</summary>
+    public static async System.Threading.Tasks.Task<bool> CloseLobbyMatchForRefundAsync(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return false;
+        bool left = false;
+        const int maxAttempts = 5;
+        for (int attempt = 1; attempt <= maxAttempts && !left; attempt++)
+        {
+            left = await TryNotifyPlayerLeftMatch1v1(matchId);
+            if (!left && attempt < maxAttempts)
+                await System.Threading.Tasks.Task.Delay(350 * attempt);
+        }
+        if (!left)
+        {
+            TrucoRulesScenarioLog.BackendFail("CloseLobbyMatchForRefund",
+                "POST /leave failed after retries match=" + matchId);
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+                "CloseLobbyMatchForRefund: POST /leave failed after retries match=" + matchId);
+            return false;
+        }
+
+        await System.Threading.Tasks.Task.Delay(200);
+        await TryEndMatch1v1(matchId);
+        return true;
+    }
+
+    /// <summary>After /result or /walkover: close row only — do NOT POST /leave (re-deducts winner).</summary>
+    public static async System.Threading.Tasks.Task CloseCompletedMatchRowAsync(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        await TryEndMatch1v1(matchId);
+    }
+
     /// <summary>Leave + end so GET /matches drops the row (backend + Photon webhooks also clean zombies).</summary>
     public static async System.Threading.Tasks.Task CloseMatchRowAfterGameAsync(string matchId)
     {
         if (string.IsNullOrEmpty(matchId)) return;
-        await TryNotifyPlayerLeftMatch1v1(matchId);
-        await TryEndMatch1v1(matchId);
+        await CloseLobbyMatchForRefundAsync(matchId);
     }
 
     /// <summary>Backward-compatible alias — prefer <see cref="Finalize1v1MatchAsMaster"/>.</summary>
@@ -1148,20 +1211,91 @@ public static class ApiController
     }
 
     /// <summary>
+    /// Anti-cheat: short-lived token from POST /match-token — required for /result and /walkover.
+    /// </summary>
+    public static async Task<string> RequestMatchToken1v1(string matchId, Action<string> onError = null)
+    {
+        if (string.IsNullOrEmpty(matchId)) return null;
+        try
+        {
+            string response = await HttpApiClient.PostAsync(ApiConfig.MatchRequestToken(matchId), "{}");
+            string token = ParseMatchTokenFromJson(response);
+            TrucoRulesScenarioLog.Backend("POST /match-token OK",
+                "match=" + matchId + " hasToken=" + !string.IsNullOrEmpty(token));
+            if (string.IsNullOrEmpty(token))
+            {
+                string msg = "match-token response missing token field";
+                onError?.Invoke(msg);
+                TrucoRulesScenarioLog.BackendFail("POST /match-token", msg + " raw=" + TruncateForLog(response, 120));
+            }
+            return token;
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex.Message);
+            TrucoRulesScenarioLog.BackendFail("POST /match-token", "match=" + matchId + " err=" + ex.Message);
+            return null;
+        }
+    }
+
+    static string ParseMatchTokenFromJson(string response)
+    {
+        if (string.IsNullOrEmpty(response)) return null;
+        try
+        {
+            var flat = JsonUtility.FromJson<MatchTokenResponse>(response);
+            if (!string.IsNullOrEmpty(flat?.matchToken)) return flat.matchToken.Trim();
+            if (!string.IsNullOrEmpty(flat?.token)) return flat.token.Trim();
+            if (!string.IsNullOrEmpty(flat?.data?.matchToken)) return flat.data.matchToken.Trim();
+            if (!string.IsNullOrEmpty(flat?.data?.token)) return flat.data.token.Trim();
+        }
+        catch { }
+
+        string lower = response.ToLowerInvariant();
+        foreach (string key in new[] { "matchtoken", "match_token", "token" })
+        {
+            int idx = lower.IndexOf("\"" + key + "\"", StringComparison.Ordinal);
+            if (idx < 0) continue;
+            int colon = response.IndexOf(':', idx);
+            if (colon < 0) continue;
+            int q1 = response.IndexOf('"', colon + 1);
+            if (q1 < 0) continue;
+            int q2 = response.IndexOf('"', q1 + 1);
+            if (q2 <= q1) continue;
+            string val = response.Substring(q1 + 1, q2 - q1 - 1).Trim();
+            if (!string.IsNullOrEmpty(val)) return val;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Reports winner; backend should mark match finished, settle coins, and remove both players from the joinable lobby
     /// (e.g. empty <c>players</c> or status <c>completed</c>) so new joins are not blocked by "Match is full".
     /// </summary>
-    public static async Task<bool> SubmitMatchResult1v1(string matchId, string winnerUserId, Action<string> onError = null)
+    public static async Task<bool> SubmitMatchResult1v1(
+        string matchId,
+        string winnerUserId,
+        string loserUserId = null,
+        Action<string> onError = null)
     {
         if (string.IsNullOrEmpty(matchId) || string.IsNullOrEmpty(winnerUserId)) return false;
         string url = ApiConfig.MatchSubmitResult(matchId);
         try
         {
-            var body = new MatchResultSubmitRequest { winnerId = winnerUserId, status = "completed" };
+            string matchToken = await RequestMatchToken1v1(matchId, onError);
+            var body = new MatchResultSubmitRequest
+            {
+                winnerId = winnerUserId,
+                loserId = loserUserId,
+                status = "completed",
+                matchToken = matchToken
+            };
             string json = JsonUtility.ToJson(body);
             TrucoRulesScenarioLog.Backend("POST /result attempt",
-                "url=" + url + " body=" + json + " secret=" + HttpApiClient.HasGameSecretConfigured());
-            string response = await HttpApiClient.PostAsync(url, json, requireGameSecret: true);
+                "url=" + url + " body=" + json
+                + " secret=" + HttpApiClient.HasGameSecretConfigured()
+                + " hasToken=" + !string.IsNullOrEmpty(matchToken));
+            string response = await HttpApiClient.PostAsync(url, json, requireGameSecret: true, matchToken: matchToken);
             TrucoRulesScenarioLog.Backend("POST /result OK",
                 "match=" + matchId + " winner=" + winnerUserId
                 + " response=" + TruncateForLog(response, 200));
@@ -1199,9 +1333,33 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.LogWarning("[ApiController] - TryNotifyPlayerLeftMatch1v1 (add POST /matches/:id/leave on server if needed): " + ex.Message);
+            if (IsBenignLeaveMatchError(ex.Message))
+            {
+                TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+                    "match leave benign (treat OK): " + matchId + " — " + ex.Message);
+                return true;
+            }
+            TrucoRulesScenarioLog.BackendFail("POST /leave", "match=" + matchId + " err=" + ex.Message);
+            Debug.LogWarning("[ApiController] - TryNotifyPlayerLeftMatch1v1: " + ex.Message);
             return false;
         }
+    }
+
+    static bool IsBenignLeaveMatchError(string msg)
+    {
+        if (string.IsNullOrEmpty(msg)) return false;
+        string m = msg.ToLowerInvariant();
+        return m.Contains("already left") || m.Contains("already removed")
+               || m.Contains("not a participant") || m.Contains("not in match")
+               || m.Contains("not in this match") || m.Contains("no longer")
+               || m.Contains("not found") || m.Contains("cancelled") || m.Contains("canceled");
+    }
+
+    static bool WalletGainedAtLeast(int balBefore, int balAfter, int minGain)
+    {
+        if (balBefore < 0 || balAfter < 0) return false;
+        if (minGain <= 0) return balAfter > balBefore;
+        return balAfter >= balBefore + minGain;
     }
 
     public struct LobbyPurgeResult
@@ -1242,10 +1400,18 @@ public static class ApiController
     static async System.Threading.Tasks.Task<bool> TryCloseLobbyMatchForUserAsync(Player1v1Match m, string userId)
     {
         if (m == null || string.IsNullOrEmpty(m._id) || string.IsNullOrEmpty(userId)) return false;
-        if (await TryNotifyPlayerLeftMatch1v1(m._id))
+        int stake = m.GetEntryStake();
+        int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
+        bool leaveOk = await CloseLobbyMatchForRefundAsync(m._id);
+        await GetCurrentUserProfile();
+        int balAfter = GetSessionUser?.Data?.wallet?.balance ?? -1;
+        if (leaveOk || WalletGainedAtLeast(balBefore, balAfter, stake))
             return true;
-        if (await TryEndMatch1v1Bool(m._id))
-            return true;
+
+        // Never POST /end without a successful /leave — that closes the row with NO refund.
+        TrucoRulesScenarioLog.BackendFail("Purge lobby close",
+            "match=" + m._id + " leaveOk=false stake=" + stake
+            + " balBefore=" + balBefore + " balAfter=" + balAfter);
         if (m.IsCurrentUserHostOfRoom() || OneVsOneLobbyFlowRules.MatchBelongsToUser(m, userId))
             return await AdminForceCloseMatch1v1(m._id);
         return false;

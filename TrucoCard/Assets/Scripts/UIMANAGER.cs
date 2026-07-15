@@ -63,6 +63,8 @@ public class UIMANAGER : MonoBehaviour
     [SerializeField] private GameObject mazo;
     
     public bool _envidoPlayed = false;
+    /// <summary>Flor already called this hand — button stays off until next deal.</summary>
+    public bool _florPlayed = false;
     public bool trucoPlayed = false;
     /// <summary>Actor who last raised Truco/Retruco/Vale4 — opponent alone may raise the next level.</summary>
     public int LastTrucoRaiseActor { get; private set; }
@@ -100,6 +102,7 @@ public class UIMANAGER : MonoBehaviour
         _challengeAccepted = false;
         trucoPlayed = false;
         _envidoPlayed = false;
+        _florPlayed = false;
         LastTrucoRaiseActor = 0;
         unAnsweredChallenges.Clear();
         invokedChallenges.Clear();
@@ -225,13 +228,22 @@ public class UIMANAGER : MonoBehaviour
     /// <summary>After Quiero/NoQuiero closes a canto — clear pending flags and restart turn clocks on BOTH seats.</summary>
     void FinishChallengeUiAndRestartTimers(string reason)
     {
-        _isChallengepPending = false;
+        // Keep pending when a stacked canto still waits (e.g. Truco after Envido No quiero).
+        if (unAnsweredChallenges.Count == 0)
+            _isChallengepPending = false;
         CancelChallengeResponseCountdown();
         TrucoRulesScenarioLog.Ok("ChallengeClosed → restart timers",
             "reason=" + reason
             + " unanswered=" + unAnsweredChallenges.Count
+            + " pending=" + _isChallengepPending
             + " myTurn=" + (GameManager.Instance != null && GameManager.Instance.IsMyTurn()));
         TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
+    }
+
+    /// <summary>True when any canto is still unresolved on this client.</summary>
+    bool HasUnresolvedChallengeState()
+    {
+        return _isChallengepPending || unAnsweredChallenges.Count > 0;
     }
 
     System.Collections.IEnumerator ChallengeResponseCountdown()
@@ -538,7 +550,8 @@ public class UIMANAGER : MonoBehaviour
         if (forfeit)
             _ = OneVsOneMatchLifecycle.ForfeitActiveMatchAsync(OneVsOneMatchSession.CurrentMatchId);
         TrucoReturnFromGameplayCleanup.MarkLeavingGameplay(
-            forfeit || (GameManager.Instance != null && GameManager.Instance._gameEnded));
+            forfeit || (GameManager.Instance != null
+                && (GameManager.Instance._gameEnded || GameManager.Instance.Is1v1SettlementBusy())));
         if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
         PhotonNetwork.Disconnect();
         TrucoSceneTransition.Go("MainMenu");
@@ -563,9 +576,12 @@ public class UIMANAGER : MonoBehaviour
             DisableButtons();
             return;
         }
-        // Challenge response UI (Quiero/No quiero / Flor) is configured by *Challenged methods.
-        if (_isChallengepPending && unAnsweredChallenges.Count > 0)
+        // Challenge response UI is configured by *Challenged methods — block play buttons while any canto is open.
+        if (HasUnresolvedChallengeState())
+        {
+            if (mazo != null) mazo.SetActive(false);
             return;
+        }
 
         foreach (GameObject button in allUiButtons)
         {
@@ -591,7 +607,8 @@ public class UIMANAGER : MonoBehaviour
         }
 
         // Flor locks all Envido variants for the rest of the hand.
-        bool florLocked = invokedChallenges.Contains(ChallengeType.Flor)
+        bool florLocked = _florPlayed
+                          || invokedChallenges.Contains(ChallengeType.Flor)
                           || invokedChallenges.Contains(ChallengeType.ContraFlor)
                           || invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
                           || invokedChallenges.Contains(ChallengeType.FlorChica);
@@ -620,7 +637,8 @@ public class UIMANAGER : MonoBehaviour
                     faltaEnvido.SetActive(true);
                 }
                 if (OneVsOneMatchSession.WithFlor
-                                                         && GameManager.Instance.PlayerHasFlor() && !invokedChallenges.Contains(ChallengeType.Flor) 
+                                                         && GameManager.Instance.PlayerHasFlor() && !_florPlayed
+                                                         && !invokedChallenges.Contains(ChallengeType.Flor) 
                                                          && !invokedChallenges.Contains(ChallengeType.Envido)
                                                          && !invokedChallenges.Contains(ChallengeType.FaltaEnvido)
                                                          && !invokedChallenges.Contains(ChallengeType.RealEnvido)
@@ -1209,10 +1227,7 @@ public class UIMANAGER : MonoBehaviour
                 GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
             {
                 if (!invokedChallenges.Contains(ChallengeType.Truco))
-                {
                     truco.SetActive(true);
-                    mazo.SetActive(true);
-                }
             }
             Debug.LogWarning("Setting My turn Again");
             GameManager.Instance.SetCanPlayCard(true);
@@ -1231,6 +1246,7 @@ public class UIMANAGER : MonoBehaviour
     {
          MarkChallengeSentNow();
          _isChallengepPending = true;
+        _florPlayed = true;
         invokedChallenges.Add(ChallengeType.Flor);
         // This block of code checks if other player has already denied FLor and gives local player points
         if (GameManager.Instance.otherPlayerDeniedFlor)
@@ -1301,6 +1317,7 @@ public class UIMANAGER : MonoBehaviour
         TrucoGameplayAudio.PlayLocalRaise(FLOR_CHICA_CHALLENGE);
         MarkChallengeSentNow();
         _isChallengepPending = false;
+        _florPlayed = true;
         invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
         flor.SetActive(false);
@@ -1328,6 +1345,7 @@ public class UIMANAGER : MonoBehaviour
         TrucoGameplayAudio.PlayLocalRaise(CON_FLOR_QUIERO_CHALLENGE);
         MarkChallengeSentNow();
         _isChallengepPending = true;
+        _florPlayed = true;
         invokedChallenges.Add(ChallengeType.Flor);
         invokedChallenges.Add(ChallengeType.ConFlorQuiero);
         DisableButtons();
@@ -1357,6 +1375,7 @@ public class UIMANAGER : MonoBehaviour
         TrucoGameplayAudio.PlayLocalRaise(CONTRA_FLOR_CHALLENGE);
         MarkChallengeSentNow();
         _isChallengepPending = true;
+        _florPlayed = true;
         invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
         truco.SetActive(false);
@@ -1431,7 +1450,7 @@ public class UIMANAGER : MonoBehaviour
             envido.SetActive(true);
             realEnvido.SetActive(true);
             faltaEnvido.SetActive(true);
-            if (GameManager.Instance.PlayerHasFlor())
+            if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
             {
                 flor.SetActive(true);
             }
@@ -1531,7 +1550,7 @@ public class UIMANAGER : MonoBehaviour
                 mazo.SetActive(true);
             }
 
-            if (GameManager.Instance.PlayerHasFlor())
+            if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
             {
                 flor.SetActive(true);
             }
@@ -1596,7 +1615,7 @@ public class UIMANAGER : MonoBehaviour
             {
                 mazo.SetActive(true);
             }
-            if (GameManager.Instance.PlayerHasFlor())
+            if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
             {
                 flor.SetActive(true);
             }
@@ -1619,7 +1638,8 @@ public class UIMANAGER : MonoBehaviour
         contraFlor.SetActive(false);
         conFlorQuiero.SetActive(false);
         florChica.SetActive(false);
-        if (GameManager.Instance.PlayerHasFlor() && !invokedChallenges.Contains(ChallengeType.Flor) 
+        if (GameManager.Instance.PlayerHasFlor() && !_florPlayed
+                                                 && !invokedChallenges.Contains(ChallengeType.Flor) 
                                                  && !invokedChallenges.Contains(ChallengeType.Envido)
                                                  && !invokedChallenges.Contains(ChallengeType.Truco))
         {
@@ -1631,6 +1651,7 @@ public class UIMANAGER : MonoBehaviour
     public void FlorChallenged()
     {
         _isChallengepPending = true;
+        _florPlayed = true;
         if (!invokedChallenges.Contains(ChallengeType.Flor))
             invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
@@ -1644,7 +1665,7 @@ public class UIMANAGER : MonoBehaviour
         contraFlor.SetActive(true);
         queiro.SetActive(false);
         noQueiro.SetActive(false);
-        if (mazo != null) mazo.SetActive(true);
+        if (mazo != null) mazo.SetActive(false);
     }
 
     // This is called When Other player Challenges us with this Challenge

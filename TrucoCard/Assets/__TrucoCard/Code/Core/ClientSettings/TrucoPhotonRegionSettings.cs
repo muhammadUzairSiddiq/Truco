@@ -52,13 +52,17 @@ public static class TrucoPhotonRegionSettings
         get
         {
             EnsureLoaded();
-            if (_so != null && !string.IsNullOrEmpty(_so.playerPrefsOverrideKey))
+            string key = _so != null && !string.IsNullOrEmpty(_so.playerPrefsOverrideKey)
+                ? _so.playerPrefsOverrideKey
+                : "TrucoPhotonRegion";
+            if (PlayerPrefs.HasKey(key))
             {
-                string pref = PlayerPrefs.GetString(_so.playerPrefsOverrideKey, string.Empty);
+                string pref = PlayerPrefs.GetString(key, string.Empty);
                 if (TrucoPhotonRegionSettingsSO.TryParseCode(pref, out var fromPref))
                     return TrucoPhotonRegionSettingsSO.CodeFor(fromPref);
             }
-            return _so != null ? _so.RegionCode : "sa";
+            // Player never picked a region — default South America (not SO override at runtime).
+            return "sa";
         }
     }
 

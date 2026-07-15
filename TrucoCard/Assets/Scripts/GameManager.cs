@@ -65,6 +65,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     private bool _isInTournament = false;
     private bool _tournamentMatchFinalized = false;
     private bool _1v1ResultPosted;
+    private bool _1v1SettlementBusy;
     [SerializeField] private bool _isSpectator;
 
     /// <summary>Winner/Mazo already applied this hand — blocks duplicate +2 from timeout ensure.</summary>
@@ -508,7 +509,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     void OnDestroy()
     {
         CancelInvoke(nameof(CacheTrucoOpponentUserId));
-        if (!_isSpectator) TrucoReturnFromGameplayCleanup.MarkLeavingGameplay(_1v1ResultPosted);
+        if (!_isSpectator)
+            TrucoReturnFromGameplayCleanup.MarkLeavingGameplay(_1v1ResultPosted || _1v1SettlementBusy);
     }
 
     void CacheTrucoOpponentUserId()
@@ -520,6 +522,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     /// <summary>Public for <see cref="TrucoPunReconnectionManager"/> / UI exit.</summary>
     public bool IsTournamentGameplay() => _isInTournament;
+
+    public bool Is1v1SettlementBusy() => _1v1SettlementBusy;
 
     /// <summary>After reconnect window expires: 1v1 = if match started and we could not rejoin, treat as mutual disconnect (cancel+refund attempt) unless a stayer already claimed walkover. Tournament = leave + loss.</summary>
     public void HandleReconnectionFailedExit()
@@ -887,6 +891,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             if (autoAward)
             {
                 TrucoRulesScenarioLog.Opp("RECV Flor AUTO-AWARD +3", "fromActor=" + photonEvent.Sender);
+                UIMANAGER.Instance._florPlayed = true;
                 UIMANAGER.Instance.invokedChallenges.Add(ChallengeType.Flor);
                 if (PhotonNetwork.IsMasterClient && photonEvent.Sender > 0)
                     BroadcastNetworkAward(photonEvent.Sender, 3, false);
@@ -897,6 +902,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             if (deniedFlor)
             {
                 TrucoRulesScenarioLog.Opp("RECV Flor → auto +3 (local deniedFlor)", "fromActor=" + photonEvent.Sender);
+                UIMANAGER.Instance._florPlayed = true;
                 UIMANAGER.Instance.invokedChallenges.Add(ChallengeType.Flor);
                 if (PhotonNetwork.IsMasterClient && photonEvent.Sender > 0)
                     BroadcastNetworkAward(photonEvent.Sender, 3, false);
@@ -1785,33 +1791,82 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             ResetGame();
     }
 
-    void TryReport1v1MatchToBackend(string winnerUserId, System.Action onSettled = null)
+  void TryReport1v1MatchToBackend(string winnerUserId, System.Action onSettled = null, bool submitResult = true)
     {
-        if (_isInTournament || _isSpectator) return;
-        if (string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId)) return;
-        if (_1v1ResultPosted) return;
+        StartCoroutine(CoSettle1v1MatchBackend(winnerUserId, onSettled, submitResult));
+    }
 
-        string resolvedWinner = winnerUserId;
-        if (string.IsNullOrEmpty(resolvedWinner))
+    static string ResolveWinnerIdForSettlement(string winnerUserId, bool submitResult)
+    {
+        if (!string.IsNullOrEmpty(winnerUserId)) return winnerUserId;
+        if (!submitResult) return null;
+        return PhotonPlayerHelper.GetLocalTrucoPlayerUserId();
+    }
+
+    IEnumerator CoSettle1v1MatchBackend(string winnerUserId, System.Action onSettled, bool submitResult)
+    {
+        if (_isInTournament || _isSpectator) yield break;
+        if (string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId)) yield break;
+        if (_1v1ResultPosted && submitResult)
+        {
+            var refreshTask = ApiController.GetCurrentUserProfile();
+            while (!refreshTask.IsCompleted) yield return null;
+            onSettled?.Invoke();
+            TrucoWalletHudRefresh.Apply();
+            yield break;
+        }
+        if (_1v1SettlementBusy) yield break;
+
+        string resolvedWinner = ResolveWinnerIdForSettlement(winnerUserId, submitResult);
+        if (submitResult && string.IsNullOrEmpty(resolvedWinner))
         {
             TrucoRulesScenarioLog.BackendFail("POST /result skipped",
                 "winnerUserId empty after resolve — check Photon userId props + CachedOpponentUserId");
-            return;
+            yield break;
         }
 
-        _1v1ResultPosted = true;
+        _1v1SettlementBusy = true;
         string matchId = OneVsOneMatchSession.CurrentMatchId;
         int bal = ApiController.GetSessionUser?.Data?.wallet?.balance ?? -1;
-        TrucoRulesScenarioLog.Backend("POST /result start",
+        TrucoRulesScenarioLog.Backend(submitResult ? "POST /result start" : "SETTLE loser backup /result",
             "match=" + matchId
-            + " winnerUserId=" + resolvedWinner
+            + " winnerUserId=" + (resolvedWinner ?? "null")
+            + " submitResult=" + submitResult
             + " localActor=" + PhotonNetwork.LocalPlayer.ActorNumber
             + " isMaster=" + PhotonNetwork.IsMasterClient
-            + " secretConfigured=" + HttpApiClient.HasGameSecretConfigured()
             + " bal=" + bal);
-        // Both clients submit the same winnerId (idempotent). Guest used to skip /result after
-        // master rotate, so the prize never landed when only the guest knew the winner id.
-        _ = ApiController.Finalize1v1MatchSettlement(matchId, resolvedWinner, submitResult: true, onSettled);
+
+        var settleTask = ApiController.Finalize1v1MatchSettlement(
+            matchId, resolvedWinner, submitResult, onSettled, ResolveLoserIdForSettlement(resolvedWinner, submitResult));
+        while (!settleTask.IsCompleted) yield return null;
+
+        bool ok = false;
+        try { ok = settleTask.Result; }
+        catch (System.Exception ex)
+        {
+            TrucoRulesScenarioLog.BackendFail("SETTLE task", ex.Message);
+        }
+
+        if (submitResult && ok)
+            _1v1ResultPosted = true;
+
+        _1v1SettlementBusy = false;
+
+        if (submitResult && !ok)
+            AppManager.Instance?.DisplayNotification(TrucoTextosClient.ErrorPremioNoConfirmado);
+
+        TrucoWalletHudRefresh.Apply();
+    }
+
+    static string ResolveLoserIdForSettlement(string winnerUserId, bool submitResult)
+    {
+        if (!submitResult || string.IsNullOrEmpty(winnerUserId)) return null;
+        string local = PhotonPlayerHelper.GetLocalTrucoPlayerUserId();
+        if (!string.IsNullOrEmpty(local) && local == winnerUserId)
+            return ResolveOpponentUserIdForSettlement();
+        if (!string.IsNullOrEmpty(local) && local != winnerUserId)
+            return local;
+        return ResolveOpponentUserIdForSettlement();
     }
 
     static string ResolveOpponentUserIdForSettlement()
@@ -1836,18 +1891,15 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         string claimerId = PhotonPlayerHelper.GetLocalTrucoPlayerUserId();
         if (!string.IsNullOrEmpty(matchId) && !string.IsNullOrEmpty(claimerId) && !_1v1ResultPosted)
         {
-            _1v1ResultPosted = true;
             bool ok = await ApiController.ClaimWalkover1v1(matchId, claimerId, err =>
             {
                 TrucoRulesScenarioLog.BackendFail("ClaimWalkover", err);
                 Debug.LogWarning("[GameManager] walkover API: " + err);
             });
-            if (!ok)
-            {
-                // Fallback if walkover route rejects — still settle via /result when possible.
-                _1v1ResultPosted = false;
+            if (ok)
+                _1v1ResultPosted = true;
+            else
                 TryReport1v1MatchToBackend(claimerId);
-            }
         }
         GameWon();
     }
@@ -1855,61 +1907,72 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     private void GameLost()
     {
         if (_gameEnded) return;
-        CancelPendingHandRestart();
-        TrucoRulesScenarioLog.Ok("GameLost UI + backend settle",
-            "me=" + myPlayerScoreHandler.GetCurrentScore()
-            + " opp=" + otherPlayerScoreHandler.GetCurrentScore());
-        int entryFee = OneVsOneMatchSession.EntryFee;
-        TryReport1v1MatchToBackend(ResolveOpponentUserIdForSettlement(),
-            () => TrucoMatchEndUiPolish.RefreshBalance(losePanel));
-        TrucoMatchProgress.ClearAllMatchMemory();
-        photonView.Controller.SetScore(myPlayerScoreHandler.GetCurrentScore());
-        UIMANAGER.Instance.DisableButtons();
-
-        if (_isInTournament && !_tournamentMatchFinalized)
-        {
-            OnTournamentMatchLose();
-        }
-        else
-        {
-            // Lose panel owns the copy — no IMPORTANT toast that can look like a win/prize message.
-            losePanel.SetActive(true);
-            TrucoMatchEndUiPolish.Apply(losePanel, false, entryFee);
-            ToggleMenuBtns(true);
-        }
-
-        _gameEnded = true;
-        FinalizePhotonRoomAfterMatchEnd();
+        StartCoroutine(CoShowMatchEndPanel(false));
     }
 
     private void GameWon()
     {
         if (_gameEnded) return;
+        StartCoroutine(CoShowMatchEndPanel(true));
+    }
+
+    IEnumerator CoShowMatchEndPanel(bool won)
+    {
         CancelPendingHandRestart();
-        TrucoRulesScenarioLog.Ok("GameWon UI + backend settle",
-            "me=" + myPlayerScoreHandler.GetCurrentScore()
-            + " opp=" + otherPlayerScoreHandler.GetCurrentScore()
-            + " fee=" + OneVsOneMatchSession.EntryFee);
         int entryFee = OneVsOneMatchSession.EntryFee;
-        TryReport1v1MatchToBackend(ApiController.GetSessionUser?.Data?._id,
-            () => TrucoMatchEndUiPolish.RefreshBalance(winPanel));
+        int me = myPlayerScoreHandler.GetCurrentScore();
+        int opp = otherPlayerScoreHandler.GetCurrentScore();
+        TrucoRulesScenarioLog.Ok(won ? "GameWon UI + backend settle" : "GameLost UI + backend settle",
+            "me=" + me + " opp=" + opp + (won ? " fee=" + entryFee : ""));
+
         TrucoMatchProgress.ClearAllMatchMemory();
-        // Win panel owns title + prize + balance — no IMPORTANT prize/support toasts.
         UIMANAGER.Instance.DisableButtons();
+        _gameEnded = true;
+        FinalizePhotonRoomAfterMatchEnd();
+
+        if (!_isInTournament && !_isSpectator)
+        {
+            if (won)
+            {
+                yield return CoSettle1v1MatchBackend(
+                    PhotonPlayerHelper.GetLocalTrucoPlayerUserId(),
+                    () => TrucoMatchEndUiPolish.RefreshBalance(winPanel),
+                    submitResult: true);
+            }
+            else
+            {
+                string opponentWinner = ResolveOpponentUserIdForSettlement();
+                yield return CoSettle1v1MatchBackend(
+                    opponentWinner,
+                    () => TrucoMatchEndUiPolish.RefreshBalance(losePanel),
+                    submitResult: !string.IsNullOrEmpty(opponentWinner));
+            }
+        }
+
+        if (!won)
+            photonView.Controller.SetScore(myPlayerScoreHandler.GetCurrentScore());
 
         if (_isInTournament && !_tournamentMatchFinalized)
         {
-            OnTournamentMatchWon();
+            if (won) OnTournamentMatchWon();
+            else OnTournamentMatchLose();
+            yield break;
         }
-        else
+
+        if (won)
         {
             winPanel.SetActive(true);
             TrucoMatchEndUiPolish.Apply(winPanel, true, entryFee);
-            ToggleMenuBtns(true);
+            TrucoMatchEndUiPolish.RefreshBalance(winPanel);
+        }
+        else
+        {
+            losePanel.SetActive(true);
+            TrucoMatchEndUiPolish.Apply(losePanel, false, entryFee);
+            TrucoMatchEndUiPolish.RefreshBalance(losePanel);
         }
 
-        _gameEnded = true;
-        FinalizePhotonRoomAfterMatchEnd();
+        ToggleMenuBtns(true);
     }
 
     void CancelPendingHandRestart()

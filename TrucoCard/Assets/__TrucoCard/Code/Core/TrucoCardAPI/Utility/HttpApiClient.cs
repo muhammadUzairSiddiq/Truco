@@ -24,17 +24,27 @@ public static class HttpApiClient
     /// Perform POST request with JSON body, replay-protection headers, and optional game secret.
     /// Automatically refreshes token on 401/403.
     /// </summary>
-    public static async Task<string> PostAsync(string url, string jsonBody = null, bool requireGameSecret = false)
+    public static async Task<string> PostAsync(
+        string url,
+        string jsonBody = null,
+        bool requireGameSecret = false,
+        string matchToken = null)
     {
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "POST " + url);
-        return await SendRequestAsync(url, "POST", jsonBody, isRetry: false, authToken: null, requireGameSecret: requireGameSecret);
+        return await SendRequestAsync(url, "POST", jsonBody, isRetry: false, authToken: null,
+            requireGameSecret: requireGameSecret, matchToken: matchToken);
     }
 
     /// <summary>PUT with replay-protection headers (backend requires x-nonce / x-timestamp on mutating requests).</summary>
-    public static async Task<string> PutAsync(string url, string jsonBody = null, bool requireGameSecret = false)
+    public static async Task<string> PutAsync(
+        string url,
+        string jsonBody = null,
+        bool requireGameSecret = false,
+        string matchToken = null)
     {
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "PUT " + url);
-        return await SendRequestAsync(url, "PUT", jsonBody, isRetry: false, authToken: null, requireGameSecret: requireGameSecret);
+        return await SendRequestAsync(url, "PUT", jsonBody, isRetry: false, authToken: null,
+            requireGameSecret: requireGameSecret, matchToken: matchToken);
     }
 
     private static async Task<string> SendRequestAsync(
@@ -43,7 +53,8 @@ public static class HttpApiClient
         string jsonBody = null,
         bool isRetry = false,
         string authToken = null,
-        bool requireGameSecret = false)
+        bool requireGameSecret = false,
+        string matchToken = null)
     {
         using (UnityWebRequest req = new UnityWebRequest(url, method))
         {
@@ -72,6 +83,12 @@ public static class HttpApiClient
             if (requireGameSecret)
                 AttachGameSecretHeader(req);
 
+            if (!string.IsNullOrEmpty(matchToken))
+            {
+                req.SetRequestHeader("x-match-token", matchToken);
+                TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "x-match-token attached");
+            }
+
             var tcs = new TaskCompletionSource<UnityWebRequest>();
             req.SendWebRequest().completed += _ => tcs.TrySetResult(req);
             await tcs.Task;
@@ -90,7 +107,7 @@ public static class HttpApiClient
                 if (refreshed)
                 {
                     TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Session refreshed. Retrying original request...");
-                    return await SendRequestAsync(url, method, jsonBody, true, authToken, requireGameSecret);
+                    return await SendRequestAsync(url, method, jsonBody, true, authToken, requireGameSecret, matchToken);
                 }
             }
 
