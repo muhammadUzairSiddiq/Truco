@@ -60,6 +60,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     bool _pendingScoringCardReveal;
     string _pendingRevealMasterJson = "{}";
     string _pendingRevealGuestJson = "{}";
+    /// <summary>Photon actor of Envido/Flor scoring winner — only their cards are revealed.</summary>
+    int _pendingRevealWinnerActor;
 
     // Tournament-specific variables
     private bool _isInTournament = false;
@@ -118,6 +120,10 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         _handOutcomeCommitted = false;
         _restartScheduled = false;
         _restartRoutine = null;
+        // Pie must not see active challenge buttons before Turn RPC assigns mano.
+        SetMyTurn(false);
+        SetCanPlayCard(false);
+        UIMANAGER.Instance?.DisableButtons();
     }
 
     void PersistMatchScoresToDataHandler()
@@ -1098,8 +1104,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 {
                     int player1Score = CalculateEnvido(_player1Cards);
                     int player2Score = CalculateEnvido(_player2Cards);
-                    photonView.RPC(nameof(AnnounceEnvidoPoints), RpcTarget.All, player1Score, player2Score);
-                    QueueEnvidoCardReveal();
 
                     int myscore = myPlayerScoreHandler.GetCurrentScore();
                     int otherscore = otherPlayerScoreHandler.GetCurrentScore();
@@ -1111,21 +1115,21 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                         "type=" + _type + " p1Envido=" + player1Score + " p2Envido=" + player2Score
                         + " awardPts=" + pointsToAward + " challengePts=" + challengePoints);
 
+                    int winnerActor;
                     if (player2Score > player1Score)
-                    {
-                        photonView.RPC(nameof(EnvidoWinner), RpcTarget.All, PhotonNetwork.PlayerListOthers[0].ActorNumber, pointsToAward);
-                    }
+                        winnerActor = PhotonNetwork.PlayerListOthers[0].ActorNumber;
                     else if (player1Score > player2Score)
-                    {
-                        photonView.RPC(nameof(EnvidoWinner), RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber, pointsToAward);
-                    }
+                        winnerActor = PhotonNetwork.LocalPlayer.ActorNumber;
                     else
                     {
-                        int manoActor = TrucoHandWinner.GetManoPlayerNumber(DataHandler.Instance.roundNumber) == 1
+                        winnerActor = TrucoHandWinner.GetManoPlayerNumber(DataHandler.Instance.roundNumber) == 1
                             ? PhotonNetwork.LocalPlayer.ActorNumber
                             : PhotonNetwork.PlayerListOthers[0].ActorNumber;
-                        photonView.RPC(nameof(EnvidoWinner), RpcTarget.All, manoActor, pointsToAward);
                     }
+
+                    photonView.RPC(nameof(AnnounceEnvidoPoints), RpcTarget.All, player1Score, player2Score, winnerActor);
+                    QueueEnvidoCardReveal(winnerActor);
+                    photonView.RPC(nameof(EnvidoWinner), RpcTarget.All, winnerActor, pointsToAward);
 
                     Debug.LogWarning("Envido Points Awarded");
                     challengePoints = 0;
@@ -1135,29 +1139,28 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 {
                     int player1Score = CalculateEnvido(_player1Cards);
                     int player2Score = CalculateEnvido(_player2Cards);
-                    photonView.RPC(nameof(AnnounceEnvidoPoints), RpcTarget.All, player1Score, player2Score);
-                    QueueEnvidoCardReveal();
                     int myscore = myPlayerScoreHandler.GetCurrentScore();
                     int otherscore = otherPlayerScoreHandler.GetCurrentScore();
                     int biggerScore = Mathf.Max(myscore, otherscore);
                     int faltaPts = 15 - biggerScore;
                     TrucoRulesScenarioLog.Ok("GetScore FaltaEnvido",
                         "p1=" + player1Score + " p2=" + player2Score + " award=" + faltaPts);
+
+                    int winnerActor;
                     if (player2Score > player1Score)
-                    {
-                        photonView.RPC(nameof(FaltaEnvidoWinner), RpcTarget.All, PhotonNetwork.PlayerListOthers[0].ActorNumber, faltaPts);
-                    }
+                        winnerActor = PhotonNetwork.PlayerListOthers[0].ActorNumber;
                     else if (player1Score > player2Score)
-                    {
-                        photonView.RPC(nameof(FaltaEnvidoWinner), RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber, faltaPts);
-                    }
+                        winnerActor = PhotonNetwork.LocalPlayer.ActorNumber;
                     else
                     {
-                        int manoActor = TrucoHandWinner.GetManoPlayerNumber(DataHandler.Instance.roundNumber) == 1
+                        winnerActor = TrucoHandWinner.GetManoPlayerNumber(DataHandler.Instance.roundNumber) == 1
                             ? PhotonNetwork.LocalPlayer.ActorNumber
                             : PhotonNetwork.PlayerListOthers[0].ActorNumber;
-                        photonView.RPC(nameof(FaltaEnvidoWinner), RpcTarget.All, manoActor, faltaPts);
                     }
+
+                    photonView.RPC(nameof(AnnounceEnvidoPoints), RpcTarget.All, player1Score, player2Score, winnerActor);
+                    QueueEnvidoCardReveal(winnerActor);
+                    photonView.RPC(nameof(FaltaEnvidoWinner), RpcTarget.All, winnerActor, faltaPts);
                     break;
                 }
             case ChallengeType.ConFlorQuiero:
@@ -1248,11 +1251,12 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         return new List<DeckCards> { single };
     }
 
-    void QueueEnvidoCardReveal()
+    void QueueEnvidoCardReveal(int winnerActor)
     {
         if (!PhotonNetwork.IsMasterClient || _player1Cards == null || _player2Cards == null) return;
         _pendingRevealMasterJson = SerializeRevealCards(GetBestEnvidoRevealCards(_player1Cards));
         _pendingRevealGuestJson = SerializeRevealCards(GetBestEnvidoRevealCards(_player2Cards));
+        _pendingRevealWinnerActor = winnerActor;
         _pendingScoringCardReveal = true;
     }
 
@@ -1261,6 +1265,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (!PhotonNetwork.IsMasterClient || _player1Cards == null || _player2Cards == null) return;
         _pendingRevealMasterJson = SerializeRevealCards(_player1Cards);
         _pendingRevealGuestJson = SerializeRevealCards(_player2Cards);
+        // Flor still shows both hands (existing behaviour).
+        _pendingRevealWinnerActor = 0;
         _pendingScoringCardReveal = true;
     }
 
@@ -1268,27 +1274,32 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         if (!_pendingScoringCardReveal) return;
         _pendingScoringCardReveal = false;
-        photonView.RPC(nameof(RevealScoringCardsRpc), RpcTarget.All, _pendingRevealMasterJson, _pendingRevealGuestJson);
+        photonView.RPC(nameof(RevealScoringCardsRpc), RpcTarget.All,
+            _pendingRevealMasterJson, _pendingRevealGuestJson, _pendingRevealWinnerActor);
     }
 
     [PunRPC]
-    void RevealScoringCardsRpc(string masterJson, string guestJson)
+    void RevealScoringCardsRpc(string masterJson, string guestJson, int winnerActor = 0)
     {
         if (UIMANAGER.Instance == null) return;
         var m = JsonUtility.FromJson<CardRevealPayloadList>(masterJson);
         var g = JsonUtility.FromJson<CardRevealPayloadList>(guestJson);
         var mine = PhotonNetwork.IsMasterClient ? m : g;
         var theirs = PhotonNetwork.IsMasterClient ? g : m;
-        if (mine?.items != null)
+        int localActor = PhotonNetwork.LocalPlayer.ActorNumber;
+        // winnerActor == 0 → Flor: both hands. Else only the winner's envido cards.
+        bool showMine = winnerActor == 0 || winnerActor == localActor;
+        bool showTheirs = winnerActor == 0 || (winnerActor != 0 && winnerActor != localActor);
+        if (showMine && mine?.items != null)
             foreach (var c in mine.items)
                 UIMANAGER.Instance.ShowRevealedScoringCard(c.suit, c.rank, true);
-        if (theirs?.items != null)
+        if (showTheirs && theirs?.items != null)
             foreach (var c in theirs.items)
                 UIMANAGER.Instance.ShowRevealedScoringCard(c.suit, c.rank, false);
     }
 
     [PunRPC]
-    private void AnnounceEnvidoPoints(int p1, int p2)
+    private void AnnounceEnvidoPoints(int p1, int p2, int winnerActor = 0)
     {
         if (UIMANAGER.Instance == null) return;
         if (_isSpectator)
@@ -1296,10 +1307,45 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             UIMANAGER.Instance.ShowDeclarationCallout($"Envido: {p1} - {p2}", false);
             return;
         }
-        int mine = PhotonNetwork.IsMasterClient ? p1 : p2;
-        int theirs = PhotonNetwork.IsMasterClient ? p2 : p1;
-        TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {mine}", true);
-        TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {theirs}", false);
+
+        // Mano always announces. Pie (the other seat) announces only if they win.
+        int manoNum = TrucoHandWinner.GetManoPlayerNumber(DataHandler.Instance.roundNumber);
+        bool localIsMaster = PhotonNetwork.IsMasterClient;
+        // Master = player1 seat for scores p1/p2 in GetScore.
+        int localScore = localIsMaster ? p1 : p2;
+        int rivalScore = localIsMaster ? p2 : p1;
+        bool localIsMano = (manoNum == 1 && localIsMaster) || (manoNum == 2 && !localIsMaster);
+        bool localWon = winnerActor == PhotonNetwork.LocalPlayer.ActorNumber;
+        bool rivalWon = winnerActor != 0 && winnerActor != PhotonNetwork.LocalPlayer.ActorNumber;
+
+        if (localIsMano)
+        {
+            // Mano always says their points.
+            TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {localScore}", true);
+            if (rivalWon)
+                StartCoroutine(CoDelayedDeclaration($"Tengo {rivalScore}", false, 1.15f));
+        }
+        else
+        {
+            // Pie: only announce own score if Pie won; otherwise silent on own points.
+            if (localWon)
+            {
+                // Mano's points first (rival), then Pie's winning points.
+                TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {rivalScore}", false);
+                StartCoroutine(CoDelayedDeclaration($"Tengo {localScore}", true, 1.15f));
+            }
+            else
+            {
+                // Pie lost — only Mano's score is spoken/shown (rival side).
+                TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {rivalScore}", false);
+            }
+        }
+    }
+
+    IEnumerator CoDelayedDeclaration(string phrase, bool mine, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        TrucoGameplayAudio.PlayDeclarationPhrase(phrase, mine);
     }
 
     /// <summary>Shows each player their own declared Flor points; spectators see both.</summary>
@@ -1827,14 +1873,14 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
         _1v1SettlementBusy = true;
         string matchId = OneVsOneMatchSession.CurrentMatchId;
-        int bal = ApiController.GetSessionUser?.Data?.wallet?.balance ?? -1;
+        int balBefore = ApiController.GetSessionUser?.Data?.wallet?.balance ?? -1;
         TrucoRulesScenarioLog.Backend(submitResult ? "POST /result start" : "SETTLE loser backup /result",
             "match=" + matchId
             + " winnerUserId=" + (resolvedWinner ?? "null")
             + " submitResult=" + submitResult
             + " localActor=" + PhotonNetwork.LocalPlayer.ActorNumber
             + " isMaster=" + PhotonNetwork.IsMasterClient
-            + " bal=" + bal);
+            + " bal=" + balBefore);
 
         var settleTask = ApiController.Finalize1v1MatchSettlement(
             matchId, resolvedWinner, submitResult, onSettled, ResolveLoserIdForSettlement(resolvedWinner, submitResult));
@@ -1847,15 +1893,31 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             TrucoRulesScenarioLog.BackendFail("SETTLE task", ex.Message);
         }
 
-        if (submitResult && ok)
+        int balAfter = ApiController.GetSessionUser?.Data?.wallet?.balance ?? -1;
+        bool prizeVisible = balBefore >= 0 && balAfter > balBefore;
+        if (submitResult && (ok || prizeVisible))
             _1v1ResultPosted = true;
 
         _1v1SettlementBusy = false;
 
-        if (submitResult && !ok)
+        // Prize often already on wallet while /result returns a soft/duplicate error — never scare the winner.
+        if (submitResult && !ok && !prizeVisible)
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ErrorPremioNoConfirmado);
+        else if (submitResult && (ok || prizeVisible)
+                 && resolvedWinner == PhotonPlayerHelper.GetLocalTrucoPlayerUserId())
+            AppManager.Instance?.DisplayNotification(FormatWinPrizeAwardedMessage());
 
         TrucoWalletHudRefresh.Apply();
+    }
+
+    static string FormatWinPrizeAwardedMessage()
+    {
+        string rival = null;
+        if (PhotonNetwork.PlayerListOthers != null && PhotonNetwork.PlayerListOthers.Length > 0)
+            rival = PhotonNetwork.PlayerListOthers[0]?.NickName;
+        if (string.IsNullOrEmpty(rival))
+            rival = TrucoLocalization.IsEnglish ? "your rival" : "tu rival";
+        return string.Format(TrucoTextosClient.PremioYaAcreditadoConRival, rival);
     }
 
     static string ResolveLoserIdForSettlement(string winnerUserId, bool submitResult)

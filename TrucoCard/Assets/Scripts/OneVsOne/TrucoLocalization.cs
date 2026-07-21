@@ -161,6 +161,7 @@ public static class TrucoLocalization
             case Key.ErrorUnirse: return "No se pudo unir a la sala.";
             case Key.ErrorGenerico: return "Algo salió mal. Intentá de nuevo.";
             case Key.ErrorPremioNoConfirmado: return "Hubo un problema al acreditar el premio. Contactá soporte.";
+            case Key.PremioYaAcreditadoConRival: return "Ganaste. El premio ya te fue acreditado. Le ganaste a {0}.";
             case Key.ErrorConexion: return "Problema de conexión. Revisá tu internet e intentá de nuevo.";
             case Key.ErrorEliminarSala: return "No se pudo eliminar la sala. Intentá de nuevo.";
             case Key.Conectando: return "Conectando al servidor de partida…";
@@ -284,6 +285,7 @@ public static class TrucoLocalization
             case Key.ErrorUnirse: return "Could not join the room.";
             case Key.ErrorGenerico: return "Something went wrong. Please try again.";
             case Key.ErrorPremioNoConfirmado: return "There was a problem crediting your prize. Contact support.";
+            case Key.PremioYaAcreditadoConRival: return "You won. The prize has already been awarded to you. You beat {0}.";
             case Key.ErrorConexion: return "Connection problem. Check your internet and try again.";
             case Key.ErrorEliminarSala: return "Could not delete the room. Try again.";
             case Key.Conectando: return "Connecting to match server…";
@@ -370,7 +372,7 @@ public static class TrucoLocalization
         CrearSala, ActualizarLista, Volver, BuscandoOponente, EsperandoRivalSala, PartidaEncontrada, CargandoJuego,
         NombreSala, TipoSala, Publica, Privada, ContrasenaSala, CodigoSala4, CodigoPrivadaInfo, CodigoInvalido4,
         CodigoEtiqueta, TuCodigoSala, CodigoParaUnir, EntradaMonedas, Unirse, Entrar,
-        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, ErrorGenerico, ErrorPremioNoConfirmado, ErrorConexion, ErrorEliminarSala, Conectando, IngresaContrasena,
+        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, ErrorGenerico, ErrorPremioNoConfirmado, PremioYaAcreditadoConRival, ErrorConexion, ErrorEliminarSala, Conectando, IngresaContrasena,
         TiempoEsgotadoJugada, CuentaRegresiva, TuTurno, TurnoRival, RivalAusente, Responde,
         EsperandoRespuestaRival, EsperandoJugadaRival, TiempoRespuestaAgotado,
         GanastePremio, GanaPorAbandono, RivalReconectando, Reconectando, ReconectandoOverlay,

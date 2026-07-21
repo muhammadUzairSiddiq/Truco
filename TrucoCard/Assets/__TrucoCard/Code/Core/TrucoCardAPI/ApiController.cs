@@ -1016,7 +1016,9 @@ public static class ApiController
         string m = msg.ToLowerInvariant();
         return m.Contains("already") || m.Contains("completed") || m.Contains("finished")
                || m.Contains("settled") || m.Contains("duplicate")
-               || m.Contains("walkover") || m.Contains("closed") || m.Contains("ended");
+               || m.Contains("walkover") || m.Contains("closed") || m.Contains("ended")
+               || m.Contains("ya ") || m.Contains("acredit") || m.Contains("finaliz")
+               || m.Contains("cerrad") || m.Contains("duplicad") || m.Contains("procesad");
     }
 
     /// <summary>Pre-game cancel: POST /leave (refund) then /end so the lobby row disappears.</summary>

@@ -283,14 +283,28 @@ public class UIMANAGER : MonoBehaviour
         if (string.IsNullOrEmpty(phrase)) return;
         EnsureCalloutLabel();
         if (_calloutTmp == null || _calloutGo == null) return;
-        LayoutStatusBanners();
-        string who = mine ? "Vos" : "Rival";
+        LayoutCalloutForSpeaker(mine);
+        string who = mine
+            ? (TrucoLocalization.IsEnglish ? "You" : "Vos")
+            : (TrucoLocalization.IsEnglish ? "Rival" : "Rival");
         string color = mine ? "#7CFC9B" : "#FFC24A";
         _calloutTmp.text = $"<color={color}><b>{who}</b></color>  ·  {phrase}";
         _calloutGo.SetActive(true);
         _calloutGo.transform.SetAsLastSibling();
         CancelInvoke(nameof(HideCallout));
         Invoke(nameof(HideCallout), 2.2f);
+    }
+
+    /// <summary>Local announcements near your hand (bottom); rival near their cards (top). Never covers the turn timer.</summary>
+    void LayoutCalloutForSpeaker(bool mine)
+    {
+        if (_calloutRt == null) return;
+        // Both callouts stay under the top timer lane so cards stay clear.
+        _calloutRt.anchorMin = new Vector2(0.5f, 1f);
+        _calloutRt.anchorMax = new Vector2(0.5f, 1f);
+        _calloutRt.pivot = new Vector2(0.5f, 1f);
+        _calloutRt.anchoredPosition = new Vector2(0f, mine ? -168f : -168f);
+        _calloutRt.sizeDelta = new Vector2(620f, 56f);
     }
 
     /// <summary>Show a free-form declaration (e.g. "Tengo 31", "Son buenas", "Flor: 38").</summary>
@@ -337,9 +351,11 @@ public class UIMANAGER : MonoBehaviour
         _calloutGo.SetActive(false);
     }
 
-    /// <summary>Keep turn status + canto callout in separate vertical lanes (no overlap).</summary>
-    void LayoutStatusBanners()
+    /// <summary>Keep turn status banner top-center (never over the local hand).</summary>
+    void LayoutStatusBanners(bool? localMustAct = null)
     {
+        // localMustAct kept for call-site compatibility — banner stays top so it never covers cards.
+        _ = localMustAct;
         if (turnText != null)
         {
             var textRt = turnText.GetComponent<RectTransform>();
@@ -352,10 +368,24 @@ public class UIMANAGER : MonoBehaviour
                 textRt.sizeDelta = new Vector2(640f, 96f);
             }
         }
-        if (_calloutRt != null)
+    }
+
+    /// <summary>Re-apply face sprites on local hand (disconnect overlay / layout must not leave blank white cards).</summary>
+    public void EnsureLocalHandSpritesVisible()
+    {
+        if (myPlayerCards == null) return;
+        for (int i = 0; i < myPlayerCards.Count; i++)
         {
-            _calloutRt.anchoredPosition = new Vector2(0f, -168f);
-            _calloutRt.sizeDelta = new Vector2(620f, 56f);
+            var go = myPlayerCards[i];
+            if (go == null) continue;
+            var card = go.GetComponent<Card>();
+            if (card == null || card.value <= 0) continue;
+            card.SetupCard(card.suit, card.value);
+            var img = go.GetComponent<UnityEngine.UI.Image>();
+            if (img != null) img.color = Color.white;
+            var cg = go.GetComponent<CanvasGroup>();
+            if (cg != null) cg.alpha = 1f;
+            go.SetActive(true);
         }
     }
 
@@ -379,6 +409,17 @@ public class UIMANAGER : MonoBehaviour
         LayoutStatusBanners();
         EnsureTurnBannerBackground();
         if (!SpectatorContext.IsSpectator) EnsureMuteButton();
+        // Scene buttons start active — force off until Turn RPC assigns mano (Pie must not flash).
+        DisableButtons();
+    }
+
+    /// <summary>True when local may raise a canto: own turn, or answering a received challenge (Envido over Truco, etc.).</summary>
+    bool CanRaiseChallengeNow()
+    {
+        if (SpectatorContext.IsSpectator) return false;
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved)
+            return false;
+        return GameManager.Instance.IsMyTurn() || _iOweChallengeResponse;
     }
 
     static void ConfigureTurnTextStyle(TMPro.TMP_Text tmp)
@@ -508,6 +549,7 @@ public class UIMANAGER : MonoBehaviour
         if (turnText == null) return;
         CancelInvoke(nameof(DisableTurnText));
         bool persistentTimer = autoHideSeconds < 0f;
+        LayoutStatusBanners();
         EnsureTurnBannerBackground();
         ApplyTurnBannerSize(persistentTimer);
         turnText.SetActive(true);
@@ -757,6 +799,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Truco Challenge on other player
     public void ChallengeTruco()
     {
+        if (!CanRaiseChallengeNow()) return;
         TrucoGameplayAudio.PlayLocalRaise(TRUCO_CHALLENGE);
         MarkChallengeSentNow();
         MarkTrucoRaiseByLocal();
@@ -785,6 +828,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Retruco Challenge on other player
     public void ChallengeRetruco()
     {
+        if (!CanRaiseChallengeNow()) return;
         TrucoGameplayAudio.PlayLocalRaise(RETRUCO_CHALLENGE);
         MarkChallengeSentNow();
         MarkTrucoRaiseByLocal();
@@ -819,6 +863,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Vale4 Challenge on other player
     public void ChallengeVale4()
     {
+        if (!CanRaiseChallengeNow()) return;
         TrucoGameplayAudio.PlayLocalRaise(VALE4_CHALLENGE);
         MarkChallengeSentNow();
         MarkTrucoRaiseByLocal();
@@ -853,6 +898,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call Envido Challenge on other player
     public void ChallengeEnvido()
     {
+        if (!CanRaiseChallengeNow()) return;
         TrucoGameplayAudio.PlayLocalRaise(ENVIDO_CHALLENGE);
         MarkChallengeSentNow();
         // This checks if other player had invoked Truco Challenge and resets the Points
@@ -886,6 +932,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called from UI Button To Call RealEnvido Challenge on other player
     public void ChallengeRealEnvido()
     {
+        if (!CanRaiseChallengeNow()) return;
         TrucoGameplayAudio.PlayLocalRaise(REALENVIDO_CHALLENGE);
         MarkChallengeSentNow();
         // This checks if other player had invoked Truco Challenge and resets the Points
@@ -921,6 +968,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeFaltaEnvido()
     {
+        if (!CanRaiseChallengeNow()) return;
         MarkChallengeSentNow();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Envido);
@@ -1244,6 +1292,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeFlor()
     {
+         if (!CanRaiseChallengeNow()) return;
          MarkChallengeSentNow();
          _isChallengepPending = true;
         _florPlayed = true;

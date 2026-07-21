@@ -36,7 +36,13 @@ public class Card : MonoBehaviour,IPointerDownHandler
     {
         suit = cardSuit;
         value = cardValue;
-        GetComponent<Image>().sprite = GetSprite(cardSuit,cardValue);
+        var img = GetComponent<Image>();
+        if (img == null) return;
+        Sprite s = GetSprite(cardSuit, cardValue);
+        // Never clear a good face with null — that leaves a blank white Image (disconnect regression).
+        if (s != null)
+            img.sprite = s;
+        img.color = Color.white;
     }
 
     private Sprite GetSprite(CardSuit cardSuit, int cardValue)
