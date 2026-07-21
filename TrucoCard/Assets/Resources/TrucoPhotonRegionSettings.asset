@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7c3e91f2b4d48a0b6e5d1c9f8342a70, type: 3}
   m_Name: TrucoPhotonRegionSettings
   m_EditorClassIdentifier: 
-  region: 1
+  region: 0
   playerPrefsOverrideKey: TrucoPhotonRegion

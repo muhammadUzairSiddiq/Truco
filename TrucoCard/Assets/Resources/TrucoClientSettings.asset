@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TrucoClientSettings
   m_EditorClassIdentifier: 
   spanishEnabled: 1
-  englishEnabled: 0
+  englishEnabled: 1
   defaultLanguage: 0
   showLanguageToggleInMenu: 1
   debugLogsEnabled: 1

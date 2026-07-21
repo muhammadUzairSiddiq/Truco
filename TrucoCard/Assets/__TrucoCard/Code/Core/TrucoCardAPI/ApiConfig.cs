@@ -99,8 +99,11 @@ public static class ApiConfig
     /// <summary>After Photon room is created, register name so admin panel can see it.</summary>
     public static string MatchRegisterPhotonRoom(string id) => Url("MatchRegisterPhotonRoom", "/matches/{0}/photon-room", id);
 
-    /// <summary>POST body typically { "winnerId": "…" } — requires x-game-secret + replay headers.</summary>
+    /// <summary>POST body typically { "winnerId": "…" } — requires match token + replay headers.</summary>
     public static string MatchSubmitResult(string id) => Url("MatchSubmitResult", "/matches/{0}/result", id);
+
+    /// <summary>Short-lived token required before POST /result or /walkover (anti-cheat).</summary>
+    public static string MatchRequestToken(string id) => Url("MatchRequestToken", "/matches/{0}/match-token", id);
 
     /// <summary>Claim win when opponent abandons: body { "claimerId": "…" }. Requires x-game-secret.</summary>
     public static string MatchWalkover(string id) => Url("MatchWalkover", "/matches/{0}/walkover", id);

@@ -46,12 +46,25 @@ public class TrucoClientSettingsEditModeTests
         var so = UnityEngine.ScriptableObject.CreateInstance<TrucoClientSettingsSO>();
         so.spanishEnabled = true;
         so.englishEnabled = true;
-        so.showLanguageToggleInMenu = true;
         TrucoClientSettings.ApplyAsset(so);
         Assert.IsTrue(TrucoClientSettings.ShowLanguageToggleInMenu);
 
         so.englishEnabled = false;
         TrucoClientSettings.ApplyAsset(so);
         Assert.IsFalse(TrucoClientSettings.ShowLanguageToggleInMenu);
+    }
+
+    [Test]
+    public void ResolveLanguage_BothEnabled_KeepsPlayerChoice_NotSoDefault()
+    {
+        var so = UnityEngine.ScriptableObject.CreateInstance<TrucoClientSettingsSO>();
+        so.spanishEnabled = true;
+        so.englishEnabled = true;
+        so.defaultLanguage = TrucoClientSettingsSO.DefaultLanguageOption.English;
+        TrucoClientSettings.ApplyAsset(so);
+        Assert.AreEqual(TrucoLocalization.Lang.Spanish,
+            TrucoClientSettings.ResolveLanguage(TrucoLocalization.Lang.Spanish));
+        Assert.AreEqual(TrucoLocalization.Lang.English,
+            TrucoClientSettings.ResolveLanguage(TrucoLocalization.Lang.English));
     }
 }

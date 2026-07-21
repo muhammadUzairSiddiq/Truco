@@ -13,7 +13,9 @@ public class TrucoPhotonRegionSettingsSO : ScriptableObject
         [Tooltip("sa — South America (Paraguay / LatAm production)")]
         SouthAmerica = 0,
         [Tooltip("asia — lower ping when testing from Asia; host+guest must both use asia")]
-        Asia = 1
+        Asia = 1,
+        [Tooltip("eu — Europe; host+guest must both use eu")]
+        Europe = 2
     }
 
     [Header("Photon Fixed Region")]
@@ -30,13 +32,21 @@ public class TrucoPhotonRegionSettingsSO : ScriptableObject
             switch (region)
             {
                 case CloudRegion.Asia: return "asia";
+                case CloudRegion.Europe: return "eu";
                 default: return "sa";
             }
         }
     }
 
-    public static string CodeFor(CloudRegion r) =>
-        r == CloudRegion.Asia ? "asia" : "sa";
+    public static string CodeFor(CloudRegion r)
+    {
+        switch (r)
+        {
+            case CloudRegion.Asia: return "asia";
+            case CloudRegion.Europe: return "eu";
+            default: return "sa";
+        }
+    }
 
     public static bool TryParseCode(string code, out CloudRegion region)
     {
@@ -49,6 +59,11 @@ public class TrucoPhotonRegionSettingsSO : ScriptableObject
         if (code == "asia" || code == "as")
         {
             region = CloudRegion.Asia;
+            return true;
+        }
+        if (code == "eu" || code == "europe")
+        {
+            region = CloudRegion.Europe;
             return true;
         }
         if (code == "sa" || code == "southamerica" || code == "south america")

@@ -130,7 +130,7 @@ public class TrucoTtsService : MonoBehaviour
         if (_tts == null) return;
         try
         {
-            int q = 0;
+            int q = 1; // QUEUE_ADD — do not flush prior "Tengo X" when Pie also announces
             int code = _tts.Call<int>("speak", phrase, q, (AndroidJavaObject)null, "t" + phrase.GetHashCode());
             Debug.Log("[TTS] speak code=" + code + " (0=SUCCESS) phrase=\"" + phrase + "\" voice=" + _chosenVoiceName);
         }

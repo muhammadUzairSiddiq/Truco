@@ -1,15 +1,22 @@
 using System;
 using UnityEngine;
 
-/// <summary>Spanish / English UI strings. Language + debug logging controlled by Resources/TrucoClientSettings.</summary>
+/// <summary>Spanish / English UI strings. PlayerPrefs + profile screen toggle language.</summary>
 public static class TrucoLocalization
 {
     public enum Lang { Spanish = 0, English = 1 }
 
     const string PrefKey = "truco_ui_lang";
+    const string ExplicitPickKey = "truco_ui_lang_explicit";
 
     static Lang _current = Lang.Spanish;
     static bool _loaded;
+
+    public static Lang DefaultLanguage => Lang.Spanish;
+
+    /// <summary>True after the player tapped ENG/SPN on the profile screen.</summary>
+    public static bool HasUserPickedLanguage =>
+        PlayerPrefs.GetInt(ExplicitPickKey, 0) == 1;
 
     public static Lang Current
     {
@@ -27,21 +34,32 @@ public static class TrucoLocalization
     {
         TrucoClientSettings.EnsureLoaded();
         Load();
-        ApplyFromSettings();
+        EnsureSpanishDefaultUnlessUserPicked();
     }
 
-    /// <summary>Re-apply language from <see cref="TrucoClientSettingsSO"/> (call after SO change or main menu open).</summary>
+    /// <summary>Spanish until the player explicitly picks ENG/SPN (ignores stale PlayerPrefs).</summary>
+    public static void EnsureSpanishDefaultUnlessUserPicked()
+    {
+        if (!_loaded) Load();
+        if (HasUserPickedLanguage) return;
+        if (_current == Lang.Spanish) return;
+        _current = Lang.Spanish;
+        PlayerPrefs.SetInt(PrefKey, (int)Lang.Spanish);
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>Clamp to languages allowed in TrucoClientSettings (does not override player choice with SO defaults).</summary>
     public static void ApplyFromSettings()
     {
         if (!_loaded) Load();
-        var resolved = TrucoClientSettings.ResolveLanguage(_current);
-        if (_current == resolved) return;
-        _current = resolved;
+        var clamped = TrucoClientSettings.ResolveLanguage(_current);
+        if (_current == clamped) return;
+        _current = clamped;
         PlayerPrefs.SetInt(PrefKey, (int)_current);
         PlayerPrefs.Save();
         OnLanguageChanged?.Invoke();
         TrucoDebugLog.Log(TrucoDebugLog.Category.Localization,
-            "Language → " + _current + " (ES=" + TrucoClientSettings.SpanishEnabled +
+            "Language clamped → " + _current + " (ES=" + TrucoClientSettings.SpanishEnabled +
             " EN=" + TrucoClientSettings.EnglishEnabled + ")");
     }
 
@@ -49,7 +67,13 @@ public static class TrucoLocalization
     {
         _loaded = true;
         TrucoClientSettings.EnsureLoaded();
-        _current = TrucoClientSettings.ResolveLanguage((Lang)PlayerPrefs.GetInt(PrefKey, (int)Lang.Spanish));
+        if (!HasUserPickedLanguage)
+        {
+            _current = DefaultLanguage;
+            return;
+        }
+        _current = TrucoClientSettings.ResolveLanguage(
+            (Lang)PlayerPrefs.GetInt(PrefKey, (int)DefaultLanguage));
     }
 
     public static void SetLanguage(Lang lang)
@@ -63,7 +87,13 @@ public static class TrucoLocalization
             return;
         }
         if (!_loaded) Load();
-        if (_current == lang) return;
+        PlayerPrefs.SetInt(ExplicitPickKey, 1);
+        if (_current == lang)
+        {
+            PlayerPrefs.SetInt(PrefKey, (int)lang);
+            PlayerPrefs.Save();
+            return;
+        }
         _current = lang;
         PlayerPrefs.SetInt(PrefKey, (int)lang);
         PlayerPrefs.Save();
@@ -71,8 +101,16 @@ public static class TrucoLocalization
         OnLanguageChanged?.Invoke();
     }
 
-    /// <summary>Legacy entry point — now delegates to <see cref="ApplyFromSettings"/>.</summary>
-    public static void ForceSpanish() => ApplyFromSettings();
+    /// <summary>Force Spanish and clear explicit pick (dev / reset).</summary>
+    public static void ForceSpanish()
+    {
+        _current = Lang.Spanish;
+        PlayerPrefs.SetInt(PrefKey, (int)Lang.Spanish);
+        PlayerPrefs.DeleteKey(ExplicitPickKey);
+        PlayerPrefs.Save();
+        _loaded = true;
+        OnLanguageChanged?.Invoke();
+    }
 
     public static bool IsEnglish => Current == Lang.English;
 
@@ -122,7 +160,8 @@ public static class TrucoLocalization
             case Key.ErrorCrearSala: return "No se pudo crear la sala. Intentá otra vez.";
             case Key.ErrorUnirse: return "No se pudo unir a la sala.";
             case Key.ErrorGenerico: return "Algo salió mal. Intentá de nuevo.";
-            case Key.ErrorPremioNoConfirmado: return "La partida terminó. Si el premio no aparece en tu saldo, contactá soporte.";
+            case Key.ErrorPremioNoConfirmado: return "Hubo un problema al acreditar el premio. Contactá soporte.";
+            case Key.PremioYaAcreditadoConRival: return "Ganaste. El premio ya te fue acreditado. Le ganaste a {0}.";
             case Key.ErrorConexion: return "Problema de conexión. Revisá tu internet e intentá de nuevo.";
             case Key.ErrorEliminarSala: return "No se pudo eliminar la sala. Intentá de nuevo.";
             case Key.Conectando: return "Conectando al servidor de partida…";
@@ -163,6 +202,11 @@ public static class TrucoLocalization
             case Key.ChampionCongrats: return "¡Felicitaciones, sos el campeón!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
+            case Key.LangSection: return "Idioma";
+            case Key.RegionLabel: return "Región";
+            case Key.RegionSouthAmerica: return "Sudamérica";
+            case Key.RegionAsia: return "Asia";
+            case Key.RegionEurope: return "Europa";
             case Key.ModoJuego: return "Modo de juego";
             case Key.ConFlor: return "Con Flor";
             case Key.SinFlor: return "Sin Flor";
@@ -240,7 +284,8 @@ public static class TrucoLocalization
             case Key.ErrorCrearSala: return "Could not create the room. Try again.";
             case Key.ErrorUnirse: return "Could not join the room.";
             case Key.ErrorGenerico: return "Something went wrong. Please try again.";
-            case Key.ErrorPremioNoConfirmado: return "Match finished. If the prize is missing from your balance, contact support.";
+            case Key.ErrorPremioNoConfirmado: return "There was a problem crediting your prize. Contact support.";
+            case Key.PremioYaAcreditadoConRival: return "You won. The prize has already been awarded to you. You beat {0}.";
             case Key.ErrorConexion: return "Connection problem. Check your internet and try again.";
             case Key.ErrorEliminarSala: return "Could not delete the room. Try again.";
             case Key.Conectando: return "Connecting to match server…";
@@ -281,6 +326,11 @@ public static class TrucoLocalization
             case Key.ChampionCongrats: return "Congratulations, you are the champion!";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
+            case Key.LangSection: return "Language";
+            case Key.RegionLabel: return "Region";
+            case Key.RegionSouthAmerica: return "South America";
+            case Key.RegionAsia: return "Asia";
+            case Key.RegionEurope: return "Europe";
             case Key.ModoJuego: return "Game mode";
             case Key.ConFlor: return "w/ Flor";
             case Key.SinFlor: return "No Flor";
@@ -322,7 +372,7 @@ public static class TrucoLocalization
         CrearSala, ActualizarLista, Volver, BuscandoOponente, EsperandoRivalSala, PartidaEncontrada, CargandoJuego,
         NombreSala, TipoSala, Publica, Privada, ContrasenaSala, CodigoSala4, CodigoPrivadaInfo, CodigoInvalido4,
         CodigoEtiqueta, TuCodigoSala, CodigoParaUnir, EntradaMonedas, Unirse, Entrar,
-        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, ErrorGenerico, ErrorPremioNoConfirmado, ErrorConexion, ErrorEliminarSala, Conectando, IngresaContrasena,
+        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, ErrorGenerico, ErrorPremioNoConfirmado, PremioYaAcreditadoConRival, ErrorConexion, ErrorEliminarSala, Conectando, IngresaContrasena,
         TiempoEsgotadoJugada, CuentaRegresiva, TuTurno, TurnoRival, RivalAusente, Responde,
         EsperandoRespuestaRival, EsperandoJugadaRival, TiempoRespuestaAgotado,
         GanastePremio, GanaPorAbandono, RivalReconectando, Reconectando, ReconectandoOverlay,
@@ -330,7 +380,8 @@ public static class TrucoLocalization
         GanastePartida, PerdistePartida, PerdisteMano, NuevaMano, FaltaPanelCrear,
         ValidandoContrasena, ContrasenaInvalida, ContrasenaIncorrecta, EntryPrizeFormat,
         CodigoMinPlaceholder, PleaseWait, PhotonCreateFailed, PhotonSyncWarning, PhotonConnectFailed, EsperandoAnfitrionPhoton, ChampionCongrats,
-        LangEng, LangSpn,
+        LangEng, LangSpn, LangSection,
+        RegionLabel, RegionSouthAmerica, RegionAsia, RegionEurope,
         ModoJuego, ConFlor, SinFlor,
         ConfirmLeaveLobbyTitle, ConfirmLeaveLobbyBody, ConfirmNoQuedarme, ConfirmSiSalir, SalaCanceladaReembolso,
         NotificacionesTitulo, NotificacionesVacio, LogExito, LogPendiente, LogAviso, LogInfo,

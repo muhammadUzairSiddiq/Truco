@@ -8,9 +8,10 @@ public static class TrucoUserFacingErrors
         if (string.IsNullOrEmpty(raw)) return TrucoTextosClient.ErrorGenerico;
         string m = raw.ToLowerInvariant();
 
+        // Auth / participant failures are not "missing prize" — never imply the player won.
         if (m.Contains("participant") || m.Contains("unauthorized") || m.Contains("forbidden")
             || m.Contains("game secret") || m.Contains("x-game-secret") || m.Contains("cheat"))
-            return TrucoTextosClient.ErrorPremioNoConfirmado;
+            return TrucoTextosClient.ErrorGenerico;
 
         if (OneVsOneLobbyFlowRules.IsWrongPasswordApiError(raw))
             return TrucoTextosClient.ContrasenaIncorrecta;
@@ -37,10 +38,11 @@ public static class TrucoUserFacingErrors
         return TrucoTextosClient.ErrorGenerico;
     }
 
+    /// <summary>Logs settlement failures only — never returns player-facing prize/support copy.</summary>
     public static string ForPrizeSettlementFailure(string rawServerDetail)
     {
         TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
-            "Prize settlement failed (hidden from UI): " + (rawServerDetail ?? "?"));
-        return TrucoTextosClient.ErrorPremioNoConfirmado;
+            "Prize settlement failed (no player toast): " + (rawServerDetail ?? "?"));
+        return null;
     }
 }

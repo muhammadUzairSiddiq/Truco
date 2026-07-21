@@ -93,8 +93,8 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         _ui?.Hide();
         if (OneVsOneMatchSession.GameStarted && GameManager.Instance != null)
         {
+            // Timers resume only after SyncMatchState — early restart freezes stale mano state.
             GameManager.Instance.RequestStateSyncAfterReconnect();
-            TurnManager.Instance?.RestartTurnTimersIfActive();
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
         }
     }
@@ -110,7 +110,6 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
             _opponentReconnectSecondsRemaining = 0;
             _ui?.Hide();
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
-            TurnManager.Instance?.RestartTurnTimersIfActive();
             GameManager.Instance?.RequestStateSyncAfterReconnect();
         }
     }
@@ -139,17 +138,19 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
 
     IEnumerator WaitForOpponentReconnect()
     {
-        _ui = TrucoReconnectionUi.Ensure(transform);
+        // Stayer keeps playing view — NO full-screen dim (that blanked / hid local hand cards).
+        // Only the top status banner shows the 60s countdown.
+        if (_ui != null) _ui.Hide();
         float deadline = Time.unscaledTime + _opponentReconnectWindowSeconds;
         TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
             "WaitForOpponentReconnect START window=" + _opponentReconnectWindowSeconds
             + "s match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?"));
+        UIMANAGER.Instance?.EnsureLocalHandSpritesVisible();
         while (Time.unscaledTime < deadline)
         {
             if (GameManager.Instance != null && GameManager.Instance._gameEnded)
             {
                 _opponentReconnectSecondsRemaining = 0;
-                _ui?.Hide();
                 _opponentWatch = null;
                 yield break;
             }
@@ -160,7 +161,6 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
             if (opponentBack)
             {
                 _opponentReconnectSecondsRemaining = 0;
-                _ui?.Hide();
                 _opponentWatch = null;
                 AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
                 yield break;
@@ -168,13 +168,12 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
 
             int rem = Mathf.Max(0, Mathf.CeilToInt(deadline - Time.unscaledTime));
             _opponentReconnectSecondsRemaining = rem;
-            _ui?.Show(TrucoTextosClient.RivalReconectando, rem);
             UpdateOpponentAbsentTurnBanner(rem);
+            UIMANAGER.Instance?.EnsureLocalHandSpritesVisible();
             yield return null;
         }
 
         _opponentReconnectSecondsRemaining = 0;
-        _ui?.Hide();
         _opponentWatch = null;
         if (GameManager.Instance != null)
             GameManager.Instance.WinByOpponentWalkover();
@@ -185,6 +184,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         if (UIMANAGER.Instance == null) return;
         int sec = Mathf.Max(0, secondsRemaining);
         bool urgent = sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos;
+        UIMANAGER.Instance.EnsureLocalHandSpritesVisible();
         UIMANAGER.Instance.UpdateTurnText(
             TrucoTextosClient.FormatoBannerRivalAusenteConSegundos(sec), -1f, urgent, reconnectCountdown: true);
     }
@@ -247,8 +247,8 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         _routine = null;
         if (OneVsOneMatchSession.GameStarted)
         {
+            // Do not RestartTurnTimers here — wait for SyncMatchState (hand may already be over).
             GameManager.Instance?.RequestStateSyncAfterReconnect();
-            TurnManager.Instance?.RestartTurnTimersIfActive();
         }
     }
 

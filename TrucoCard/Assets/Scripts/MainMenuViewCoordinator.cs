@@ -25,8 +25,7 @@ public static class MainMenuViewCoordinator
         _showTournamentTab = null;
         _showMenuTab = null;
         _bottomNav = null;
-        TrucoLanguageToggleUi.ResetForLeavingMainMenu();
-        TrucoLocalization.ApplyFromSettings();
+        TrucoProfilePrefsBarUi.ResetForLeavingMainMenu();
         OneVsOneRoomListController.ResetLobbyPurgeDebounce();
     }
 
@@ -158,6 +157,7 @@ public static class MainMenuViewCoordinator
                 if (TournamentManager.Instance != null)
                     TournamentManager.Instance.HideTournamentSelectionUI();
                 if (bottomNav != null) EnsureBottomNavOnTop(bottomNav);
+                TrucoProfilePrefsBarUi.EnsureOnProfilePanel(main);
                 ApplyNav(2);
             });
         }
@@ -225,7 +225,7 @@ public static class MainMenuViewCoordinator
         ShowMenuTab();
         AvatarUiBinder.HookProfileAndMainMenu(main);
         UsernameMainMenuBinder.ApplyToScene();
-        TrucoLanguageToggleUi.EnsureOnMainMenu(main);
+        TrucoProfilePrefsBarUi.EnsureOnProfilePanel(main);
         EnsureBottomNavVisible();
     }
 
@@ -430,7 +430,7 @@ public static class MainMenuViewCoordinator
     {
         if (_navWired)
         {
-            if (_mainRoot != null) TrucoLanguageToggleUi.EnsureOnMainMenu(_mainRoot);
+            if (_mainRoot != null) TrucoProfilePrefsBarUi.EnsureOnProfilePanel(_mainRoot);
             return;
         }
         if (SceneManager.GetActiveScene().name != "MainMenu") return;
@@ -441,7 +441,7 @@ public static class MainMenuViewCoordinator
         }
         if (_mainRoot == null) return;
         RetryBottomNavWiring();
-        TrucoLanguageToggleUi.EnsureOnMainMenu(_mainRoot);
+        TrucoProfilePrefsBarUi.EnsureOnProfilePanel(_mainRoot);
     }
 
     static void Deactivate1v1OverlaysInMain(Transform main)
@@ -522,6 +522,7 @@ public static class MainMenuViewCoordinator
                 if (TournamentManager.Instance != null)
                     TournamentManager.Instance.HideTournamentSelectionUI();
                 if (bottomNav != null) EnsureBottomNavOnTop(bottomNav);
+                TrucoProfilePrefsBarUi.EnsureOnProfilePanel(main);
                 ApplyNav(2);
             });
         }

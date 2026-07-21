@@ -53,6 +53,7 @@ public static class TrucoTextosClient
     public static string ErrorUnirse => TrucoLocalization.T(TrucoLocalization.Key.ErrorUnirse);
     public static string ErrorGenerico => TrucoLocalization.T(TrucoLocalization.Key.ErrorGenerico);
     public static string ErrorPremioNoConfirmado => TrucoLocalization.T(TrucoLocalization.Key.ErrorPremioNoConfirmado);
+    public static string PremioYaAcreditadoConRival => TrucoLocalization.T(TrucoLocalization.Key.PremioYaAcreditadoConRival);
     public static string ErrorConexion => TrucoLocalization.T(TrucoLocalization.Key.ErrorConexion);
     public static string ErrorEliminarSala => TrucoLocalization.T(TrucoLocalization.Key.ErrorEliminarSala);
     public static string Conectando => TrucoLocalization.T(TrucoLocalization.Key.Conectando);

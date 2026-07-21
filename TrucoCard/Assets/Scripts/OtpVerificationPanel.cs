@@ -18,7 +18,7 @@ public class OtpVerificationPanel : MonoBehaviour
 
     void ApplySpanishLabels()
     {
-        TrucoLocalization.ApplyFromSettings();
+        TrucoLocalization.EnsureSpanishDefaultUnlessUserPicked();
         if (_otpInputField != null && (_otpInputField.placeholder is TMP_Text ph))
             ph.text = "Código OTP";
     }

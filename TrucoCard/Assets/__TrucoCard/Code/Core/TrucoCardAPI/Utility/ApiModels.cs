@@ -287,7 +287,24 @@ public class RegisterPhotonRoomRequest
 public class MatchResultSubmitRequest
 {
     public string winnerId;
+    public string loserId;
     public string status;
+    public string matchToken;
+}
+
+[Serializable]
+public class MatchTokenResponse
+{
+    public string token;
+    public string matchToken;
+    public MatchTokenData data;
+}
+
+[Serializable]
+public class MatchTokenData
+{
+    public string token;
+    public string matchToken;
 }
 
 [Serializable]
