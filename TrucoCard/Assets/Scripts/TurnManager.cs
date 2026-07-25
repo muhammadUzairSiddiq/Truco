@@ -15,6 +15,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     private bool _giveTurnAgain = false;
     private Coroutine _turnTimeoutRoutine;
     private Coroutine _opponentTurnDisplayRoutine;
+    private double _currentTurnStartedAt;
     const float TurnTimeoutSeconds = 30f;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
@@ -118,13 +119,15 @@ public class TurnManager : MonoBehaviourPunCallbacks
     // This function is called to start the turn of the players over network
     private void StartTurn(string turnNumber)
     {
-        photonView.RPC(nameof(Turn), RpcTarget.All, turnNumber);
+        double startedAt = PhotonNetwork.Time;
+        photonView.RPC(nameof(Turn), RpcTarget.All, turnNumber, startedAt);
     }
 
     [PunRPC]
-    private void Turn(string turnNumber)
+    private void Turn(string turnNumber, double startedAt)
     {
         if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved) return;
+        _currentTurnStartedAt = startedAt;
         if (_turnOrder.Count == 0)
         {
             var truco = PhotonPlayerHelper.GetTrucoPlayers();
@@ -153,7 +156,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
             GameManager.Instance.SetMyTurn(true);
             GameManager.Instance.SetCanPlayCard(true);
             UIMANAGER.Instance.EnableButtons();
-            _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(turnNumber));
+            _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(turnNumber, startedAt));
         }
         else
         {
@@ -162,16 +165,15 @@ public class TurnManager : MonoBehaviourPunCallbacks
             GameManager.Instance.SetMyTurn(false);
             UIMANAGER.Instance.DisableButtons();
             // Opponent also sees a live 30 s countdown (both players watch the same clock).
-            _opponentTurnDisplayRoutine = StartCoroutine(OpponentTurnDisplayRoutine());
+            _opponentTurnDisplayRoutine = StartCoroutine(OpponentTurnDisplayRoutine(startedAt));
         }
     }
 
     // Display-only countdown shown to the player whose turn it is NOT. No auto-play here:
     // the active player's client owns the auto-play and will advance the turn for everyone.
-    IEnumerator OpponentTurnDisplayRoutine()
+    IEnumerator OpponentTurnDisplayRoutine(double startedAt)
     {
-        float d = TurnTimeoutSeconds;
-        while (d > 0f)
+        while (true)
         {
             if (GameManager.Instance != null && (GameManager.Instance._gameEnded || GameManager.Instance.HandResolved)) yield break;
             if (TrucoPunReconnectionManager.IsWaitingForOpponentReconnect)
@@ -199,7 +201,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 yield return null;
                 continue;
             }
-            d -= Time.deltaTime;
+            float d = TurnTimeoutSeconds - (float)(PhotonNetwork.Time - startedAt);
+            if (d <= 0f) break;
             if (UIMANAGER.Instance != null)
             {
                 int sec = Mathf.CeilToInt(d);
@@ -239,12 +242,11 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
     }
 
-    IEnumerator TurnTimeoutRoutine(string turnForActor)
+    IEnumerator TurnTimeoutRoutine(string turnForActor, double startedAt)
     {
         if (PhotonNetwork.LocalPlayer.ActorNumber.ToString() != turnForActor)
             yield break;
-        float d = TurnTimeoutSeconds;
-        while (d > 0f)
+        while (true)
         {
             if (GameManager.Instance != null && (GameManager.Instance._gameEnded || GameManager.Instance.HandResolved)) yield break;
             if (UIMANAGER.Instance != null &&
@@ -262,7 +264,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 yield return null;
                 continue;
             }
-            d -= Time.deltaTime;
+            float d = TurnTimeoutSeconds - (float)(PhotonNetwork.Time - startedAt);
+            if (d <= 0f) break;
             if (UIMANAGER.Instance != null)
             {
                 int sec = Mathf.CeilToInt(d);
@@ -416,16 +419,17 @@ public class TurnManager : MonoBehaviourPunCallbacks
             _opponentTurnDisplayRoutine = null;
         }
         string actor = PhotonNetwork.LocalPlayer.ActorNumber.ToString();
+        _currentTurnStartedAt = PhotonNetwork.Time;
         if (GameManager.Instance.IsMyTurn())
         {
             TrucoRulesScenarioLog.Ok("TimerReset MY_TURN after canto close", "fresh=" + TurnTimeoutSeconds + "s force=" + force);
-            _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(actor));
+            _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(actor, _currentTurnStartedAt));
             UIMANAGER.Instance?.EnableButtons();
         }
         else
         {
             TrucoRulesScenarioLog.Ok("TimerReset WAIT_RIVAL after canto close", "fresh=" + TurnTimeoutSeconds + "s force=" + force);
-            _opponentTurnDisplayRoutine = StartCoroutine(OpponentTurnDisplayRoutine());
+            _opponentTurnDisplayRoutine = StartCoroutine(OpponentTurnDisplayRoutine(_currentTurnStartedAt));
         }
     }
 

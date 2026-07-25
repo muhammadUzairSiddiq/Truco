@@ -77,6 +77,7 @@ public class UIMANAGER : MonoBehaviour
     private bool _isDoubleEnvido = false;
     private bool _isDoubleRealEnvido = false;
     public bool _isChallengepPending = false;
+    private bool _autoFlorQueued = false;
 
     /// <summary>True only on the player who currently must answer a canto (truco/envido/flor).</summary>
     public bool _iOweChallengeResponse = false;
@@ -103,6 +104,7 @@ public class UIMANAGER : MonoBehaviour
         trucoPlayed = false;
         _envidoPlayed = false;
         _florPlayed = false;
+        _autoFlorQueued = false;
         LastTrucoRaiseActor = 0;
         unAnsweredChallenges.Clear();
         invokedChallenges.Clear();
@@ -422,6 +424,121 @@ public class UIMANAGER : MonoBehaviour
         return GameManager.Instance.IsMyTurn() || _iOweChallengeResponse;
     }
 
+    bool ShouldAutoCallFlorNow()
+    {
+        if (!OneVsOneMatchSession.WithFlor || _autoFlorQueued) return false;
+        if (GameManager.Instance == null || !CanRaiseChallengeNow()) return false;
+        if (_florPlayed || invokedChallenges.Contains(ChallengeType.Flor)
+                        || invokedChallenges.Contains(ChallengeType.ContraFlor)
+                        || invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
+                        || invokedChallenges.Contains(ChallengeType.FlorChica))
+            return false;
+        if (_iOweChallengeResponse && (GameManager.Instance.lastChallengeType == ChallengeType.Flor
+                                      || GameManager.Instance.lastChallengeType == ChallengeType.ContraFlor
+                                      || GameManager.Instance.lastChallengeType == ChallengeType.ConFlorQuiero
+                                      || GameManager.Instance.lastChallengeType == ChallengeType.FlorChica))
+            return false;
+        return GameManager.Instance.PlayerHasFlor();
+    }
+
+    void QueueAutoFlor(string reason)
+    {
+        if (!ShouldAutoCallFlorNow()) return;
+        _autoFlorQueued = true;
+        StartCoroutine(CoAutoFlor(reason));
+    }
+
+    IEnumerator CoAutoFlor(string reason)
+    {
+        // Give the peer's NoFlor RPC a short moment to arrive so +3 auto-award can resolve immediately.
+        yield return new WaitForSeconds(0.15f);
+        _autoFlorQueued = false;
+        if (!ShouldAutoCallFlorNow()) yield break;
+        TrucoRulesScenarioLog.Ok("Auto Flor", "reason=" + reason);
+        ChallengeFlor();
+    }
+
+    ChallengeType PendingTrucoChainType()
+    {
+        if (unAnsweredChallenges.ContainsKey(ChallengeType.Vale4)) return ChallengeType.Vale4;
+        if (unAnsweredChallenges.ContainsKey(ChallengeType.Retruco)) return ChallengeType.Retruco;
+        if (unAnsweredChallenges.ContainsKey(ChallengeType.Truco)) return ChallengeType.Truco;
+        return ChallengeType.None;
+    }
+
+    void ClearEnvidoFlorPendingAfterFlor()
+    {
+        unAnsweredChallenges.Remove(ChallengeType.Envido);
+        unAnsweredChallenges.Remove(ChallengeType.RealEnvido);
+        unAnsweredChallenges.Remove(ChallengeType.FaltaEnvido);
+        unAnsweredChallenges.Remove(ChallengeType.Flor);
+        unAnsweredChallenges.Remove(ChallengeType.ContraFlor);
+        unAnsweredChallenges.Remove(ChallengeType.ConFlorQuiero);
+        unAnsweredChallenges.Remove(ChallengeType.FlorChica);
+        if (GameManager.Instance != null)
+            GameManager.Instance.ActiveChallenges.Clear();
+    }
+
+    bool ResumePendingTrucoChainAfterFlor()
+    {
+        ChallengeType pendingTruco = PendingTrucoChainType();
+        if (pendingTruco == ChallengeType.None) return false;
+        ClearEnvidoFlorPendingAfterFlor();
+        _isChallengepPending = true;
+        if (GameManager.Instance != null)
+            GameManager.Instance.lastChallengeType = pendingTruco;
+        switch (pendingTruco)
+        {
+            case ChallengeType.Truco:
+                TrucoChallenged();
+                break;
+            case ChallengeType.Retruco:
+                RetrucoChallenged();
+                break;
+            case ChallengeType.Vale4:
+                Vale4Challenged();
+                break;
+        }
+        BeginChallengeResponseCountdown();
+        return true;
+    }
+
+    public void CompleteFlorAutoAwardUi(string reason)
+    {
+        _florPlayed = true;
+        if (!invokedChallenges.Contains(ChallengeType.Flor))
+            invokedChallenges.Add(ChallengeType.Flor);
+        flor.SetActive(false);
+        conFlorQuiero.SetActive(false);
+        contraFlor.SetActive(false);
+        florChica.SetActive(false);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+        queiro.SetActive(false);
+        noQueiro.SetActive(false);
+
+        if (ResumePendingTrucoChainAfterFlor())
+            return;
+
+        ClearEnvidoFlorPendingAfterFlor();
+        _isChallengepPending = false;
+        CancelChallengeResponseCountdown();
+        TrucoRulesScenarioLog.Ok("Flor auto-award closed", "reason=" + reason
+            + " myTurn=" + (GameManager.Instance != null && GameManager.Instance.IsMyTurn()));
+        if (GameManager.Instance != null && GameManager.Instance.IsMyTurn())
+        {
+            GameManager.Instance.SetCanPlayCard(true);
+            TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
+        }
+        else
+        {
+            GameManager.Instance?.SetCanPlayCard(false);
+            DisableButtons();
+            TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
+        }
+    }
+
     static void ConfigureTurnTextStyle(TMPro.TMP_Text tmp)
     {
         if (tmp == null) return;
@@ -625,6 +742,12 @@ public class UIMANAGER : MonoBehaviour
             return;
         }
 
+        if (ShouldAutoCallFlorNow())
+        {
+            QueueAutoFlor("turn buttons");
+            return;
+        }
+
         foreach (GameObject button in allUiButtons)
         {
             if (button != null && !GameManager.Instance._gameEnded)
@@ -686,7 +809,7 @@ public class UIMANAGER : MonoBehaviour
                                                          && !invokedChallenges.Contains(ChallengeType.RealEnvido)
                                                          && !invokedChallenges.Contains(ChallengeType.Truco))
                 {
-                    flor.SetActive(true);
+                    QueueAutoFlor("turn flor button");
                 }
             }
         }
@@ -923,6 +1046,7 @@ public class UIMANAGER : MonoBehaviour
         vale4.SetActive(false);
         GameManager.Instance.ActiveChallenges.Add(ChallengeType.Envido);
         GameManager.Instance.deniedFlor = true;
+        GameManager.Instance.MarkEnvidoFirstCaller(PhotonNetwork.LocalPlayer.ActorNumber);
         GameManager.Instance.lastChallengeType = ChallengeType.Envido;
         GameManager.Instance.challengePoints += 2;
         TrucoRulesScenarioLog.Ok("Local RAISE Envido", "challengePts+=" + GameManager.Instance.challengePoints);
@@ -958,6 +1082,7 @@ public class UIMANAGER : MonoBehaviour
         noQueiro.SetActive(false);
         GameManager.Instance.ActiveChallenges.Add(ChallengeType.RealEnvido);
         GameManager.Instance.deniedFlor = true;
+        GameManager.Instance.MarkEnvidoFirstCaller(PhotonNetwork.LocalPlayer.ActorNumber);
         GameManager.Instance.lastChallengeType = ChallengeType.RealEnvido;
         GameManager.Instance.challengePoints += 3;
         TrucoRulesScenarioLog.Ok("Local RAISE RealEnvido", "challengePts=" + GameManager.Instance.challengePoints);
@@ -991,6 +1116,7 @@ public class UIMANAGER : MonoBehaviour
             queiro.SetActive(false);
             noQueiro.SetActive(false);
             GameManager.Instance.deniedFlor = true;
+            GameManager.Instance.MarkEnvidoFirstCaller(PhotonNetwork.LocalPlayer.ActorNumber);
             GameManager.Instance.lastChallengeType = ChallengeType.FaltaEnvido;
             PhotonNetwork.RaiseEvent(QUEIRO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
         }
@@ -1011,6 +1137,7 @@ public class UIMANAGER : MonoBehaviour
             queiro.SetActive(false);
             noQueiro.SetActive(false);
             GameManager.Instance.deniedFlor = true;
+            GameManager.Instance.MarkEnvidoFirstCaller(PhotonNetwork.LocalPlayer.ActorNumber);
             GameManager.Instance.lastChallengeType = ChallengeType.FaltaEnvido;
             // GameManager.Instance.challengePoints += 3;
             TrucoRulesScenarioLog.Ok("Local RAISE FaltaEnvido");
@@ -1314,34 +1441,13 @@ public class UIMANAGER : MonoBehaviour
             bool hasPendingRetruco = unAnsweredChallenges.ContainsKey(ChallengeType.Retruco);
             bool hasPendingVale4 = unAnsweredChallenges.ContainsKey(ChallengeType.Vale4);
 
+            GameManager.Instance.RequestNetworkAward(PhotonNetwork.LocalPlayer.ActorNumber, 3, false);
             TrucoPunChallenges.RaiseToAll(FLOR_CHALLENGE, FlorAutoAwardFlag);
             TrucoRulesScenarioLog.Ok("Local RAISE Flor AUTO-AWARD (+3)", "rivalDeniedFlor=true");
-            if (hasPendingTruco)
-            {
-                GameManager.Instance.lastChallengeType = ChallengeType.Truco;
-                TrucoChallenged();
-                BeginChallengeResponseCountdown();
-            }
-            else if (hasPendingRetruco)
-            {
-                GameManager.Instance.lastChallengeType = ChallengeType.Retruco;
-                RetrucoChallenged();
-                BeginChallengeResponseCountdown();
-            }
-            else if (hasPendingVale4)
-            {
-                GameManager.Instance.lastChallengeType = ChallengeType.Vale4;
-                Vale4Challenged();
-                BeginChallengeResponseCountdown();
-            }
-            else if (GameManager.Instance.IsMyTurn())
-            {
-                GameManager.Instance.SetCanPlayCard(true);
-            }
+            if (hasPendingTruco || hasPendingRetruco || hasPendingVale4)
+                ResumePendingTrucoChainAfterFlor();
             else
-            {
-                DisableButtons();
-            }
+                CompleteFlorAutoAwardUi("local rival denied flor");
             return;
         }
         TrucoGameplayAudio.PlayLocalRaise(FLOR_CHALLENGE);
@@ -1501,7 +1607,7 @@ public class UIMANAGER : MonoBehaviour
             faltaEnvido.SetActive(true);
             if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
             {
-                flor.SetActive(true);
+                QueueAutoFlor("truco response");
             }
         }
     }
@@ -1524,7 +1630,7 @@ public class UIMANAGER : MonoBehaviour
         contraFlor.SetActive(false);
         conFlorQuiero.SetActive(false);
         florChica.SetActive(false);
-        unAnsweredChallenges.Add(ChallengeType.Retruco,PhotonNetwork.PlayerListOthers[0].ActorNumber);
+        unAnsweredChallenges[ChallengeType.Retruco] = PhotonNetwork.PlayerListOthers[0].ActorNumber;
         GameManager.Instance.mazoPoints = 2;
         GameManager.Instance.noQuieroPoints = 2;
         GameManager.Instance.cardPlayed = true;
@@ -1548,7 +1654,7 @@ public class UIMANAGER : MonoBehaviour
         contraFlor.SetActive(false);
         conFlorQuiero.SetActive(false);
         florChica.SetActive(false);
-        unAnsweredChallenges.Add(ChallengeType.Vale4,PhotonNetwork.PlayerListOthers[0].ActorNumber);
+        unAnsweredChallenges[ChallengeType.Vale4] = PhotonNetwork.PlayerListOthers[0].ActorNumber;
         GameManager.Instance.mazoPoints = 3;
         GameManager.Instance.noQuieroPoints = 3;
         GameManager.Instance.cardPlayed = true;
@@ -1601,7 +1707,7 @@ public class UIMANAGER : MonoBehaviour
 
             if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
             {
-                flor.SetActive(true);
+                QueueAutoFlor("envido response");
             }
             
         }
@@ -1666,7 +1772,7 @@ public class UIMANAGER : MonoBehaviour
             }
             if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
             {
-                flor.SetActive(true);
+                QueueAutoFlor("real envido response");
             }
         }
     }
@@ -1692,7 +1798,7 @@ public class UIMANAGER : MonoBehaviour
                                                  && !invokedChallenges.Contains(ChallengeType.Envido)
                                                  && !invokedChallenges.Contains(ChallengeType.Truco))
         {
-            flor.SetActive(true);
+            QueueAutoFlor("falta envido response");
         }
     }
     
