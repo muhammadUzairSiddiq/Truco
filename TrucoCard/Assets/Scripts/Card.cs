@@ -100,6 +100,8 @@ public class Card : MonoBehaviour,IPointerDownHandler
 
     public bool CanUserSelect() => _canSelect;
 
+    public void SetSelectable(bool can) => _canSelect = can;
+
     public void OnPointerDown(PointerEventData eventData)
     {
         if (GameManager.Instance.IsMyTurn() && _canSelect && GameManager.Instance.CanPlayCard())

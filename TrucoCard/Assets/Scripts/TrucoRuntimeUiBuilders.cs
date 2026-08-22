@@ -387,6 +387,10 @@ public static class TrucoRuntimeUiBuilders
         var (conFlorT, sinFlorT) = TrucoFormUiPolish.CreateSegmentedPair(
             inner.transform, f, "Flor", TrucoTextosClient.ConFlor, TrucoTextosClient.SinFlor, true, kSegment);
 
+        TrucoFormUiPolish.CreateSectionHeader(inner.transform, f, "PUNTOS", kLabel);
+        var (_, target30T) = TrucoFormUiPolish.CreateSegmentedPair(
+            inner.transform, f, "TargetScore", "15 Puntos", "30 Puntos", true, kSegment);
+
         var prizeGo = new GameObject("PrizePreview", typeof(RectTransform));
         prizeGo.transform.SetParent(inner.transform, false);
         var prizeLe = prizeGo.AddComponent<LayoutElement>();
@@ -438,6 +442,7 @@ public static class TrucoRuntimeUiBuilders
             feeToggles);
         panel.BindPrizePreview(prizeTmp);
         panel.BindFlorToggle(conFlorT);
+        panel.BindTarget30Toggle(target30T);
 
         return panel;
     }

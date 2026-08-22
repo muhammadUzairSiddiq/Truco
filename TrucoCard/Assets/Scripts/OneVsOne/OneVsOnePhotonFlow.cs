@@ -257,7 +257,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         var props = new Hashtable
         {
             ["onev1"] = true,
-            ["matchId"] = OneVsOneMatchSession.CurrentMatchId ?? string.Empty
+            ["matchId"] = OneVsOneMatchSession.CurrentMatchId ?? string.Empty,
+            ["targetScore"] = OneVsOneMatchSession.TargetScore
         };
         var opts = new RoomOptions
         {
@@ -267,7 +268,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             PlayerTtl = 60000,
             EmptyRoomTtl = 120000,
             CustomRoomProperties = props,
-            CustomRoomPropertiesForLobby = new[] { "onev1", "matchId" }
+            CustomRoomPropertiesForLobby = new[] { "onev1", "matchId", "targetScore" }
         };
         PhotonNetwork.JoinOrCreateRoom(name, opts, TypedLobby.Default);
     }
@@ -530,6 +531,14 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         IsConnecting = false;
         _joinRetryCount = 0;
         StopJoinRetryRoutine();
+        if (PhotonNetwork.CurrentRoom != null
+            && PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue("targetScore", out object targetValue))
+        {
+            if (targetValue is int target)
+                OneVsOneMatchSession.SetTargetScore(target);
+            else if (targetValue is byte targetByte)
+                OneVsOneMatchSession.SetTargetScore(targetByte);
+        }
         TrucoRoomPersistence.SaveCurrentRoom();
         TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,

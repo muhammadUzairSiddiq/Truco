@@ -19,6 +19,7 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
     [SerializeField] private Toggle _fee10;
     [SerializeField] private Toggle _fee15;
     [SerializeField] private Toggle _withFlorToggle;
+    [SerializeField] private Toggle _target30Toggle;
     [SerializeField] private Button _confirm;
     [SerializeField] private Button _cancel;
     [SerializeField] private TMP_Text _prizePreview;
@@ -41,6 +42,7 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         SetPillLabel(_isPublicToggle, TrucoTextosClient.Publica);
         SetPillLabel(_isPrivateToggle, TrucoTextosClient.Privada);
         SetPillLabel(_withFlorToggle, TrucoTextosClient.ConFlor);
+        SetPillLabel(_target30Toggle, "30 points");
         SetFlorSegmentLabels();
         SetButtonLabel(_confirm, TrucoTextosClient.CrearSala);
         SetButtonLabel(_cancel, TrucoTextosClient.Volver);
@@ -258,11 +260,20 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
     public string GetPassword() => _passwordField != null ? _passwordField.text : string.Empty;
 
     public bool WithFlor() => _withFlorToggle == null || _withFlorToggle.isOn;
+    public int TargetScore() => _target30Toggle != null && _target30Toggle.isOn
+        ? TrucoMatchRules.ExtendedTargetScore
+        : TrucoMatchRules.DefaultTargetScore;
 
     public void BindFlorToggle(Toggle florToggle)
     {
         _withFlorToggle = florToggle;
         if (_withFlorToggle != null) _withFlorToggle.SetIsOnWithoutNotify(true);
+    }
+
+    public void BindTarget30Toggle(Toggle target30Toggle)
+    {
+        _target30Toggle = target30Toggle;
+        if (_target30Toggle != null) _target30Toggle.SetIsOnWithoutNotify(false);
     }
 
     void WireFeeTogglesForExclusive()

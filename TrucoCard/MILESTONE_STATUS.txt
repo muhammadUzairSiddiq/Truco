@@ -1,38 +1,18 @@
-TrucoPy Unity — remaining milestone gaps (updated)
-=================================================
-Date: 2026-07-12
+TrucoPy Unity — ready for client APK rebuild (2026-08-10)
+==========================================================
 
-Excluded (not Unity-owned):
-  ❌ Photon Dashboard webhooks live fire (PathJoin/Leave/Close) — client Photon account
-  ❌ Photon Custom Authentication — waiting backend Auth URL
+CONFIRMED done for client retest list (#1–#9) PLUS residual defects found in pre-build scan:
 
-Completed this pass (without changing working turn/score/prize core):
-  ✅ Reconnect syncs active canto/bet state (challenge type, raiser/responder, truco level, envido)
-  ✅ Early ShowAllCards on ContraFlor Quiero removed; scoring cards flush on Envido/Flor winners
-  ✅ Pre-game opponent leave / host-or-guest quit → cancel lobby + refund path
-  ✅ Reconnect-fail no longer awards opponent from failing client; mutual cancel+log instead
-     (stayer still wins via WinByOpponentWalkover)
-  ✅ Male TTS selection hardened + GAP logs ([TTS] GAP …) when device has no male voice
+  ✅ Match end at 15/30 after Envido/Flor awards
+  ✅ Loser never sees prize-support toast
+  ✅ MAZO off during Envido / Retruco / Vale4 / Flor response
+  ✅ MAZO after Envido NoQuiero = 1 (not Envido stake)
+  ✅ TRUCO→ENVIDO→QUIERO announces + scores Envido (stake restored; Master accepts locally)
+  ✅ Flor auto-award: RaiseToOthers + no double UI close (anti-freeze)
+  ✅ Flor→Truco hides Envido; P2 Flor not cleared by P1 Truco/Envido
+  ✅ Flor Chica / Con Flor Quiero resume without double-run on sender
+  ✅ Create room: force-cancel leftover host row after purge
+  ✅ ConFlorQuieroWinner no longer reopens play mid hand-end
 
-Debug tags to filter in logcat / Editor:
-  [TTS]                      — voice selection / speak
-  [Truco/Photon] or Photon   — reconnect + challenge snapshot
-  [Truco/OneVsOne]           — card reveal defer, pre-game cancel
-  [Truco/Api] / Backend      — CancelMutualDisconnect, walkover
-  TrucoRulesScenarioLog      — MUTUAL_OR_SELF, BroadcastMatchState challenge fields
-
-Still device-dependent:
-  ⚠ Male audio requires a male Spanish TTS voice installed on the phone.
-    If log shows "[TTS] GAP no male Spanish voice" — install Google male es voice.
-
-Full checklist (Unity-owned):
-  ✅ App ID / secret / nonce / walkover API client
-  ✅ Room purge / 0-0 / 30s restart / Mazo timeout
-  ✅ Truco hand rules (parda / primera / flor-after-truco)
-  ✅ Audio+text callouts (TTS gender = device)
-  ✅ Reconnect score/turn + challenge state
-  ✅ Card reveal timing (ContraFlor/Envido flush)
-  ✅ Pre-game dual leave cancel
-  ✅ Post-start: stayer walkover; both-fail → cancel row (backend refund depends on leave+end)
-  ❌ Webhooks Dashboard
-  ❌ Custom Auth
+Build APK and send. Two-phone functional QA still required on client side.
+  ❌ Photon Dashboard webhooks (force-kill auto-refund) — not Unity-owned

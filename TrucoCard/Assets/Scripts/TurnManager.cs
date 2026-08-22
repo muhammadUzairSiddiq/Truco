@@ -368,11 +368,17 @@ public class TurnManager : MonoBehaviourPunCallbacks
     private void SwitchTurn()
     {
         if (GameManager.Instance != null && GameManager.Instance.HandResolved) return;
+        bool trickJustCompleted = GameManager.Instance != null && GameManager.Instance.IsCurrentTrickComplete();
         GameManager.Instance.CheckAfterTurn();
-        
-        if (_giveTurnAgain)
+        if (GameManager.Instance != null && (GameManager.Instance.HandResolved || GameManager.Instance._gameEnded))
+            return;
+
+        if (_giveTurnAgain || trickJustCompleted)
         {
             _giveTurnAgain = false;
+            // After a completed trick (including parda), never rotate to the other seat.
+            if (trickJustCompleted && GetCurrentPlayerTurn() == null)
+                currentTurnIndex = 0;
             string nextPlayerTurn = GetCurrentPlayerTurn();
             StartTurn(nextPlayerTurn);
         }
@@ -381,7 +387,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
             currentTurnIndex++;
             if (currentTurnIndex >= _turnOrder.Count)
             {
-                currentTurnIndex = 0; // Reset to the first player
+                currentTurnIndex = 0;
             }
 
             string nextPlayerTurn = GetCurrentPlayerTurn();
@@ -391,7 +397,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     
     /// <summary>Restart the active 30 s turn clock after a canto closes (full fresh window).</summary>
     /// <param name="force">When true, restart even if challenge pending flags were left dirty (clears timer freeze).</param>
-    public void RestartTurnTimersIfActive(bool force = false)
+    public void RestartTurnTimersIfActive(bool force = false, double startedAt = -1)
     {
         if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved) return;
         if (!force && UIMANAGER.Instance != null &&
@@ -419,10 +425,12 @@ public class TurnManager : MonoBehaviourPunCallbacks
             _opponentTurnDisplayRoutine = null;
         }
         string actor = PhotonNetwork.LocalPlayer.ActorNumber.ToString();
-        _currentTurnStartedAt = PhotonNetwork.Time;
+        // Both seats must share the same Photon clock — never invent independent local starts.
+        _currentTurnStartedAt = startedAt >= 0 ? startedAt : PhotonNetwork.Time;
         if (GameManager.Instance.IsMyTurn())
         {
-            TrucoRulesScenarioLog.Ok("TimerReset MY_TURN after canto close", "fresh=" + TurnTimeoutSeconds + "s force=" + force);
+            TrucoRulesScenarioLog.Ok("TimerReset MY_TURN after canto close",
+                "fresh=" + TurnTimeoutSeconds + "s force=" + force + " startedAt=" + _currentTurnStartedAt);
             _turnTimeoutRoutine = StartCoroutine(TurnTimeoutRoutine(actor, _currentTurnStartedAt));
             UIMANAGER.Instance?.EnableButtons();
         }
@@ -444,6 +452,9 @@ public class TurnManager : MonoBehaviourPunCallbacks
         string id = GetCurrentPlayerTurn();
         return int.TryParse(id, out int n) ? n : PhotonNetwork.LocalPlayer.ActorNumber;
     }
+
+    /// <summary>Authoritative Photon timestamp when the current turn clock started.</summary>
+    public double GetTurnStartedAtPhoton() => _currentTurnStartedAt;
 
     public void ResumeTurnAfterSync(int turnActor)
     {

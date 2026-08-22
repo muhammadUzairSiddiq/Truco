@@ -117,15 +117,61 @@ public static class OneVsOneLobbyFlowRules
                || message.IndexOf("llena", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    /// <summary>
+    /// Join-private-room wrong password only. Must NOT match bare "invalid"/"incorrect"
+    /// (those appear on create/balance/token errors and must never show "Contraseña incorrecta").
+    /// </summary>
     public static bool IsWrongPasswordApiError(string message)
     {
         if (string.IsNullOrEmpty(message)) return false;
-        return message.IndexOf("password", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("contrase", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("codigo", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("código", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("invalid", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("incorrect", StringComparison.OrdinalIgnoreCase) >= 0;
+        string m = message.ToLowerInvariant();
+        bool mentionsSecret = m.Contains("password")
+                              || m.Contains("contrase")
+                              || m.Contains("codigo")
+                              || m.Contains("código")
+                              || m.Contains("passcode")
+                              || m.Contains("room code")
+                              || m.Contains("codigo de sala");
+        if (!mentionsSecret) return false;
+        // Reject auth/token noise that happens to mention password.
+        if (m.Contains("token") || m.Contains("jwt") || m.Contains("unauthorized")
+            || m.Contains("forbidden") || m.Contains("game secret"))
+            return false;
+        return m.Contains("wrong") || m.Contains("incorrect") || m.Contains("invalid")
+               || m.Contains("incorrecta") || m.Contains("errada") || m.Contains("fail")
+               || m.Contains("mismatch") || m.Contains("denied") || m.Contains("no coincide");
+    }
+
+    /// <summary>Photon/backend room name collision — not the same as "player already hosts a lobby".</summary>
+    public static bool IsRoomAlreadyExistsApiError(string message)
+    {
+        if (string.IsNullOrEmpty(message)) return false;
+        string m = message.ToLowerInvariant();
+        if (m.Contains("already has") || m.Contains("already host") || m.Contains("active room")
+            || m.Contains("sala activa") || m.Contains("ya tenés") || m.Contains("ya tienes"))
+            return false;
+        return m.Contains("already exists") || m.Contains("duplicate room")
+               || m.Contains("room exists") || m.Contains("sala ya existe")
+               || m.Contains("name already in use") || m.Contains("game id already exists");
+    }
+
+    public static bool IsAlreadyHasRoomApiError(string message)
+    {
+        if (string.IsNullOrEmpty(message)) return false;
+        string m = message.ToLowerInvariant();
+        return m.Contains("already has") || m.Contains("already host")
+               || m.Contains("active room") || m.Contains("sala activa")
+               || m.Contains("ya tenés") || m.Contains("ya tienes");
+    }
+
+    public static bool IsSessionExpiredApiError(string message)
+    {
+        if (string.IsNullOrEmpty(message)) return false;
+        string m = message.ToLowerInvariant();
+        return m.Contains("session expired") || m.Contains("sesión")
+               || m.Contains("sesion") || m.Contains("token expired")
+               || m.Contains("jwt expired") || m.Contains("not authenticated")
+               || m.Contains("login required");
     }
 
     /// <summary>Guest paid on backend but Photon not connected yet — show resume row.</summary>

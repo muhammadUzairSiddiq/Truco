@@ -33,6 +33,14 @@ public class MainMenuManager : MonoBehaviour
             await ApiController.GetCurrentUserProfile();
             TrucoDebugLog.Always(TrucoDebugLog.Category.MainMenu,
                 "MainMenu profile loaded user=" + (ApiController.GetSessionUser?.Data?.username ?? "?"));
+            // Abandoned unused rooms: refund on next login even if the previous process was killed.
+            string leftover = TrucoActiveHostMatchStore.GetRememberedMatchId();
+            int leftoverFee = TrucoActiveHostMatchStore.GetRememberedEntryFee();
+            if (!string.IsNullOrEmpty(leftover) && !OneVsOneMatchSession.GameStarted)
+                await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(leftover,
+                    leftoverFee > 0 ? leftoverFee : OneVsOneMatchSession.EntryFee);
+            await OneVsOneMatchLifecycle.PurgeAllMyActiveLobbyMatchesAsync();
+            await ApiController.GetCurrentUserProfile();
 
             AppManager.Instance.HideLoadingUI();
             UsernameMainMenuBinder.ApplyToScene();
@@ -71,12 +79,25 @@ public class MainMenuManager : MonoBehaviour
     const string LoginSceneName = "LoginScreen";
 
     /// <summary>Logout, clear local API session, and open the login scene (used by the profile Logout button).</summary>
-    public void LogoutToLogin()
+    public async void LogoutToLogin()
     {
         if (AppManager.Instance != null)
         {
             AppManager.Instance.HideLoadingUI();
             AppManager.Instance.HideNotification();
+        }
+        // The auth token is required by /leave. Refund the unused table before clearing
+        // the session or disconnecting Photon, otherwise logout can orphan the stake.
+        if (OneVsOneMatchLifecycle.IsWaitingInPreGameLobby())
+        {
+            string matchId = OneVsOneMatchSession.CurrentMatchId;
+            int expectedRefund = OneVsOneMatchSession.EntryFee;
+            bool refunded = await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId, expectedRefund);
+            if (!refunded)
+            {
+                AppManager.Instance?.DisplayNotification(TrucoTextosClient.ErrorEliminarSala);
+                return;
+            }
         }
         if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
         ApiController.ClearClientSessionState();

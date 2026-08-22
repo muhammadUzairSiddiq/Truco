@@ -15,15 +15,16 @@ public class PlayerScoreHandler : MonoBehaviourPun
     public void UpdateScore(int score, bool _silent = true)
     {
         currentScore += score;
-        currentScore = Mathf.Min(currentScore, 15);
+        currentScore = TrucoMatchRules.ClampScoreToTarget(
+            currentScore, OneVsOneMatchSession.TargetScore);
         if (coinsText != null)
             coinsText.text = currentScore.ToString();
     }
 
     public void SetScore(int _score)
     {
-        currentScore = _score;
-        currentScore = Mathf.Min(currentScore, 15);
+        currentScore = TrucoMatchRules.ClampScoreToTarget(
+            _score, OneVsOneMatchSession.TargetScore);
         if (coinsText != null)
             coinsText.text = currentScore.ToString();
     }

@@ -222,6 +222,16 @@ public static class TrucoOneVsOneMainMenuFactory
         var t10 = ToggleField("T10", feeRow, font, "10", false);
         var t15 = ToggleField("T15", feeRow, font, "15", false);
 
+        var rulesRow = CreateRect("Rules", center);
+        var rulesLe = rulesRow.gameObject.AddComponent<LayoutElement>();
+        rulesLe.minHeight = 52;
+        var rulesHl = rulesRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+        rulesHl.spacing = 16;
+        rulesHl.childAlignment = TextAnchor.MiddleCenter;
+        rulesHl.childControlWidth = true;
+        rulesHl.childForceExpandWidth = true;
+        var target30 = ToggleField("Target30", rulesRow, font, "30 points", false);
+
         var prizePreview = TmpText("PrizePreview", center, font, Player1v1MatchExtensions.FormatEntryPrizeLabel(5), 22);
         var prizeLe = prizePreview.gameObject.AddComponent<LayoutElement>();
         prizeLe.minHeight = 44f;
@@ -259,6 +269,7 @@ public static class TrucoOneVsOneMainMenuFactory
             cancel,
             null);
         createPanel.BindPrizePreview(prizeTmp);
+        createPanel.BindTarget30Toggle(target30);
 
         var list = root.AddComponent<OneVsOneRoomListController>();
         list.ApplyRuntimeWiring(

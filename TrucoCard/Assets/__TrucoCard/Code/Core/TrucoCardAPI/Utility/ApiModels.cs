@@ -267,6 +267,7 @@ public class PlayerCreateMatchRequest
     public string password;
     /// <summary>Game variant: true = Con Flor, false = Sin Flor.</summary>
     public bool withFlor = true;
+    public int targetScore = TrucoMatchRules.DefaultTargetScore;
 }
 
 [Serializable]
@@ -341,6 +342,7 @@ public class Player1v1Match
     public int prize;
     /// <summary>Game variant from backend: true = Con Flor, false = Sin Flor.</summary>
     public bool withFlor = true;
+    public int targetScore = TrucoMatchRules.DefaultTargetScore;
     public User[] players;
 }
 

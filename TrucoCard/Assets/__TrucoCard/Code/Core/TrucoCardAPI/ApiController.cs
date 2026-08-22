@@ -1025,26 +1025,33 @@ public static class ApiController
     public static async System.Threading.Tasks.Task<bool> CancelPreGameMatch1v1(string matchId, int expectedRefund = 0)
     {
         if (string.IsNullOrEmpty(matchId)) return false;
+        int fee = expectedRefund > 0 ? expectedRefund : TrucoActiveHostMatchStore.GetRememberedEntryFee();
         int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
-            "CancelPreGameMatch1v1 match=" + matchId + " balBefore=" + balBefore + " expectRefund=" + expectedRefund);
+            "CancelPreGameMatch1v1 match=" + matchId + " balBefore=" + balBefore + " expectRefund=" + fee);
         bool leaveOk = await CloseLobbyMatchForRefundAsync(matchId);
-        if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
-            TrucoActiveHostMatchStore.Clear();
-        OneVsOneMatchSession.ClearSavedRoomPersistence();
 
         for (int i = 0; i < 3; i++)
         {
             await GetCurrentUserProfile();
             int balAfter = GetSessionUser?.Data?.wallet?.balance ?? -1;
-            bool balanceRefunded = WalletGainedAtLeast(balBefore, balAfter, expectedRefund);
+            bool balanceRefunded = WalletGainedAtLeast(balBefore, balAfter, fee);
             TrucoRulesScenarioLog.Backend("CancelPreGame done",
                 "match=" + matchId + " leaveOk=" + leaveOk
                 + " balBefore=" + balBefore + " balAfter=" + balAfter
-                + " expectRefund=" + expectedRefund
+                + " expectRefund=" + fee
                 + " delta=" + (balBefore >= 0 && balAfter >= 0 ? (balAfter - balBefore).ToString() : "?"));
-            if (leaveOk || balanceRefunded)
+            // Never drop the remembered match id until the wallet actually came back
+            // (or there was no stake to refund). Photon webhooks can close the row
+            // without refunding; clearing early made login-reclaim impossible.
+            bool confirmed = balanceRefunded;
+            if (!confirmed && leaveOk && (balBefore < 0 || balAfter < 0))
+                confirmed = true;
+            if (confirmed)
             {
+                if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
+                    TrucoActiveHostMatchStore.Clear();
+                OneVsOneMatchSession.ClearSavedRoomPersistence();
                 TrucoWalletHudRefresh.Apply();
                 return true;
             }
@@ -1453,6 +1460,19 @@ public static class ApiController
         if (!await EnsureSessionUserLoadedAsync()) return result;
         string uid = GetSessionUser?.Data?._id;
         if (string.IsNullOrEmpty(uid)) return result;
+
+        // Always try the persisted unused-room id first — Photon may have already
+        // closed the lobby row so it no longer appears in GET /matches.
+        string remembered = TrucoActiveHostMatchStore.GetRememberedMatchId();
+        if (!string.IsNullOrEmpty(remembered) && remembered != exceptMatchId)
+        {
+            result.attempted++;
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Purge remembered unused room=" + remembered);
+            if (await CancelPreGameMatch1v1(remembered, TrucoActiveHostMatchStore.GetRememberedEntryFee()))
+                result.succeeded++;
+            else
+                result.failed++;
+        }
 
         var list = await FetchPlayer1v1MatchList();
         if (list == null || list.Count == 0) return result;

@@ -10,6 +10,7 @@ public static class OneVsOneMatchSession
     public static int EntryFee { get; private set; }
     /// <summary>Game variant for this table: true = Con Flor, false = Sin Flor. Backend stores it; gameplay reads it.</summary>
     public static bool WithFlor { get; private set; } = true;
+    public static int TargetScore { get; private set; } = TrucoMatchRules.DefaultTargetScore;
     /// <summary>Opponent’s backend user id (from Photon custom properties), cached while in-room for forfeit on reconnect failure.</summary>
     public static string CachedOpponentUserId { get; private set; }
     /// <summary>True after POST /start-game (cards dealt). Lobby cancel must not refund after this.</summary>
@@ -18,29 +19,35 @@ public static class OneVsOneMatchSession
     /// <summary>1v1 real: dos jugadores (sin hueco “reservado” extra).</summary>
     public const int MaxPlayersPhoton = 2;
 
-    public static void SetHostContext(string matchId, string photonName, int entryFee, bool withFlor = true)
+    public static void SetHostContext(string matchId, string photonName, int entryFee, bool withFlor = true,
+        int targetScore = TrucoMatchRules.DefaultTargetScore)
     {
         CurrentMatchId = matchId;
         PhotonRoomName = photonName;
         IsHost = true;
         EntryFee = entryFee;
         WithFlor = withFlor;
+        TargetScore = TrucoMatchRules.NormalizeTargetScore(targetScore);
         TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
             "Host context: match=" + matchId + " room=" + photonName + " fee=" + entryFee + " flor=" + withFlor);
     }
 
-    public static void SetGuestContext(string matchId, string photonName, int entryFee, bool withFlor = true)
+    public static void SetGuestContext(string matchId, string photonName, int entryFee, bool withFlor = true,
+        int targetScore = TrucoMatchRules.DefaultTargetScore)
     {
         CurrentMatchId = matchId;
         PhotonRoomName = photonName;
         IsHost = false;
         EntryFee = entryFee;
         WithFlor = withFlor;
+        TargetScore = TrucoMatchRules.NormalizeTargetScore(targetScore);
         TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
             "Guest context: match=" + matchId + " room=" + photonName + " flor=" + withFlor);
     }
 
     public static void SetWithFlor(bool withFlor) => WithFlor = withFlor;
+    public static void SetTargetScore(int targetScore) =>
+        TargetScore = TrucoMatchRules.NormalizeTargetScore(targetScore);
 
     public static void MarkGameStarted() => GameStarted = true;
 
@@ -51,6 +58,7 @@ public static class OneVsOneMatchSession
         IsHost = false;
         EntryFee = 0;
         WithFlor = true;
+        TargetScore = TrucoMatchRules.DefaultTargetScore;
         GameStarted = false;
         CachedOpponentUserId = null;
     }

@@ -164,6 +164,7 @@ public static class TrucoLocalization
             case Key.PremioYaAcreditadoConRival: return "Ganaste. El premio ya te fue acreditado. Le ganaste a {0}.";
             case Key.ErrorConexion: return "Problema de conexión. Revisá tu internet e intentá de nuevo.";
             case Key.ErrorEliminarSala: return "No se pudo eliminar la sala. Intentá de nuevo.";
+            case Key.SesionExpirada: return "Tu sesión expiró. Volvé a iniciar sesión.";
             case Key.Conectando: return "Conectando al servidor de partida…";
             case Key.IngresaContrasena: return "Ingresá la contraseña de la sala.";
             case Key.TiempoEsgotadoJugada: return "Se acabó el tiempo. Mazo — perdés los puntos de la mano.";
@@ -227,6 +228,7 @@ public static class TrucoLocalization
             case Key.EliminarSala: return "Eliminar sala";
             case Key.SalaEliminada: return "Sala eliminada. Trucoins devueltos.";
             case Key.YaTienesSala: return "Ya tenés una sala activa. Usá atrás para salir y eliminarla.";
+            case Key.SalaYaExiste: return "La sala ya existe. Probá con otro nombre o eliminá la sala anterior.";
             case Key.AudioSilenciado: return "Audio silenciado";
             case Key.AudioActivado: return "Audio activado";
             case Key.RejoinPartida: return "Reconectar a partida";
@@ -288,6 +290,7 @@ public static class TrucoLocalization
             case Key.PremioYaAcreditadoConRival: return "You won. The prize has already been awarded to you. You beat {0}.";
             case Key.ErrorConexion: return "Connection problem. Check your internet and try again.";
             case Key.ErrorEliminarSala: return "Could not delete the room. Try again.";
+            case Key.SesionExpirada: return "Your session expired. Please sign in again.";
             case Key.Conectando: return "Connecting to match server…";
             case Key.IngresaContrasena: return "Enter the room password.";
             case Key.TiempoEsgotadoJugada: return "Time is up. Mazo — you lose the hand points.";
@@ -351,6 +354,7 @@ public static class TrucoLocalization
             case Key.EliminarSala: return "Delete room";
             case Key.SalaEliminada: return "Room deleted. Trucoins refunded.";
             case Key.YaTienesSala: return "You already have an active room. Use back to leave and delete it.";
+            case Key.SalaYaExiste: return "That room already exists. Try another name or delete the previous room.";
             case Key.AudioSilenciado: return "Audio muted";
             case Key.AudioActivado: return "Audio enabled";
             case Key.RejoinPartida: return "Reconnect to match";
@@ -372,7 +376,7 @@ public static class TrucoLocalization
         CrearSala, ActualizarLista, Volver, BuscandoOponente, EsperandoRivalSala, PartidaEncontrada, CargandoJuego,
         NombreSala, TipoSala, Publica, Privada, ContrasenaSala, CodigoSala4, CodigoPrivadaInfo, CodigoInvalido4,
         CodigoEtiqueta, TuCodigoSala, CodigoParaUnir, EntradaMonedas, Unirse, Entrar,
-        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, ErrorGenerico, ErrorPremioNoConfirmado, PremioYaAcreditadoConRival, ErrorConexion, ErrorEliminarSala, Conectando, IngresaContrasena,
+        SaldoInsuficiente, ErrorCrearSala, ErrorUnirse, ErrorGenerico, ErrorPremioNoConfirmado, PremioYaAcreditadoConRival, ErrorConexion, ErrorEliminarSala, SesionExpirada, Conectando, IngresaContrasena,
         TiempoEsgotadoJugada, CuentaRegresiva, TuTurno, TurnoRival, RivalAusente, Responde,
         EsperandoRespuestaRival, EsperandoJugadaRival, TiempoRespuestaAgotado,
         GanastePremio, GanaPorAbandono, RivalReconectando, Reconectando, ReconectandoOverlay,
@@ -386,6 +390,6 @@ public static class TrucoLocalization
         ConfirmLeaveLobbyTitle, ConfirmLeaveLobbyBody, ConfirmNoQuedarme, ConfirmSiSalir, SalaCanceladaReembolso,
         NotificacionesTitulo, NotificacionesVacio, LogExito, LogPendiente, LogAviso, LogInfo,
         LogSalaCreada, LogUnidoSala, LogSalasActualizadas,
-        EliminarSala, SalaEliminada, YaTienesSala, AudioSilenciado, AudioActivado, RejoinPartida, ContinuarPartida, SalasAntiguasEliminadas, PurgeLobbyResult, PurgeLobbyNoneMine, PurgeLobbyStillMine, SilenciarAudio
+        EliminarSala, SalaEliminada, YaTienesSala, SalaYaExiste, AudioSilenciado, AudioActivado, RejoinPartida, ContinuarPartida, SalasAntiguasEliminadas, PurgeLobbyResult, PurgeLobbyNoneMine, PurgeLobbyStillMine, SilenciarAudio
     }
 }

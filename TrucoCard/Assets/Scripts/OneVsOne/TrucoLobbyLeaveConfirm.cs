@@ -39,9 +39,10 @@ public static class TrucoLobbyLeaveConfirm
         string matchId = OneVsOneMatchSession.CurrentMatchId;
         if (string.IsNullOrEmpty(matchId))
             matchId = TrucoActiveHostMatchStore.GetRememberedMatchId();
-        if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
+        // Refund BEFORE Photon leave — leaving first can webhook-close without /leave refund.
         if (!string.IsNullOrEmpty(matchId))
             await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
+        if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
         OneVsOneMatchSession.Clear();
         TrucoMatchProgress.ClearAllMatchMemory();
         TrucoActiveHostMatchStore.Clear();

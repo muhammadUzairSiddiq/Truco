@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ExitGames.Client.Photon;
@@ -34,7 +34,7 @@ public class UIMANAGER : MonoBehaviour
     public static UIMANAGER Instance { get; private set; }
     [SerializeField] private List<GameObject> allUiButtons;
     [SerializeField] private GameObject turnText;
-    [Tooltip("Creada en runtime si no existe: panel detrás del texto de turno (no bloquea clics).")]
+    [Tooltip("Creada en runtime si no existe: panel detrÃ¡s del texto de turno (no bloquea clics).")]
     [SerializeField] private RectTransform turnTextBackground;
     static Sprite _cachedUiWhiteSprite;
     static readonly Color TurnBannerBgNormal = TrucoGameplayTimerBanner.BgNormal;
@@ -63,16 +63,17 @@ public class UIMANAGER : MonoBehaviour
     [SerializeField] private GameObject mazo;
     
     public bool _envidoPlayed = false;
-    /// <summary>Flor already called this hand — button stays off until next deal.</summary>
+    /// <summary>Flor already called this hand â€” button stays off until next deal.</summary>
     public bool _florPlayed = false;
     public bool trucoPlayed = false;
-    /// <summary>Actor who last raised Truco/Retruco/Vale4 — opponent alone may raise the next level.</summary>
+    /// <summary>Actor who last raised Truco/Retruco/Vale4 â€” opponent alone may raise the next level.</summary>
     public int LastTrucoRaiseActor { get; private set; }
 
     public Dictionary<ChallengeType,int> unAnsweredChallenges = new Dictionary<ChallengeType, int>();
     private bool _cantChallenge = false;
     private int _myDisplayCardIndex = 0;
     private int _otherPlayersDisplayCardIndex = 0;
+    readonly List<Vector3> _myCardsInitialPositions = new List<Vector3>();
     private bool _challengeAccepted = false;
     private bool _isDoubleEnvido = false;
     private bool _isDoubleRealEnvido = false;
@@ -85,10 +86,30 @@ public class UIMANAGER : MonoBehaviour
     const float ChallengeResponseSeconds = 30f;
     float _challengeSentAt = -1f;
 
-    public void MarkChallengeSentNow() => _challengeSentAt = Time.time;
+    double _challengeDeadlinePhoton = -1;
+
+    public double MarkChallengeSentNow()
+    {
+        _challengeSentAt = Time.time;
+        _challengeDeadlinePhoton = PhotonNetwork.Time + ChallengeResponseSeconds;
+        return _challengeDeadlinePhoton;
+    }
+
+    public void ApplySharedChallengeDeadline(double deadlinePhoton)
+    {
+        if (deadlinePhoton > 0)
+            _challengeDeadlinePhoton = deadlinePhoton;
+        else
+            MarkChallengeSentNow();
+        _challengeSentAt = Time.time;
+    }
+
+    public double GetChallengeDeadlinePhoton() => _challengeDeadlinePhoton;
 
     public int GetChallengeResponseSecondsRemaining()
     {
+        if (_challengeDeadlinePhoton > 0)
+            return Mathf.Max(0, Mathf.CeilToInt((float)(_challengeDeadlinePhoton - PhotonNetwork.Time)));
         if (_challengeSentAt < 0f) return Mathf.CeilToInt(ChallengeResponseSeconds);
         return Mathf.Max(0, Mathf.CeilToInt(ChallengeResponseSeconds - (Time.time - _challengeSentAt)));
     }
@@ -97,6 +118,9 @@ public class UIMANAGER : MonoBehaviour
     public void ResetHandChallengeState()
     {
         _challengeSentAt = -1f;
+        _challengeDeadlinePhoton = -1;
+        _scoringRevealMyCount = 0;
+        _scoringRevealOtherCount = 0;
         _isChallengepPending = false;
         _iOweChallengeResponse = false;
         _cantChallenge = false;
@@ -208,14 +232,15 @@ public class UIMANAGER : MonoBehaviour
     public void ClearTurnBanner() => DisableTurnText();
 
     /// <summary>Start the 30 s response countdown on the player who received a canto. Auto-declines on timeout (anti-freeze).</summary>
-    public void BeginChallengeResponseCountdown()
+    public void BeginChallengeResponseCountdown(double sharedDeadlinePhoton = -1)
     {
         if (SpectatorContext.IsSpectator) return;
-        MarkChallengeSentNow();
+        ApplySharedChallengeDeadline(sharedDeadlinePhoton);
         _iOweChallengeResponse = true;
         if (_challengeResponseRoutine != null) StopCoroutine(_challengeResponseRoutine);
         TrucoRulesScenarioLog.Ok("ChallengeResponseTimer START",
-            "window=" + ChallengeResponseSeconds + "s last=" + (GameManager.Instance != null
+            "window=" + ChallengeResponseSeconds + "s photonDeadline=" + _challengeDeadlinePhoton
+            + " last=" + (GameManager.Instance != null
                 ? GameManager.Instance.lastChallengeType.ToString() : "?"));
         _challengeResponseRoutine = StartCoroutine(ChallengeResponseCountdown());
     }
@@ -227,19 +252,23 @@ public class UIMANAGER : MonoBehaviour
         if (_challengeResponseRoutine != null) { StopCoroutine(_challengeResponseRoutine); _challengeResponseRoutine = null; }
     }
 
-    /// <summary>After Quiero/NoQuiero closes a canto — clear pending flags and restart turn clocks on BOTH seats.</summary>
-    void FinishChallengeUiAndRestartTimers(string reason)
+    /// <summary>After Quiero/NoQuiero closes a canto â€” clear pending flags and restart turn clocks on BOTH seats.</summary>
+    void FinishChallengeUiAndRestartTimers(string reason, double syncStartedAt = -1)
     {
         // Keep pending when a stacked canto still waits (e.g. Truco after Envido No quiero).
         if (unAnsweredChallenges.Count == 0)
             _isChallengepPending = false;
         CancelChallengeResponseCountdown();
-        TrucoRulesScenarioLog.Ok("ChallengeClosed → restart timers",
+        TrucoRulesScenarioLog.Ok("ChallengeClosed â†’ restart timers",
             "reason=" + reason
             + " unanswered=" + unAnsweredChallenges.Count
             + " pending=" + _isChallengepPending
+            + " syncAt=" + syncStartedAt
             + " myTurn=" + (GameManager.Instance != null && GameManager.Instance.IsMyTurn()));
-        TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
+        // Do not restart turn clocks while a stacked Truco still needs a response.
+        if (PendingTrucoChainType() != ChallengeType.None)
+            return;
+        TurnManager.Instance?.RestartTurnTimersIfActive(force: true, startedAt: syncStartedAt);
     }
 
     /// <summary>True when any canto is still unresolved on this client.</summary>
@@ -250,23 +279,21 @@ public class UIMANAGER : MonoBehaviour
 
     System.Collections.IEnumerator ChallengeResponseCountdown()
     {
-        float d = ChallengeResponseSeconds;
-        while (d > 0f)
+        while (true)
         {
             if (!_iOweChallengeResponse) { _challengeResponseRoutine = null; yield break; }
             if (GameManager.Instance != null && GameManager.Instance._gameEnded) { _challengeResponseRoutine = null; yield break; }
-            d -= Time.deltaTime;
-            int sec = Mathf.CeilToInt(d);
-            if (sec < 0) sec = 0;
+            int sec = GetChallengeResponseSecondsRemaining();
             bool urgent = sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos;
             UpdateTurnText(TrucoTextosClient.FormatoBannerResponderConSegundos(sec), -1f, urgent);
+            if (sec <= 0) break;
             yield return null;
         }
         _challengeResponseRoutine = null;
         if (!_iOweChallengeResponse) yield break;
         if (GameManager.Instance != null && GameManager.Instance._gameEnded) yield break;
         _iOweChallengeResponse = false;
-        TrucoRulesScenarioLog.Ok("ChallengeResponseTimeout → auto NoQuiero",
+        TrucoRulesScenarioLog.Ok("ChallengeResponseTimeout â†’ auto NoQuiero",
             "window=" + ChallengeResponseSeconds + "s last=" + (GameManager.Instance != null
                 ? GameManager.Instance.lastChallengeType.ToString() : "?"));
         AppManager.Instance?.DisplayNotification(TrucoTextosClient.TiempoRespuestaAgotado);
@@ -274,7 +301,7 @@ public class UIMANAGER : MonoBehaviour
         ChallengeNoQueiro();
     }
 
-    // ───────── Visual callout banner: canto/declaration — sits BELOW the turn status lane ─────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€ Visual callout banner: canto/declaration â€” sits BELOW the turn status lane â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private GameObject _calloutGo;
     private TMPro.TMP_Text _calloutTmp;
     private RectTransform _calloutRt;
@@ -290,22 +317,31 @@ public class UIMANAGER : MonoBehaviour
             ? (TrucoLocalization.IsEnglish ? "You" : "Vos")
             : (TrucoLocalization.IsEnglish ? "Rival" : "Rival");
         string color = mine ? "#7CFC9B" : "#FFC24A";
-        _calloutTmp.text = $"<color={color}><b>{who}</b></color>  ·  {phrase}";
+        _calloutTmp.text = $"<color={color}><b>{who}</b></color>  Â·  {phrase}";
         _calloutGo.SetActive(true);
         _calloutGo.transform.SetAsLastSibling();
         CancelInvoke(nameof(HideCallout));
         Invoke(nameof(HideCallout), 2.2f);
     }
 
-    /// <summary>Local announcements near your hand (bottom); rival near their cards (top). Never covers the turn timer.</summary>
+    /// <summary>Local announcements near your hand (bottom); rival near their cards (top).</summary>
     void LayoutCalloutForSpeaker(bool mine)
     {
         if (_calloutRt == null) return;
-        // Both callouts stay under the top timer lane so cards stay clear.
-        _calloutRt.anchorMin = new Vector2(0.5f, 1f);
-        _calloutRt.anchorMax = new Vector2(0.5f, 1f);
-        _calloutRt.pivot = new Vector2(0.5f, 1f);
-        _calloutRt.anchoredPosition = new Vector2(0f, mine ? -168f : -168f);
+        if (mine)
+        {
+            _calloutRt.anchorMin = new Vector2(0.5f, 0f);
+            _calloutRt.anchorMax = new Vector2(0.5f, 0f);
+            _calloutRt.pivot = new Vector2(0.5f, 0f);
+            _calloutRt.anchoredPosition = new Vector2(0f, 210f);
+        }
+        else
+        {
+            _calloutRt.anchorMin = new Vector2(0.5f, 1f);
+            _calloutRt.anchorMax = new Vector2(0.5f, 1f);
+            _calloutRt.pivot = new Vector2(0.5f, 1f);
+            _calloutRt.anchoredPosition = new Vector2(0f, -168f);
+        }
         _calloutRt.sizeDelta = new Vector2(620f, 56f);
     }
 
@@ -353,22 +389,47 @@ public class UIMANAGER : MonoBehaviour
         _calloutGo.SetActive(false);
     }
 
-    /// <summary>Keep turn status banner top-center (never over the local hand).</summary>
+    /// <summary>Timer beside the acting seat: local hand (bottom) vs rival (top).</summary>
     void LayoutStatusBanners(bool? localMustAct = null)
     {
-        // localMustAct kept for call-site compatibility — banner stays top so it never covers cards.
-        _ = localMustAct;
+        bool mine = localMustAct ?? (GameManager.Instance != null &&
+                                     (GameManager.Instance.IsMyTurn() || _iOweChallengeResponse));
         if (turnText != null)
         {
             var textRt = turnText.GetComponent<RectTransform>();
             if (textRt != null)
             {
-                textRt.anchorMin = new Vector2(0.5f, 1f);
-                textRt.anchorMax = new Vector2(0.5f, 1f);
-                textRt.pivot = new Vector2(0.5f, 1f);
-                textRt.anchoredPosition = new Vector2(0f, -56f);
+                if (mine)
+                {
+                    textRt.anchorMin = new Vector2(0.5f, 0f);
+                    textRt.anchorMax = new Vector2(0.5f, 0f);
+                    textRt.pivot = new Vector2(0.5f, 0f);
+                    textRt.anchoredPosition = new Vector2(0f, 280f);
+                }
+                else
+                {
+                    textRt.anchorMin = new Vector2(0.5f, 1f);
+                    textRt.anchorMax = new Vector2(0.5f, 1f);
+                    textRt.pivot = new Vector2(0.5f, 1f);
+                    textRt.anchoredPosition = new Vector2(0f, -56f);
+                }
                 textRt.sizeDelta = new Vector2(640f, 96f);
             }
+        }
+        if (turnTextBackground != null)
+        {
+            turnTextBackground.anchorMin = turnText != null
+                ? turnText.GetComponent<RectTransform>().anchorMin
+                : new Vector2(0.5f, 1f);
+            turnTextBackground.anchorMax = turnText != null
+                ? turnText.GetComponent<RectTransform>().anchorMax
+                : new Vector2(0.5f, 1f);
+            turnTextBackground.pivot = turnText != null
+                ? turnText.GetComponent<RectTransform>().pivot
+                : new Vector2(0.5f, 1f);
+            turnTextBackground.anchoredPosition = turnText != null
+                ? turnText.GetComponent<RectTransform>().anchoredPosition
+                : new Vector2(0f, -56f);
         }
     }
 
@@ -391,6 +452,138 @@ public class UIMANAGER : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Rebuild hand + table from master authority after reconnect.
+    /// Prevents re-dealt 3-card hands and duplicate plays.
+    /// </summary>
+    public void RebuildHandAndTricksFromSync(
+        List<DeckCards> localDeal,
+        List<ScoreClass> myPlayed,
+        List<ScoreClass> oppPlayed)
+    {
+        if (myPlayerCards == null) return;
+        _myDisplayCardIndex = 0;
+        _otherPlayersDisplayCardIndex = 0;
+
+        // Reset opponent dummy cards to hand seats.
+        if (otherPlayersCards != null && otherPlayersCardsInitialPositions != null)
+        {
+            for (int i = 0; i < otherPlayersCards.Count; i++)
+            {
+                if (otherPlayersCards[i] == null) continue;
+                if (i < otherPlayersCardsInitialPositions.Count)
+                    otherPlayersCards[i].transform.position = otherPlayersCardsInitialPositions[i];
+                var oppCard = otherPlayersCards[i].GetComponent<Card>();
+                if (oppCard != null) oppCard.SetSelectable(false);
+            }
+        }
+
+        // Reset local hand seats, then place remaining vs played.
+        var remaining = new List<DeckCards>();
+        if (localDeal != null)
+        {
+            var playedMask = new bool[localDeal.Count];
+            if (myPlayed != null)
+            {
+                for (int p = 0; p < myPlayed.Count; p++)
+                {
+                    for (int d = 0; d < localDeal.Count; d++)
+                    {
+                        if (playedMask[d]) continue;
+                        if (localDeal[d].suit == myPlayed[p].suit && localDeal[d].rank == myPlayed[p].value)
+                        {
+                            playedMask[d] = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            for (int d = 0; d < localDeal.Count; d++)
+            {
+                if (!playedMask[d]) remaining.Add(localDeal[d]);
+            }
+        }
+
+        for (int i = 0; i < myPlayerCards.Count; i++)
+        {
+            var go = myPlayerCards[i];
+            if (go == null) continue;
+            if (i < _myCardsInitialPositions.Count)
+                go.transform.position = _myCardsInitialPositions[i];
+            var card = go.GetComponent<Card>();
+            if (card == null) continue;
+            if (i < remaining.Count)
+            {
+                card.SetupCard(remaining[i].suit, remaining[i].rank);
+                card.SetSelectable(true);
+                go.SetActive(true);
+            }
+            else
+            {
+                card.SetSelectable(false);
+                // Slot will be reused for a played card placement below, or stay empty.
+                go.SetActive(false);
+            }
+        }
+
+        // Place own played cards onto the table (instant).
+        int slot = remaining.Count;
+        if (myPlayed != null)
+        {
+            for (int p = 0; p < myPlayed.Count; p++)
+            {
+                GameObject go = null;
+                if (slot < myPlayerCards.Count) go = myPlayerCards[slot++];
+                if (go == null && myPlayerCards.Count > 0)
+                    go = myPlayerCards[Mathf.Min(p, myPlayerCards.Count - 1)];
+                if (go == null) continue;
+                go.SetActive(true);
+                var card = go.GetComponent<Card>();
+                if (card != null)
+                {
+                    card.SetupCard(myPlayed[p].suit, myPlayed[p].value);
+                    card.SetSelectable(false);
+                }
+                if (myDisplayCardsPosition != null && myDisplayCardsPosition.Count > 0)
+                {
+                    int idx = Mathf.Min(p, myDisplayCardsPosition.Count - 1);
+                    PrepareTrickLayout(go.transform, true);
+                    go.transform.position = myDisplayCardsPosition[idx].position;
+                }
+                _myDisplayCardIndex = p + 1;
+            }
+        }
+
+        // Place opponent played faces.
+        if (oppPlayed != null)
+        {
+            for (int p = 0; p < oppPlayed.Count; p++)
+                SnapOtherPlayersCard(oppPlayed[p].suit, oppPlayed[p].value);
+        }
+
+        EnsureLocalHandSpritesVisible();
+        TrucoRulesScenarioLog.Ok("RebuildHandAndTricksFromSync",
+            "remain=" + remaining.Count
+            + " myPlayed=" + (myPlayed != null ? myPlayed.Count : 0)
+            + " oppPlayed=" + (oppPlayed != null ? oppPlayed.Count : 0));
+    }
+
+    void SnapOtherPlayersCard(CardSuit suit, int value)
+    {
+        if (otherPlayersCards == null || _otherPlayersDisplayCardIndex < 0
+            || _otherPlayersDisplayCardIndex >= otherPlayersCards.Count) return;
+        if (otherPlayersDisplayCardsPosition == null
+            || _otherPlayersDisplayCardIndex >= otherPlayersDisplayCardsPosition.Count) return;
+        var o = otherPlayersCards[_otherPlayersDisplayCardIndex].GetComponent<Card>();
+        if (o == null) return;
+        o.SetupCard(suit, value);
+        o.SetSelectable(false);
+        var t = o.transform;
+        PrepareTrickLayout(t, true);
+        t.position = otherPlayersDisplayCardsPosition[_otherPlayersDisplayCardIndex].position;
+        _otherPlayersDisplayCardIndex++;
+    }
+
     private void Awake()
     {
         Instance = this;
@@ -398,6 +591,14 @@ public class UIMANAGER : MonoBehaviour
         for (int i = 0; i < otherPlayersCards.Count; i++)
         {
             otherPlayersCardsInitialPositions.Add(otherPlayersCards[i].transform.position);
+        }
+        if (myPlayerCards != null)
+        {
+            for (int i = 0; i < myPlayerCards.Count; i++)
+            {
+                if (myPlayerCards[i] != null)
+                    _myCardsInitialPositions.Add(myPlayerCards[i].transform.position);
+            }
         }
         if (turnText != null)
         {
@@ -411,7 +612,7 @@ public class UIMANAGER : MonoBehaviour
         LayoutStatusBanners();
         EnsureTurnBannerBackground();
         if (!SpectatorContext.IsSpectator) EnsureMuteButton();
-        // Scene buttons start active — force off until Turn RPC assigns mano (Pie must not flash).
+        // Scene buttons start active â€” force off until Turn RPC assigns mano (Pie must not flash).
         DisableButtons();
     }
 
@@ -450,12 +651,44 @@ public class UIMANAGER : MonoBehaviour
 
     IEnumerator CoAutoFlor(string reason)
     {
-        // Give the peer's NoFlor RPC a short moment to arrive so +3 auto-award can resolve immediately.
+        // Give the peer's NoFlor RPC a short moment so +3 auto-award can resolve immediately.
+        // Buttons stay disabled for this wait — never flash illegal actions.
         yield return new WaitForSeconds(0.15f);
-        _autoFlorQueued = false;
-        if (!ShouldAutoCallFlorNow()) yield break;
+        if (_florPlayed)
+        {
+            _autoFlorQueued = false;
+            yield break;
+        }
+        if (GameManager.Instance == null || !GameManager.Instance.PlayerHasFlor())
+        {
+            _autoFlorQueued = false;
+            yield break;
+        }
+        _iOweChallengeResponse = true;
         TrucoRulesScenarioLog.Ok("Auto Flor", "reason=" + reason);
         ChallengeFlor();
+        _autoFlorQueued = false;
+    }
+
+    /// <summary>
+    /// Announce local Flor before showing any response buttons (Truco/Envido).
+    /// Returns true when Flor was queued — caller must not enable Quiero/Envido/etc.
+    /// </summary>
+    bool TryQueueResponseFlor(string reason)
+    {
+        if (!OneVsOneMatchSession.WithFlor || _florPlayed || _autoFlorQueued) return false;
+        if (GameManager.Instance == null || !GameManager.Instance.PlayerHasFlor()) return false;
+        if (invokedChallenges.Contains(ChallengeType.Flor)
+            || invokedChallenges.Contains(ChallengeType.ContraFlor)
+            || invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
+            || invokedChallenges.Contains(ChallengeType.FlorChica))
+            return false;
+        DisableButtons();
+        _iOweChallengeResponse = true;
+        _isChallengepPending = true;
+        _autoFlorQueued = true;
+        StartCoroutine(CoAutoFlor(reason));
+        return true;
     }
 
     ChallengeType PendingTrucoChainType()
@@ -479,27 +712,64 @@ public class UIMANAGER : MonoBehaviour
             GameManager.Instance.ActiveChallenges.Clear();
     }
 
-    bool ResumePendingTrucoChainAfterFlor()
+    bool ResumePendingTrucoChainAfterFlor() => ResumePendingTrucoChain("flor");
+
+    /// <summary>Public wrapper for GameManager Flor response paths after Flor Chica / Con Flor Quiero.</summary>
+    public bool ResumePendingTrucoChainAfterFlorPublic()
+    {
+        _florPlayed = true;
+        if (!invokedChallenges.Contains(ChallengeType.Flor))
+            invokedChallenges.Add(ChallengeType.Flor);
+        ClearEnvidoFlorPendingAfterFlor();
+        _isChallengepPending = false;
+        CancelChallengeResponseCountdown();
+        if (ResumePendingTrucoChain("flor-public"))
+            return true;
+        FinishChallengeUiAndRestartTimers("flor phase closed");
+        return false;
+    }
+
+    bool ResumePendingTrucoChain(string reason)
     {
         ChallengeType pendingTruco = PendingTrucoChainType();
         if (pendingTruco == ChallengeType.None) return false;
+        int raiser = 0;
+        unAnsweredChallenges.TryGetValue(pendingTruco, out raiser);
         ClearEnvidoFlorPendingAfterFlor();
+        // Re-store raiser after clear of envido/flor keys (truco keys preserved by ClearEnvidoFlorâ€¦? 
+        // ClearEnvidoFlorPendingAfterFlor does NOT remove Truco â€” good. Re-apply if wiped.)
+        if (raiser > 0) unAnsweredChallenges[pendingTruco] = raiser;
         _isChallengepPending = true;
         if (GameManager.Instance != null)
             GameManager.Instance.lastChallengeType = pendingTruco;
-        switch (pendingTruco)
+        bool iMustRespond = raiser > 0 && PhotonNetwork.LocalPlayer != null
+                            && raiser != PhotonNetwork.LocalPlayer.ActorNumber;
+        TrucoRulesScenarioLog.Ok("ResumePendingTruco",
+            "reason=" + reason + " type=" + pendingTruco + " raiser=" + raiser
+            + " iMustRespond=" + iMustRespond);
+        if (iMustRespond)
         {
-            case ChallengeType.Truco:
-                TrucoChallenged();
-                break;
-            case ChallengeType.Retruco:
-                RetrucoChallenged();
-                break;
-            case ChallengeType.Vale4:
-                Vale4Challenged();
-                break;
+            switch (pendingTruco)
+            {
+                case ChallengeType.Truco:
+                    TrucoChallenged();
+                    break;
+                case ChallengeType.Retruco:
+                    RetrucoChallenged();
+                    break;
+                case ChallengeType.Vale4:
+                    Vale4Challenged();
+                    break;
+            }
+            BeginChallengeResponseCountdown();
         }
-        BeginChallengeResponseCountdown();
+        else
+        {
+            // Raiser waits for Quiero / Retruco / NoQuiero â€” MAZO must stay off.
+            DisableButtons();
+            CancelChallengeResponseCountdown();
+        }
+        if (mazo != null) mazo.SetActive(false);
         return true;
     }
 
@@ -529,6 +799,7 @@ public class UIMANAGER : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.IsMyTurn())
         {
             GameManager.Instance.SetCanPlayCard(true);
+            EnableButtons();
             TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
         }
         else
@@ -539,10 +810,38 @@ public class UIMANAGER : MonoBehaviour
         }
     }
 
+    /// <summary>Remove Envido/Flor entries only â€” keep pending Truco/Retruco/Vale4 for later response.</summary>
+    void ClearEnvidoFamilyFromUnanswered()
+    {
+        unAnsweredChallenges.Remove(ChallengeType.Envido);
+        unAnsweredChallenges.Remove(ChallengeType.RealEnvido);
+        unAnsweredChallenges.Remove(ChallengeType.FaltaEnvido);
+    }
+
+    void LockEnvidoFamilyForHand()
+    {
+        _envidoPlayed = true;
+        if (!invokedChallenges.Contains(ChallengeType.Envido))
+            invokedChallenges.Add(ChallengeType.Envido);
+        if (!invokedChallenges.Contains(ChallengeType.RealEnvido))
+            invokedChallenges.Add(ChallengeType.RealEnvido);
+        if (!invokedChallenges.Contains(ChallengeType.FaltaEnvido))
+            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+        envido.SetActive(false);
+        realEnvido.SetActive(false);
+        faltaEnvido.SetActive(false);
+    }
+
+    bool ResumePendingTrucoChainAfterEnvido()
+    {
+        ClearEnvidoFamilyFromUnanswered();
+        return ResumePendingTrucoChain("envido");
+    }
+
     static void ConfigureTurnTextStyle(TMPro.TMP_Text tmp)
     {
         if (tmp == null) return;
-        // Rich-text sizes are authored in TrucoGameplayTimerBanner — disable auto-size so lines don't fight each other.
+        // Rich-text sizes are authored in TrucoGameplayTimerBanner â€” disable auto-size so lines don't fight each other.
         tmp.enableAutoSizing = false;
         tmp.fontSize = 26f;
         tmp.enableWordWrapping = true;
@@ -585,7 +884,7 @@ public class UIMANAGER : MonoBehaviour
         btn.onClick.AddListener(() =>
         {
             TrucoGameplayAudio.ToggleMute();
-            tmp.text = TrucoGameplayAudio.IsMuted ? "🔇" : TrucoTextosClient.SilenciarAudio;
+            tmp.text = TrucoGameplayAudio.IsMuted ? "ðŸ”‡" : TrucoTextosClient.SilenciarAudio;
             AppManager.Instance?.DisplayNotification(
                 TrucoGameplayAudio.IsMuted
                     ? TrucoLocalization.T(TrucoLocalization.Key.AudioSilenciado)
@@ -651,16 +950,16 @@ public class UIMANAGER : MonoBehaviour
         LayoutStatusBanners();
         var textRt = turnText.GetComponent<RectTransform>();
         if (textRt == null) return;
-        // Same compact lane for timers and short messages — avoids ballooning into name/score UI.
+        // Same compact lane for timers and short messages â€” avoids ballooning into name/score UI.
         textRt.sizeDelta = largeCountdown
             ? new Vector2(640f, 100f)
             : new Vector2(640f, 88f);
         SyncTurnBannerBackgroundRect(textRt);
     }
 
-    /// <param name="autoHideSeconds">Si es &lt; 0, el banner queda visible hasta el próximo <see cref="UpdateTurnText"/> (p. ej. durante la cuenta de 30 s).</param>
-    /// <param name="turnCountdownUrgent">Panel del cronómetro ligeramente más cálido cuando quedan pocos segundos.</param>
-    /// <param name="reconnectCountdown">Rival desconectado — panel negro más marcado para el timer de 60 s.</param>
+    /// <param name="autoHideSeconds">Si es &lt; 0, el banner queda visible hasta el prÃ³ximo <see cref="UpdateTurnText"/> (p. ej. durante la cuenta de 30 s).</param>
+    /// <param name="turnCountdownUrgent">Panel del cronÃ³metro ligeramente mÃ¡s cÃ¡lido cuando quedan pocos segundos.</param>
+    /// <param name="reconnectCountdown">Rival desconectado â€” panel negro mÃ¡s marcado para el timer de 60 s.</param>
     public void UpdateTurnText(string message, float autoHideSeconds = 2.25f, bool turnCountdownUrgent = false, bool reconnectCountdown = false)
     {
         if (turnText == null) return;
@@ -744,15 +1043,13 @@ public class UIMANAGER : MonoBehaviour
 
         if (ShouldAutoCallFlorNow())
         {
+            DisableButtons();
             QueueAutoFlor("turn buttons");
             return;
         }
 
-        foreach (GameObject button in allUiButtons)
-        {
-            if (button != null && !GameManager.Instance._gameEnded)
-                button.SetActive(true);
-        }
+        // Never mass-enable allUiButtons — that flashes illegal Envido/Flor/Quiero for a frame.
+        DisableButtons();
 
         // Truco chain: only the opponent of the last raise may offer Retruco / Vale4.
         if (truco != null) truco.SetActive(false);
@@ -771,14 +1068,19 @@ public class UIMANAGER : MonoBehaviour
             if (vale4 != null) vale4.SetActive(true);
         }
 
-        // Flor locks all Envido variants for the rest of the hand.
+        // Flor or finished Envido phase locks all Envido variants for the rest of the hand.
         bool florLocked = _florPlayed
                           || invokedChallenges.Contains(ChallengeType.Flor)
                           || invokedChallenges.Contains(ChallengeType.ContraFlor)
                           || invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
                           || invokedChallenges.Contains(ChallengeType.FlorChica);
+        bool envidoLocked = _envidoPlayed
+                            || florLocked
+                            || invokedChallenges.Contains(ChallengeType.Envido)
+                            || invokedChallenges.Contains(ChallengeType.RealEnvido)
+                            || invokedChallenges.Contains(ChallengeType.FaltaEnvido);
         
-        if (GameManager.Instance.cardPlayed || florLocked)
+        if (GameManager.Instance.cardPlayed || florLocked || envidoLocked)
         {
             envido.SetActive(false);
             realEnvido.SetActive(false);
@@ -791,11 +1093,7 @@ public class UIMANAGER : MonoBehaviour
             if (!_challengeAccepted)
             {
                 Debug.LogWarning("It is my turn, enabling buttons");
-                if (!invokedChallenges.Contains(ChallengeType.Envido) && !invokedChallenges.Contains(ChallengeType.Flor) 
-                                                                      && !invokedChallenges.Contains(ChallengeType.ContraFlor)
-                                                                      && !invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
-                                                                      && !invokedChallenges.Contains(ChallengeType.FaltaEnvido)
-                                                                      && !invokedChallenges.Contains(ChallengeType.RealEnvido))
+                if (!envidoLocked)
                 {
                     envido.SetActive(true);
                     realEnvido.SetActive(true);
@@ -851,7 +1149,7 @@ public class UIMANAGER : MonoBehaviour
     public void ShowMyCard(Transform cardTransform,CardSuit suit, int value)
     {
         if (cardTransform == null || myDisplayCardsPosition == null || myDisplayCardsPosition.Count == 0) return;
-        // Always refresh sprite — without this, moved cards can stay as blank white Images.
+        // Always refresh sprite â€” without this, moved cards can stay as blank white Images.
         var card = cardTransform.GetComponent<Card>();
         if (card != null)
             card.SetupCard(suit, value);
@@ -881,30 +1179,58 @@ public class UIMANAGER : MonoBehaviour
     {
         if (SpectatorContext.IsSpectator || GameManager.Instance == null || GameManager.Instance._gameEnded) return;
         if (GameManager.Instance.HandResolved || !GameManager.Instance.IsMyTurn()) return;
-        TrucoRulesScenarioLog.Ok("TriggerMazoOnTimeout → ChallengeMazo");
+        TrucoRulesScenarioLog.Ok("TriggerMazoOnTimeout â†’ ChallengeMazo");
         GameManager.Instance.SetCanPlayCard(false);
         DisableButtons();
         ChallengeMazo();
     }
 
+    int _scoringRevealMyCount;
+    int _scoringRevealOtherCount;
+    static readonly Vector3 ScoringRevealOffset = new Vector3(0f, 0.55f, 0f);
+
     public void ShowRevealedScoringCard(CardSuit suit, int value, bool isMine)
     {
+        // Dedicated reveal path â€” never reuse trick-slot indices (avoids overlap with final Truco card).
         if (isMine)
         {
-            foreach (var card in myPlayerCards)
+            if (myDisplayCardsPosition == null || myDisplayCardsPosition.Count == 0) return;
+            Transform cardTf = null;
+            if (myPlayerCards != null)
             {
-                if (card == null) continue;
-                var c = card.GetComponent<Card>();
-                if (c != null && c.suit == suit && c.value == value)
+                foreach (var card in myPlayerCards)
                 {
-                    ShowMyCard(card.transform, suit, value);
-                    return;
+                    if (card == null) continue;
+                    var c = card.GetComponent<Card>();
+                    if (c != null && c.suit == suit && c.value == value)
+                    {
+                        cardTf = card.transform;
+                        c.SetupCard(suit, value);
+                        break;
+                    }
                 }
             }
+            if (cardTf == null) return;
+            int idx = Mathf.Min(_scoringRevealMyCount, myDisplayCardsPosition.Count - 1);
+            PrepareTrickLayout(cardTf, true);
+            Vector3 target = myDisplayCardsPosition[idx].position + ScoringRevealOffset;
+            cardTf.LeanMove(target, 0.45f).setEaseInOutCubic();
+            _scoringRevealMyCount++;
         }
         else
         {
-            ShowOtherPlayersCard(suit, value);
+            if (otherPlayersCards == null || otherPlayersDisplayCardsPosition == null
+                || otherPlayersDisplayCardsPosition.Count == 0) return;
+            int idx = Mathf.Min(_scoringRevealOtherCount, otherPlayersCards.Count - 1);
+            idx = Mathf.Min(idx, otherPlayersDisplayCardsPosition.Count - 1);
+            var o = otherPlayersCards[idx].GetComponent<Card>();
+            if (o == null) return;
+            o.SetupCard(suit, value);
+            var t = o.transform;
+            PrepareTrickLayout(t, true);
+            Vector3 target = otherPlayersDisplayCardsPosition[idx].position + ScoringRevealOffset;
+            t.LeanMove(target, 0.45f).setEaseInOutCubic();
+            _scoringRevealOtherCount++;
         }
     }
 
@@ -924,7 +1250,6 @@ public class UIMANAGER : MonoBehaviour
     {
         if (!CanRaiseChallengeNow()) return;
         TrucoGameplayAudio.PlayLocalRaise(TRUCO_CHALLENGE);
-        MarkChallengeSentNow();
         MarkTrucoRaiseByLocal();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Truco);
@@ -945,7 +1270,8 @@ public class UIMANAGER : MonoBehaviour
         GameManager.Instance.noQuieroPoints = 1;
         GameManager.Instance.lastChallengeType = ChallengeType.Truco;
         TrucoRulesScenarioLog.Ok("Local RAISE Truco", "challengePts=1 noQuieroPts=1");
-        PhotonNetwork.RaiseEvent(TRUCO_CHALLENGE,null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        double deadline = MarkChallengeSentNow();
+        PhotonNetwork.RaiseEvent(TRUCO_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
     }
     
     // This is called from UI Button To Call Retruco Challenge on other player
@@ -979,7 +1305,8 @@ public class UIMANAGER : MonoBehaviour
         GameManager.Instance.lastChallengeType = ChallengeType.Retruco;
         GameManager.Instance.cardPlayed = true;
         TrucoRulesScenarioLog.Ok("Local RAISE Retruco", "challengePts=2");
-        PhotonNetwork.RaiseEvent(RETRUCO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        double deadline = MarkChallengeSentNow();
+        PhotonNetwork.RaiseEvent(RETRUCO_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
 
     }
     
@@ -1014,7 +1341,8 @@ public class UIMANAGER : MonoBehaviour
         GameManager.Instance.lastChallengeType = ChallengeType.Vale4;
         GameManager.Instance.cardPlayed = true;
         TrucoRulesScenarioLog.Ok("Local RAISE Vale4", "challengePts=3");
-        PhotonNetwork.RaiseEvent(VALE4_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        double deadline = MarkChallengeSentNow();
+        PhotonNetwork.RaiseEvent(VALE4_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
 
     }
     
@@ -1049,8 +1377,11 @@ public class UIMANAGER : MonoBehaviour
         GameManager.Instance.MarkEnvidoFirstCaller(PhotonNetwork.LocalPlayer.ActorNumber);
         GameManager.Instance.lastChallengeType = ChallengeType.Envido;
         GameManager.Instance.challengePoints += 2;
-        TrucoRulesScenarioLog.Ok("Local RAISE Envido", "challengePts+=" + GameManager.Instance.challengePoints);
-        PhotonNetwork.RaiseEvent(ENVIDO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        GameManager.Instance.TrackEnvidoCanto(ChallengeType.Envido);
+        TrucoRulesScenarioLog.Ok("Local RAISE Envido", "challengePts+=" + GameManager.Instance.challengePoints
+            + " cantos=" + GameManager.Instance.envidoCantoCount);
+        double deadline = MarkChallengeSentNow();
+        PhotonNetwork.RaiseEvent(ENVIDO_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
     }
     
     // This is called from UI Button To Call RealEnvido Challenge on other player
@@ -1085,8 +1416,11 @@ public class UIMANAGER : MonoBehaviour
         GameManager.Instance.MarkEnvidoFirstCaller(PhotonNetwork.LocalPlayer.ActorNumber);
         GameManager.Instance.lastChallengeType = ChallengeType.RealEnvido;
         GameManager.Instance.challengePoints += 3;
-        TrucoRulesScenarioLog.Ok("Local RAISE RealEnvido", "challengePts=" + GameManager.Instance.challengePoints);
-        PhotonNetwork.RaiseEvent(REALENVIDO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        GameManager.Instance.TrackEnvidoCanto(ChallengeType.RealEnvido);
+        TrucoRulesScenarioLog.Ok("Local RAISE RealEnvido", "challengePts=" + GameManager.Instance.challengePoints
+            + " cantos=" + GameManager.Instance.envidoCantoCount);
+        double deadline = MarkChallengeSentNow();
+        PhotonNetwork.RaiseEvent(REALENVIDO_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
     }
     
     // This is called from UI Button To Call Falta Envido Challenge on other player
@@ -1139,9 +1473,10 @@ public class UIMANAGER : MonoBehaviour
             GameManager.Instance.deniedFlor = true;
             GameManager.Instance.MarkEnvidoFirstCaller(PhotonNetwork.LocalPlayer.ActorNumber);
             GameManager.Instance.lastChallengeType = ChallengeType.FaltaEnvido;
-            // GameManager.Instance.challengePoints += 3;
-            TrucoRulesScenarioLog.Ok("Local RAISE FaltaEnvido");
-            PhotonNetwork.RaiseEvent(FALTAENVIDO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+            GameManager.Instance.TrackEnvidoCanto(ChallengeType.FaltaEnvido);
+            TrucoRulesScenarioLog.Ok("Local RAISE FaltaEnvido", "cantos=" + GameManager.Instance.envidoCantoCount);
+            double deadline = MarkChallengeSentNow();
+            PhotonNetwork.RaiseEvent(FALTAENVIDO_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
         }
     }
     
@@ -1161,8 +1496,7 @@ public class UIMANAGER : MonoBehaviour
             retruco.SetActive(false);
             vale4.SetActive(false);
             invokedChallenges.Add(ChallengeType.Truco);
-            GameManager.Instance.mazoPoints = 2;
-            trucoPlayed = true;
+            GameManager.Instance.MarkTrucoChainAccepted(ChallengeType.Truco);
             unAnsweredChallenges.Clear();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Retruco))
@@ -1171,8 +1505,7 @@ public class UIMANAGER : MonoBehaviour
             retruco.SetActive(false);
             vale4.SetActive(false);
             invokedChallenges.Add(ChallengeType.Retruco);
-            GameManager.Instance.mazoPoints = 3;
-            trucoPlayed = true;
+            GameManager.Instance.MarkTrucoChainAccepted(ChallengeType.Retruco);
             unAnsweredChallenges.Clear();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Vale4))
@@ -1181,50 +1514,19 @@ public class UIMANAGER : MonoBehaviour
             retruco.SetActive(false);
             vale4.SetActive(false);
             invokedChallenges.Add(ChallengeType.Vale4);
-            GameManager.Instance.mazoPoints = 4;
-            trucoPlayed = true;
+            GameManager.Instance.MarkTrucoChainAccepted(ChallengeType.Vale4);
             unAnsweredChallenges.Clear();
         }
-            else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+            else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
         {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
             flor.SetActive(false);
             contraFlor.SetActive(false);
-            invokedChallenges.Add(ChallengeType.Envido);
-            invokedChallenges.Add(ChallengeType.RealEnvido);
-            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            LockEnvidoFamilyForHand();
             GameManager.Instance.ActiveChallenges.Clear();
-            _envidoPlayed = true;
-            unAnsweredChallenges.Clear();
-        }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
-        {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            invokedChallenges.Add(ChallengeType.Envido);
-            invokedChallenges.Add(ChallengeType.RealEnvido);
-            invokedChallenges.Add(ChallengeType.FaltaEnvido);
-            GameManager.Instance.ActiveChallenges.Clear();
-            _envidoPlayed = true;
-            unAnsweredChallenges.Clear();
-        }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
-        {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            invokedChallenges.Add(ChallengeType.Envido);
-            invokedChallenges.Add(ChallengeType.RealEnvido);
-            invokedChallenges.Add(ChallengeType.FaltaEnvido);
-            _envidoPlayed = true;
-            unAnsweredChallenges.Clear();
+            // Keep pending Truco — do not Clear() the whole dictionary.
+            ClearEnvidoFamilyFromUnanswered();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
         {
@@ -1249,10 +1551,29 @@ public class UIMANAGER : MonoBehaviour
         }
         queiro.SetActive(false);
         noQueiro.SetActive(false);
+        ChallengeType acceptingType = GameManager.Instance.lastChallengeType;
+        bool envidoJustResolved = acceptingType == ChallengeType.Envido
+                                  || acceptingType == ChallengeType.RealEnvido
+                                  || acceptingType == ChallengeType.FaltaEnvido;
         _isChallengepPending = false;
+        double syncAt = PhotonNetwork.Time;
         TrucoRulesScenarioLog.Ok("Local RAISE Quiero (accept)",
-            "accepting=" + GameManager.Instance.lastChallengeType + " mazoPts=" + GameManager.Instance.mazoPoints);
-        PhotonNetwork.RaiseEvent(QUEIRO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+            "accepting=" + acceptingType + " mazoPts=" + GameManager.Instance.mazoPoints);
+        PhotonNetwork.RaiseEvent(QUEIRO_CHALLENGE, syncAt, RaiseEventOptions.Default, SendOptions.SendReliable);
+        if (envidoJustResolved)
+        {
+            // Master is the only scorer; if local is Master and accepted Envido, score BEFORE clearing stake.
+            if (PhotonNetwork.IsMasterClient)
+                GameManager.Instance.GetScore(acceptingType);
+            GameManager.Instance.lastChallengeType = ChallengeType.None;
+            GameManager.Instance.challengePoints = 0;
+        }
+        if (envidoJustResolved && ResumePendingTrucoChainAfterEnvido())
+        {
+            // Pending Truco response UI is live — do not enable MAZO on the raiser.
+            FinishChallengeUiAndRestartTimers("local Quiero→pending Truco", syncAt);
+            return;
+        }
         // This block of code checks if there are any unanswered challenges
         if (unAnsweredChallenges.Count > 0)
         {
@@ -1263,7 +1584,7 @@ public class UIMANAGER : MonoBehaviour
             Debug.LogWarning("Setting My turn Again");
             GameManager.Instance.SetCanPlayCard(true);
         }
-        FinishChallengeUiAndRestartTimers("local Quiero");
+        FinishChallengeUiAndRestartTimers("local Quiero", syncAt);
     }
     
     // This is called from UI Button To Call NoQuiero Challenge on other player
@@ -1306,74 +1627,24 @@ public class UIMANAGER : MonoBehaviour
             trucoPlayed = true;
             unAnsweredChallenges.Clear();
         }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
         {
             flor.SetActive(false);
             contraFlor.SetActive(false);
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
-            invokedChallenges.Add(ChallengeType.Envido);
-            invokedChallenges.Add(ChallengeType.RealEnvido);
-            invokedChallenges.Add(ChallengeType.FaltaEnvido);
+            LockEnvidoFamilyForHand();
             GameManager.Instance.ActiveChallenges.Clear();
-            _envidoPlayed = true; 
-        }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
-        {
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
-            invokedChallenges.Add(ChallengeType.Envido);
-            invokedChallenges.Add(ChallengeType.RealEnvido);
-            invokedChallenges.Add(ChallengeType.FaltaEnvido);
-            GameManager.Instance.ActiveChallenges.Clear();
-            _envidoPlayed = true;
-        }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
-        {
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
-            invokedChallenges.Add(ChallengeType.Envido);
-            invokedChallenges.Add(ChallengeType.RealEnvido);
-            invokedChallenges.Add(ChallengeType.FaltaEnvido);
-            GameManager.Instance.ActiveChallenges.Clear();
-            _envidoPlayed = true;
+            ClearEnvidoFamilyFromUnanswered();
+            GameManager.Instance.lastChallengeType = ChallengeType.None;
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
         {
-            bool hasPendingTruco = unAnsweredChallenges.ContainsKey(ChallengeType.Truco);
-            bool hasPendingRetruco = unAnsweredChallenges.ContainsKey(ChallengeType.Retruco);
-            bool hasPendingVale4 = unAnsweredChallenges.ContainsKey(ChallengeType.Vale4);
-
             flor.SetActive(false);
             contraFlor.SetActive(false);
             envido.SetActive(false);
             realEnvido.SetActive(false);
-
-            if (hasPendingTruco)
-            {
-                GameManager.Instance.lastChallengeType = ChallengeType.Truco;
-                TrucoChallenged();
-                BeginChallengeResponseCountdown();
-            }
-            else if (hasPendingRetruco)
-            {
-                GameManager.Instance.lastChallengeType = ChallengeType.Retruco;
-                RetrucoChallenged();
-                BeginChallengeResponseCountdown();
-            }
-            else if (hasPendingVale4)
-            {
-                GameManager.Instance.lastChallengeType = ChallengeType.Vale4;
-                Vale4Challenged();
-                BeginChallengeResponseCountdown();
-            }
+            ResumePendingTrucoChainAfterFlor();
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.ContraFlor))
         {
@@ -1385,21 +1656,33 @@ public class UIMANAGER : MonoBehaviour
         queiro.SetActive(false);
         noQueiro.SetActive(false);
         GameManager.Instance.noQuieroPoints = 0;
+        bool envidoDeclined = decliningType == ChallengeType.Envido
+                              || decliningType == ChallengeType.RealEnvido
+                              || decliningType == ChallengeType.FaltaEnvido;
         _isChallengepPending = false;
-        byte typePayload = (byte)decliningType;
+        double syncAt = PhotonNetwork.Time;
+        int awardPreview = TrucoRulePoints.IsEnvidoFamily(decliningType)
+            ? TrucoRulePoints.EnvidoNoQuieroAward(decliningType, GameManager.Instance.challengePoints,
+                GameManager.Instance.envidoCantoCount)
+            : TrucoRulePoints.NoQuieroAward(decliningType);
+        // Payload: type, sync clock, precomputed award (master must not depend on cleared local stake).
+        object[] noQuieroPayload = { (byte)decliningType, syncAt, awardPreview };
         TrucoRulesScenarioLog.Ok("Local RAISE NoQuiero (decline)",
-            "declining=" + decliningType + " awardViaMaster=" + TrucoRulePoints.NoQuieroAward(decliningType)
+            "declining=" + decliningType + " awardViaMaster=" + awardPreview
             + " endsHand=" + TrucoRulePoints.NoQuieroEndsHand(decliningType));
-        TrucoPunChallenges.RaiseToAll(NOQUEIRO_CHALLENGE, typePayload);
+        TrucoPunChallenges.RaiseToAll(NOQUEIRO_CHALLENGE, noQuieroPayload);
+        if (envidoDeclined && ResumePendingTrucoChainAfterEnvido())
+        {
+            FinishChallengeUiAndRestartTimers("local NoQuieroâ†’pending Truco", syncAt);
+            return;
+        }
         if (unAnsweredChallenges.Count > 0)
         {
             StartCoroutine(CheckForUnansweredChallenges());
         }
         else if (GameManager.Instance.IsMyTurn())
         {
-            if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido) ||
-                GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido) ||
-                GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
+            if (envidoDeclined)
             {
                 if (!invokedChallenges.Contains(ChallengeType.Truco))
                     truco.SetActive(true);
@@ -1412,14 +1695,14 @@ public class UIMANAGER : MonoBehaviour
             DisableButtons();
         }
         GameManager.Instance.challengePoints = 0;
-        FinishChallengeUiAndRestartTimers("local NoQuiero");
+        FinishChallengeUiAndRestartTimers("local NoQuiero", syncAt);
     }
     
     // This is called from UI Button To Call Flor Challenge on other player
 
     public void ChallengeFlor()
     {
-         if (!CanRaiseChallengeNow()) return;
+         if (!CanRaiseChallengeNow() && !_autoFlorQueued) return;
          MarkChallengeSentNow();
          _isChallengepPending = true;
         _florPlayed = true;
@@ -1442,7 +1725,7 @@ public class UIMANAGER : MonoBehaviour
             bool hasPendingVale4 = unAnsweredChallenges.ContainsKey(ChallengeType.Vale4);
 
             GameManager.Instance.RequestNetworkAward(PhotonNetwork.LocalPlayer.ActorNumber, 3, false);
-            TrucoPunChallenges.RaiseToAll(FLOR_CHALLENGE, FlorAutoAwardFlag);
+            TrucoPunChallenges.RaiseToOthers(FLOR_CHALLENGE, FlorAutoAwardFlag);
             TrucoRulesScenarioLog.Ok("Local RAISE Flor AUTO-AWARD (+3)", "rivalDeniedFlor=true");
             if (hasPendingTruco || hasPendingRetruco || hasPendingVale4)
                 ResumePendingTrucoChainAfterFlor();
@@ -1464,13 +1747,14 @@ public class UIMANAGER : MonoBehaviour
         noQueiro.SetActive(false);
         GameManager.Instance.lastChallengeType = ChallengeType.Flor;
         TrucoRulesScenarioLog.Ok("Local RAISE Flor (challenge rival)");
-        TrucoPunChallenges.RaiseToOthers(FLOR_CHALLENGE, null);
+        unAnsweredChallenges[ChallengeType.Flor] = PhotonNetwork.LocalPlayer.ActorNumber;
+        double deadline = MarkChallengeSentNow();
+        TrucoPunChallenges.RaiseToOthers(FLOR_CHALLENGE, deadline);
     }
 
     public void ChallengeFlorChica()
     {
         TrucoGameplayAudio.PlayLocalRaise(FLOR_CHICA_CHALLENGE);
-        MarkChallengeSentNow();
         _isChallengepPending = false;
         _florPlayed = true;
         invokedChallenges.Add(ChallengeType.Flor);
@@ -1486,10 +1770,17 @@ public class UIMANAGER : MonoBehaviour
         noQueiro.SetActive(false);
         GameManager.Instance.lastChallengeType = ChallengeType.FlorChica;
         TrucoRulesScenarioLog.Ok("Local RAISE FlorChica (rival +4)");
-        TrucoPunChallenges.RaiseToAll(FLOR_CHICA_CHALLENGE, null);
-        if (GameManager.Instance.IsMyTurn())
+        unAnsweredChallenges.Remove(ChallengeType.Flor);
+        unAnsweredChallenges.Remove(ChallengeType.FlorChica);
+        unAnsweredChallenges.Remove(ChallengeType.ConFlorQuiero);
+        unAnsweredChallenges.Remove(ChallengeType.ContraFlor);
+        double deadline = MarkChallengeSentNow();
+        TrucoPunChallenges.RaiseToAll(FLOR_CHICA_CHALLENGE, deadline);
+        // Close Flor phase locally; OnEvent All will also run on peer.
+        if (!ResumePendingTrucoChainAfterFlorPublic())
         {
-            GameManager.Instance.SetCanPlayCard(true);
+            if (GameManager.Instance.IsMyTurn())
+                GameManager.Instance.SetCanPlayCard(true);
         }
     }
     
@@ -1498,8 +1789,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeConFlorQuiero()
     {
         TrucoGameplayAudio.PlayLocalRaise(CON_FLOR_QUIERO_CHALLENGE);
-        MarkChallengeSentNow();
-        _isChallengepPending = true;
+        _isChallengepPending = false;
         _florPlayed = true;
         invokedChallenges.Add(ChallengeType.Flor);
         invokedChallenges.Add(ChallengeType.ConFlorQuiero);
@@ -1514,12 +1804,15 @@ public class UIMANAGER : MonoBehaviour
         queiro.SetActive(false);
         noQueiro.SetActive(false);
         GameManager.Instance.lastChallengeType = ChallengeType.ConFlorQuiero;
-        GameManager.Instance.challengePoints = 5;
-        TrucoRulesScenarioLog.Ok("Local RAISE ConFlorQuiero", "challengePts=5");
-        PhotonNetwork.RaiseEvent(CON_FLOR_QUIERO_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
-        if (GameManager.Instance.IsMyTurn())
+        GameManager.Instance.challengePoints = 6;
+        TrucoRulesScenarioLog.Ok("Local RAISE ConFlorQuiero", "challengePts=6 deferred to hand end");
+        unAnsweredChallenges.Remove(ChallengeType.Flor);
+        double deadline = MarkChallengeSentNow();
+        PhotonNetwork.RaiseEvent(CON_FLOR_QUIERO_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
+        if (!ResumePendingTrucoChainAfterFlorPublic())
         {
-            GameManager.Instance.SetCanPlayCard(true);
+            if (GameManager.Instance.IsMyTurn())
+                GameManager.Instance.SetCanPlayCard(true);
         }
     }
     
@@ -1548,7 +1841,8 @@ public class UIMANAGER : MonoBehaviour
         noQueiro.SetActive(false);
         GameManager.Instance.lastChallengeType = ChallengeType.ContraFlor;
         TrucoRulesScenarioLog.Ok("Local RAISE ContraFlor");
-        PhotonNetwork.RaiseEvent(CONTRA_FLOR_CHALLENGE, null, RaiseEventOptions.Default, SendOptions.SendReliable);
+        double deadline = MarkChallengeSentNow();
+        PhotonNetwork.RaiseEvent(CONTRA_FLOR_CHALLENGE, deadline, RaiseEventOptions.Default, SendOptions.SendReliable);
         // if (GameManager.Instance.IsMyTurn())
         // {
             GameManager.Instance.SetCanPlayCard(false);
@@ -1567,7 +1861,7 @@ public class UIMANAGER : MonoBehaviour
 
         if (GameManager.Instance.HandResolved)
         {
-            TrucoRulesScenarioLog.Ok("ChallengeMazo skipped (hand already resolved) → sync only");
+            TrucoRulesScenarioLog.Ok("ChallengeMazo skipped (hand already resolved) â†’ sync only");
             GameManager.Instance.RequestStateSyncAfterReconnect();
             return;
         }
@@ -1588,27 +1882,32 @@ public class UIMANAGER : MonoBehaviour
         _cantChallenge = false;
         if (PhotonNetwork.PlayerListOthers.Length > 0)
             unAnsweredChallenges[ChallengeType.Truco] = PhotonNetwork.PlayerListOthers[0].ActorNumber;
-        truco.SetActive(false);
-        queiro.SetActive(true);
-        noQueiro.SetActive(true);
-        retruco.SetActive(true);
-        flor.SetActive(false);
-        contraFlor.SetActive(false);
-        conFlorQuiero.SetActive(false);
-        florChica.SetActive(false);
         GameManager.Instance.mazoPoints = 1;
         GameManager.Instance.noQuieroPoints = 1;
         GameManager.Instance.challengePoints = 1;
-        if (!invokedChallenges.Contains(ChallengeType.Envido) && !invokedChallenges.Contains(ChallengeType.Flor) && 
-            !GameManager.Instance.cardPlayed)
+
+        // Never show Quiero/Retruco/Envido first — P2 Flor must be announced with an empty board.
+        DisableButtons();
+        _iOweChallengeResponse = true;
+        if (TryQueueResponseFlor("truco response"))
+            return;
+
+        queiro.SetActive(true);
+        noQueiro.SetActive(true);
+        retruco.SetActive(true);
+        if (mazo != null) mazo.SetActive(false);
+
+        bool florLocked = _florPlayed
+                          || invokedChallenges.Contains(ChallengeType.Flor)
+                          || invokedChallenges.Contains(ChallengeType.FlorChica)
+                          || invokedChallenges.Contains(ChallengeType.ConFlorQuiero)
+                          || invokedChallenges.Contains(ChallengeType.ContraFlor);
+        if (!florLocked && !invokedChallenges.Contains(ChallengeType.Envido)
+            && !GameManager.Instance.cardPlayed)
         {
             envido.SetActive(true);
             realEnvido.SetActive(true);
             faltaEnvido.SetActive(true);
-            if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
-            {
-                QueueAutoFlor("truco response");
-            }
         }
     }
     
@@ -1618,18 +1917,10 @@ public class UIMANAGER : MonoBehaviour
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Retruco);
         _cantChallenge = false;
-        truco.SetActive(false);
-        retruco.SetActive(false);
+        DisableButtons();
         queiro.SetActive(true);
         noQueiro.SetActive(true);
         vale4.SetActive(true);
-        envido.SetActive(false);
-        realEnvido.SetActive(false);
-        faltaEnvido.SetActive(false);
-        flor.SetActive(false);
-        contraFlor.SetActive(false);
-        conFlorQuiero.SetActive(false);
-        florChica.SetActive(false);
         unAnsweredChallenges[ChallengeType.Retruco] = PhotonNetwork.PlayerListOthers[0].ActorNumber;
         GameManager.Instance.mazoPoints = 2;
         GameManager.Instance.noQuieroPoints = 2;
@@ -1642,18 +1933,9 @@ public class UIMANAGER : MonoBehaviour
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Vale4);
         _cantChallenge = false;
-        truco.SetActive(false);
-        retruco.SetActive(false);
+        DisableButtons();
         queiro.SetActive(true);
         noQueiro.SetActive(true);
-        vale4.SetActive(false);
-        envido.SetActive(false);
-        realEnvido.SetActive(false);
-        faltaEnvido.SetActive(false);
-        flor.SetActive(false);
-        contraFlor.SetActive(false);
-        conFlorQuiero.SetActive(false);
-        florChica.SetActive(false);
         unAnsweredChallenges[ChallengeType.Vale4] = PhotonNetwork.PlayerListOthers[0].ActorNumber;
         GameManager.Instance.mazoPoints = 3;
         GameManager.Instance.noQuieroPoints = 3;
@@ -1665,51 +1947,25 @@ public class UIMANAGER : MonoBehaviour
     {
         _isChallengepPending = true;
         GameManager.Instance.ActiveChallenges.Add(ChallengeType.Envido);
-        // This block of code checks if there is a double envido is in play
+        DisableButtons();
+        _iOweChallengeResponse = true;
+        if (TryQueueResponseFlor("envido response"))
+            return;
+
         if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
         {
             _isDoubleEnvido = true;
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
             faltaEnvido.SetActive(true);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            conFlorQuiero.SetActive(false);
-            florChica.SetActive(false);
             queiro.SetActive(true);
             noQueiro.SetActive(true);
-            truco.SetActive(false);
-            retruco.SetActive(false);
-            vale4.SetActive(false);
-            mazo.SetActive(false);
-        }else 
+        }
+        else
         {
             envido.SetActive(true);
             realEnvido.SetActive(true);
             faltaEnvido.SetActive(true);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            conFlorQuiero.SetActive(false);
-            florChica.SetActive(false);
             queiro.SetActive(true);
             noQueiro.SetActive(true);
-            truco.SetActive(false);
-            retruco.SetActive(false);
-            vale4.SetActive(false);
-            if (GameManager.Instance.lastChallengeType == ChallengeType.Truco)
-            {
-                mazo.SetActive(false);
-            }
-            else
-            {
-                mazo.SetActive(true);
-            }
-
-            if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
-            {
-                QueueAutoFlor("envido response");
-            }
-            
         }
     }
     
@@ -1718,62 +1974,31 @@ public class UIMANAGER : MonoBehaviour
     {
         _isChallengepPending = true;
         GameManager.Instance.ActiveChallenges.Add(ChallengeType.RealEnvido);
-        // This block of code checks if there is Double Real Envido in play
+        DisableButtons();
+        _iOweChallengeResponse = true;
+        if (TryQueueResponseFlor("real envido response"))
+            return;
+
         if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
         {
             _isDoubleEnvido = false;
             _isDoubleRealEnvido = true;
-            truco.SetActive(false);
-            retruco.SetActive(false);
-            vale4.SetActive(false);
-            realEnvido.SetActive(false);
             faltaEnvido.SetActive(true);
             queiro.SetActive(true);
             noQueiro.SetActive(true);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            conFlorQuiero.SetActive(false);
-            florChica.SetActive(false);
         }
         else if(GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
         {
-            truco.SetActive(false);
-            retruco.SetActive(false);
-            vale4.SetActive(false);
-            realEnvido.SetActive(false);
             faltaEnvido.SetActive(true);
             queiro.SetActive(true);
             noQueiro.SetActive(true);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            conFlorQuiero.SetActive(false);
-            florChica.SetActive(false);
         }
         else
         {
-            truco.SetActive(false);
-            retruco.SetActive(false);
-            vale4.SetActive(false);
             realEnvido.SetActive(true);
             faltaEnvido.SetActive(true);
             queiro.SetActive(true);
             noQueiro.SetActive(true);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            conFlorQuiero.SetActive(false);
-            florChica.SetActive(false);
-            if (GameManager.Instance.lastChallengeType == ChallengeType.Truco)
-            {
-                mazo.SetActive(false);
-            }
-            else
-            {
-                mazo.SetActive(true);
-            }
-            if (GameManager.Instance.PlayerHasFlor() && !_florPlayed)
-            {
-                QueueAutoFlor("real envido response");
-            }
         }
     }
     
@@ -1781,25 +2006,13 @@ public class UIMANAGER : MonoBehaviour
     public void FaltaEnvidoChallenged()
     {
         _isChallengepPending = true;
-        truco.SetActive(false);
-        retruco.SetActive(false);
-        vale4.SetActive(false);
-        envido.SetActive(false);
-        realEnvido.SetActive(false);
-        faltaEnvido.SetActive(false);
+        DisableButtons();
+        _iOweChallengeResponse = true;
+        if (TryQueueResponseFlor("falta envido response"))
+            return;
+
         queiro.SetActive(true);
         noQueiro.SetActive(true);
-        flor.SetActive(false);
-        contraFlor.SetActive(false);
-        conFlorQuiero.SetActive(false);
-        florChica.SetActive(false);
-        if (GameManager.Instance.PlayerHasFlor() && !_florPlayed
-                                                 && !invokedChallenges.Contains(ChallengeType.Flor) 
-                                                 && !invokedChallenges.Contains(ChallengeType.Envido)
-                                                 && !invokedChallenges.Contains(ChallengeType.Truco))
-        {
-            QueueAutoFlor("falta envido response");
-        }
     }
     
     // This is called When Other player Challenges us with this Challenge
@@ -1810,7 +2023,7 @@ public class UIMANAGER : MonoBehaviour
         if (!invokedChallenges.Contains(ChallengeType.Flor))
             invokedChallenges.Add(ChallengeType.Flor);
         DisableButtons();
-        // After Flor, Envido family stays off — only Flor responses + later Truco chain.
+        // After Flor, Envido family stays off â€” only Flor responses + later Truco chain.
         envido.SetActive(false);
         realEnvido.SetActive(false);
         faltaEnvido.SetActive(false);
@@ -1827,8 +2040,22 @@ public class UIMANAGER : MonoBehaviour
     public void FlorChicaChallenged()
     {
         _isChallengepPending = false;
+        _florPlayed = true;
+        unAnsweredChallenges.Remove(ChallengeType.Flor);
+        unAnsweredChallenges.Remove(ChallengeType.FlorChica);
+        unAnsweredChallenges.Remove(ChallengeType.ConFlorQuiero);
+        unAnsweredChallenges.Remove(ChallengeType.ContraFlor);
         if (!invokedChallenges.Contains(ChallengeType.Flor))
             invokedChallenges.Add(ChallengeType.Flor);
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.ActiveChallenges.Remove(ChallengeType.Flor);
+            GameManager.Instance.ActiveChallenges.Remove(ChallengeType.FlorChica);
+            if (TrucoRulePoints.IsEnvidoFamily(GameManager.Instance.lastChallengeType)
+                || GameManager.Instance.lastChallengeType == ChallengeType.Flor
+                || GameManager.Instance.lastChallengeType == ChallengeType.FlorChica)
+                GameManager.Instance.lastChallengeType = ChallengeType.None;
+        }
         envido.SetActive(false);
         realEnvido.SetActive(false);
         faltaEnvido.SetActive(false);
@@ -1841,13 +2068,18 @@ public class UIMANAGER : MonoBehaviour
         truco.SetActive(false);
         retruco.SetActive(false);
         vale4.SetActive(false);
+        if (mazo != null) mazo.SetActive(false);
     }
     
     // This is called When Other player Challenges us with this Challenge
     public void ConFlorQuieroChallenged()
     {
         _isChallengepPending = false;
-        invokedChallenges.Add(ChallengeType.ConFlorQuiero);
+        _florPlayed = true;
+        unAnsweredChallenges.Remove(ChallengeType.Flor);
+        unAnsweredChallenges.Remove(ChallengeType.FlorChica);
+        if (!invokedChallenges.Contains(ChallengeType.ConFlorQuiero))
+            invokedChallenges.Add(ChallengeType.ConFlorQuiero);
         if (!invokedChallenges.Contains(ChallengeType.Flor))
             invokedChallenges.Add(ChallengeType.Flor);
         envido.SetActive(false);
@@ -1868,6 +2100,7 @@ public class UIMANAGER : MonoBehaviour
     public void ContraFlorChallenged()
     {
         _isChallengepPending = true;
+        _florPlayed = true;
         if (!invokedChallenges.Contains(ChallengeType.Flor))
             invokedChallenges.Add(ChallengeType.Flor);
         envido.SetActive(false);
@@ -1876,17 +2109,18 @@ public class UIMANAGER : MonoBehaviour
         flor.SetActive(false);
         contraFlor.SetActive(false);
         conFlorQuiero.SetActive(false);
+        // After Contraflor: original Flor caller answers with Flor Chica or Quiero.
         florChica.SetActive(true);
         queiro.SetActive(true);
         noQueiro.SetActive(false);
         truco.SetActive(false);
         retruco.SetActive(false);
         vale4.SetActive(false);
-        // GameManager.Instance.ShowAllCards();
+        if (mazo != null) mazo.SetActive(false);
     }
     
     // This block of code is called when the player accepts the challenge
-    public void QueiroChallenged()
+    public void QueiroChallenged(double syncStartedAt = -1)
     {
         _isChallengepPending = false;
         _cantChallenge = false;
@@ -1897,12 +2131,13 @@ public class UIMANAGER : MonoBehaviour
         florChica.SetActive(false);
         queiro.SetActive(false);
         noQueiro.SetActive(false);
+        bool envidoAccepted = false;
         if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Truco))
         {
             truco.SetActive(false);
             retruco.SetActive(false);
             vale4.SetActive(false);
-            GameManager.Instance.mazoPoints = 2;
+            GameManager.Instance.MarkTrucoChainAccepted(ChallengeType.Truco);
             unAnsweredChallenges.Clear();
             invokedChallenges.Add(ChallengeType.Truco);
         }
@@ -1911,7 +2146,7 @@ public class UIMANAGER : MonoBehaviour
             truco.SetActive(false);
             retruco.SetActive(false);
             vale4.SetActive(false);
-            GameManager.Instance.mazoPoints = 3;
+            GameManager.Instance.MarkTrucoChainAccepted(ChallengeType.Retruco);
             unAnsweredChallenges.Clear();
             invokedChallenges.Add(ChallengeType.Retruco);
         }
@@ -1920,38 +2155,23 @@ public class UIMANAGER : MonoBehaviour
             truco.SetActive(false);
             retruco.SetActive(false);
             vale4.SetActive(false);
-            GameManager.Instance.mazoPoints = 4;
+            GameManager.Instance.MarkTrucoChainAccepted(ChallengeType.Vale4);
             unAnsweredChallenges.Clear();
             invokedChallenges.Add(ChallengeType.Vale4);
         }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
         {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
             flor.SetActive(false);
             contraFlor.SetActive(false);
-            _envidoPlayed = true;
+            LockEnvidoFamilyForHand();
             GameManager.Instance.ActiveChallenges.Clear();
-        }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
-        {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            _envidoPlayed = true;
-            GameManager.Instance.ActiveChallenges.Clear();
-        }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
-        {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            faltaEnvido.SetActive(false);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            _envidoPlayed = true;
+            ClearEnvidoFamilyFromUnanswered();
+            envidoAccepted = true;
+            // Clear Envido stake type so later MAZO cannot re-score it (ResumePendingTruco may set Truco).
+            GameManager.Instance.lastChallengeType = ChallengeType.None;
+            GameManager.Instance.challengePoints = 0;
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
         {
@@ -1968,18 +2188,19 @@ public class UIMANAGER : MonoBehaviour
             contraFlor.SetActive(false);
         }
 
-        // if (GameManager.Instance.IsMyTurn())
-        // {
-        //     GameManager.Instance.SetCanPlayCard(true);
-        // }
         _cantChallenge = false;
-        FinishChallengeUiAndRestartTimers("recv Quiero");
+        if (envidoAccepted && ResumePendingTrucoChainAfterEnvido())
+        {
+            FinishChallengeUiAndRestartTimers("recv Quieroâ†’pending Truco", syncStartedAt);
+            return;
+        }
+        FinishChallengeUiAndRestartTimers("recv Quiero", syncStartedAt);
         if (GameManager.Instance.IsMyTurn())
             GameManager.Instance.SetCanPlayCard(true);
     }
 
     // This block of code is called when the player does not accept the challenge
-    public void NoQueiroChallenged()
+    public void NoQueiroChallenged(double syncStartedAt = -1)
     {
         _isChallengepPending = false;
         _cantChallenge = false;
@@ -1989,6 +2210,7 @@ public class UIMANAGER : MonoBehaviour
         florChica.SetActive(false);
         queiro.SetActive(false);
         noQueiro.SetActive(false);
+        bool envidoDeclined = false;
         if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Truco))
         {
             truco.SetActive(false);
@@ -2001,21 +2223,19 @@ public class UIMANAGER : MonoBehaviour
             retruco.SetActive(false);
             DisableButtons();
         }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido))
+        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Envido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido)
+                 || GameManager.Instance.lastChallengeType.Equals(ChallengeType.FaltaEnvido))
         {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
             flor.SetActive(false);
             contraFlor.SetActive(false);
-            _envidoPlayed = true;
-        }
-        else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.RealEnvido))
-        {
-            envido.SetActive(false);
-            realEnvido.SetActive(false);
-            flor.SetActive(false);
-            contraFlor.SetActive(false);
-            _envidoPlayed = true;
+            LockEnvidoFamilyForHand();
+            ClearEnvidoFamilyFromUnanswered();
+            GameManager.Instance.ActiveChallenges.Clear();
+            // Envido stake already paid — do not leave Envido as lastChallengeType for later MAZO.
+            GameManager.Instance.lastChallengeType = ChallengeType.None;
+            GameManager.Instance.challengePoints = 0;
+            envidoDeclined = true;
         }
         else if (GameManager.Instance.lastChallengeType.Equals(ChallengeType.Flor))
         {
@@ -2033,6 +2253,11 @@ public class UIMANAGER : MonoBehaviour
         }
 
         GameManager.Instance.noQuieroPoints = 0;
+        if (envidoDeclined && ResumePendingTrucoChainAfterEnvido())
+        {
+            FinishChallengeUiAndRestartTimers("recv NoQuieroâ†’pending Truco", syncStartedAt);
+            return;
+        }
         if (unAnsweredChallenges.Count > 0)
         {
             StartCoroutine(CheckForUnansweredChallenges());
@@ -2046,35 +2271,36 @@ public class UIMANAGER : MonoBehaviour
             DisableButtons();
         }
 
-        GameManager.Instance.challengePoints = 0;
-        FinishChallengeUiAndRestartTimers("recv NoQuiero");
+        FinishChallengeUiAndRestartTimers("recv NoQuiero", syncStartedAt);
     }
 
     
     // This block of code checks for any unanswered challenges after a delay
     public IEnumerator CheckForUnansweredChallenges()
     {
-        yield return new WaitForSeconds(3);
-        ChallengeType lastChallenge = unAnsweredChallenges.Last().Key;
-        int playerActorNumber = unAnsweredChallenges.Last().Value;
-
-        switch (lastChallenge)
+        yield return new WaitForSeconds(0.35f);
+        ChallengeType pending = PendingTrucoChainType();
+        if (pending == ChallengeType.None || unAnsweredChallenges.Count == 0) yield break;
+        int raiser = unAnsweredChallenges[pending];
+        GameManager.Instance.lastChallengeType = pending;
+        bool iMustRespond = raiser != PhotonNetwork.LocalPlayer.ActorNumber;
+        TrucoRulesScenarioLog.Ok("CheckForUnansweredChallenges",
+            "type=" + pending + " raiser=" + raiser + " iMustRespond=" + iMustRespond);
+        if (iMustRespond)
         {
-            case ChallengeType.Truco:
+            switch (pending)
             {
-                unAnsweredChallenges.Clear();
-                GameManager.Instance.lastChallengeType = ChallengeType.Truco;
-                if (playerActorNumber.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
-                {
-                    PhotonNetwork.RaiseEvent(TRUCO_CHALLENGE,null, RaiseEventOptions.Default, SendOptions.SendReliable);
-                }
-                else
-                {
-                    TrucoChallenged();
-                    BeginChallengeResponseCountdown();
-                }
-                break;
+                case ChallengeType.Truco: TrucoChallenged(); break;
+                case ChallengeType.Retruco: RetrucoChallenged(); break;
+                case ChallengeType.Vale4: Vale4Challenged(); break;
             }
+            BeginChallengeResponseCountdown();
+            if (mazo != null) mazo.SetActive(false);
+        }
+        else
+        {
+            DisableButtons();
+            if (mazo != null) mazo.SetActive(false);
         }
     }
     

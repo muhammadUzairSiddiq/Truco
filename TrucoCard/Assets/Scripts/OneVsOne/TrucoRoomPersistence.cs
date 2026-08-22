@@ -9,6 +9,7 @@ public static class TrucoRoomPersistence
     const string KeyEntry = "TrucoLastEntryFee";
     const string KeyFlor = "TrucoLastWithFlor";
     const string KeyHost = "TrucoLastIsHost";
+    const string KeyTarget = "TrucoLastTargetScore";
 
     public static void SaveCurrentRoom()
     {
@@ -16,17 +17,19 @@ public static class TrucoRoomPersistence
         var n = PhotonNetwork.CurrentRoom.Name;
         if (string.IsNullOrEmpty(n)) return;
         SaveLobbyKeys(n, OneVsOneMatchSession.CurrentMatchId, OneVsOneMatchSession.EntryFee,
-            OneVsOneMatchSession.WithFlor, OneVsOneMatchSession.IsHost);
+            OneVsOneMatchSession.WithFlor, OneVsOneMatchSession.IsHost, OneVsOneMatchSession.TargetScore);
     }
 
     /// <summary>After API join/create succeeds but before Photon OnJoinedRoom — enables resume if Photon is slow.</summary>
-    public static void SavePendingLobby(string photonRoom, string matchId, int entryFee, bool withFlor, bool isHost)
+    public static void SavePendingLobby(string photonRoom, string matchId, int entryFee, bool withFlor, bool isHost,
+        int targetScore = TrucoMatchRules.DefaultTargetScore)
     {
         if (string.IsNullOrEmpty(photonRoom) || string.IsNullOrEmpty(matchId)) return;
-        SaveLobbyKeys(photonRoom, matchId, entryFee, withFlor, isHost);
+        SaveLobbyKeys(photonRoom, matchId, entryFee, withFlor, isHost, targetScore);
     }
 
-    static void SaveLobbyKeys(string photonRoom, string matchId, int entryFee, bool withFlor, bool isHost)
+    static void SaveLobbyKeys(string photonRoom, string matchId, int entryFee, bool withFlor, bool isHost,
+        int targetScore)
     {
         PlayerPrefs.SetString(KeyRoom, photonRoom);
         if (!string.IsNullOrEmpty(matchId))
@@ -34,6 +37,7 @@ public static class TrucoRoomPersistence
         PlayerPrefs.SetInt(KeyEntry, entryFee);
         PlayerPrefs.SetInt(KeyFlor, withFlor ? 1 : 0);
         PlayerPrefs.SetInt(KeyHost, isHost ? 1 : 0);
+        PlayerPrefs.SetInt(KeyTarget, TrucoMatchRules.NormalizeTargetScore(targetScore));
         PlayerPrefs.Save();
     }
 
@@ -50,10 +54,13 @@ public static class TrucoRoomPersistence
         if (string.IsNullOrEmpty(room)) room = LastRoomName();
         int fee = match.GetEntryStake() > 0 ? match.GetEntryStake() : PlayerPrefs.GetInt(KeyEntry, 0);
         bool flor = match.withFlor;
+        int target = match.targetScore == 0
+            ? PlayerPrefs.GetInt(KeyTarget, TrucoMatchRules.DefaultTargetScore)
+            : match.targetScore;
         if (match.IsCurrentUserHostOfRoom())
-            OneVsOneMatchSession.SetHostContext(match._id, room, fee, flor);
+            OneVsOneMatchSession.SetHostContext(match._id, room, fee, flor, target);
         else
-            OneVsOneMatchSession.SetGuestContext(match._id, room, fee, flor);
+            OneVsOneMatchSession.SetGuestContext(match._id, room, fee, flor, target);
     }
 
     public static void Clear()
@@ -63,6 +70,7 @@ public static class TrucoRoomPersistence
         PlayerPrefs.DeleteKey(KeyEntry);
         PlayerPrefs.DeleteKey(KeyFlor);
         PlayerPrefs.DeleteKey(KeyHost);
+        PlayerPrefs.DeleteKey(KeyTarget);
         PlayerPrefs.Save();
     }
 }

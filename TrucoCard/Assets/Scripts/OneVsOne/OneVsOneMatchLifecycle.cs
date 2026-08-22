@@ -42,8 +42,11 @@ public static class OneVsOneMatchLifecycle
     {
         if (IsHostWaitingForGuest() || IsGuestWaitingInLobby()) return;
         if (OneVsOnePhotonFlow.IsMatchmakingBusyGlobally) return;
-        TrucoActiveHostMatchStore.Clear();
-        if (!OneVsOneMatchSession.GameStarted)
+        // Keep TrucoActiveHostMatchStore until purge/refund confirms — clearing it here
+        // dropped the match id after a crash and skipped the refund.
+        if (!OneVsOneMatchSession.GameStarted
+            && string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId)
+            && string.IsNullOrEmpty(TrucoActiveHostMatchStore.GetRememberedMatchId()))
         {
             OneVsOneMatchSession.Clear();
             TrucoRoomPersistence.Clear();

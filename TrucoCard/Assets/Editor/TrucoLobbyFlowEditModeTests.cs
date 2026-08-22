@@ -181,7 +181,62 @@ public class TrucoLobbyFlowEditModeTests
     {
         Assert.IsTrue(OneVsOneLobbyFlowRules.IsWrongPasswordApiError("Invalid password"));
         Assert.IsTrue(OneVsOneLobbyFlowRules.IsWrongPasswordApiError("Contraseña incorrecta"));
+        Assert.IsTrue(OneVsOneLobbyFlowRules.IsWrongPasswordApiError("Wrong room code"));
         Assert.IsFalse(OneVsOneLobbyFlowRules.IsWrongPasswordApiError("Match is full"));
+        // Bare "invalid" must NOT map to password — create-room false positive.
+        Assert.IsFalse(OneVsOneLobbyFlowRules.IsWrongPasswordApiError("Invalid request"));
+        Assert.IsFalse(OneVsOneLobbyFlowRules.IsWrongPasswordApiError("Incorrect region"));
+        Assert.IsFalse(OneVsOneLobbyFlowRules.IsWrongPasswordApiError("Token invalid"));
+    }
+
+    [Test]
+    public void ForCreateRoom_NeverShowsWrongPassword()
+    {
+        Assert.AreNotEqual(TrucoTextosClient.ContrasenaIncorrecta,
+            TrucoUserFacingErrors.ForCreateRoom("Invalid request"));
+        Assert.AreNotEqual(TrucoTextosClient.ContrasenaIncorrecta,
+            TrucoUserFacingErrors.ForCreateRoom("Incorrect password"));
+        Assert.AreEqual(TrucoTextosClient.ErrorCrearSala,
+            TrucoUserFacingErrors.ForCreateRoom("Invalid request"));
+        Assert.AreEqual(TrucoTextosClient.YaTienesSala,
+            TrucoUserFacingErrors.ForCreateRoom("Player already has an active room"));
+        Assert.AreEqual(TrucoTextosClient.SalaYaExiste,
+            TrucoUserFacingErrors.ForCreateRoom("Room already exists"));
+    }
+
+    [Test]
+    public void IsRoomAlreadyExistsApiError_DistinctFromActiveRoom()
+    {
+        Assert.IsTrue(OneVsOneLobbyFlowRules.IsRoomAlreadyExistsApiError("Room already exists"));
+        Assert.IsTrue(OneVsOneLobbyFlowRules.IsRoomAlreadyExistsApiError("duplicate room"));
+        Assert.IsTrue(OneVsOneLobbyFlowRules.IsRoomAlreadyExistsApiError("Sala ya existe"));
+        Assert.IsFalse(OneVsOneLobbyFlowRules.IsRoomAlreadyExistsApiError("Player already has an active room"));
+        Assert.IsTrue(OneVsOneLobbyFlowRules.IsAlreadyHasRoomApiError("Player already has an active room"));
+        Assert.IsFalse(OneVsOneLobbyFlowRules.IsAlreadyHasRoomApiError("Room already exists"));
+    }
+
+    [Test]
+    public void ForCreateRoom_MapsConnectionAndSessionErrors()
+    {
+        Assert.AreEqual(TrucoTextosClient.ErrorConexion,
+            TrucoUserFacingErrors.ForCreateRoom("Network timeout"));
+        Assert.AreEqual(TrucoTextosClient.SesionExpirada,
+            TrucoUserFacingErrors.ForCreateRoom("Session expired"));
+        Assert.AreEqual(TrucoTextosClient.SaldoInsuficiente,
+            TrucoUserFacingErrors.ForCreateRoom("Insufficient balance"));
+    }
+
+    [Test]
+    public void ForJoinRoom_ShowsWrongPasswordOnlyForPasswordErrors()
+    {
+        Assert.AreEqual(TrucoTextosClient.ContrasenaIncorrecta,
+            TrucoUserFacingErrors.ForJoinRoom("Invalid password"));
+        Assert.AreNotEqual(TrucoTextosClient.ContrasenaIncorrecta,
+            TrucoUserFacingErrors.ForJoinRoom("Invalid request"));
+        Assert.AreEqual(TrucoTextosClient.ErrorConexion,
+            TrucoUserFacingErrors.ForJoinRoom("connection failed"));
+        Assert.AreEqual(TrucoTextosClient.SesionExpirada,
+            TrucoUserFacingErrors.ForJoinRoom("token expired"));
     }
 
     [Test]

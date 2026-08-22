@@ -90,16 +90,22 @@ public class TrucoHostPreGameWatchdog : MonoBehaviour
         try
         {
             if (string.IsNullOrEmpty(matchId)) return;
-            // Leave Photon first so Dashboard PathLeave can fire for backend zombie cleanup.
-            if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
-            await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
-            OneVsOneMatchSession.Clear();
-            TrucoActiveHostMatchStore.Clear();
-            TrucoRoomPersistence.Clear();
-            if (OneVsOnePhotonFlow.Instance != null)
-                OneVsOnePhotonFlow.Instance.ResetPurpose();
-            TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
-                "PreGameWatchdog cancel DONE match=" + matchId);
+            bool ok = await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
+            if (ok)
+            {
+                if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
+                OneVsOneMatchSession.Clear();
+                TrucoRoomPersistence.Clear();
+                if (OneVsOnePhotonFlow.Instance != null)
+                    OneVsOnePhotonFlow.Instance.ResetPurpose();
+                TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
+                    "PreGameWatchdog cancel DONE match=" + matchId);
+            }
+            else
+            {
+                TrucoDebugLog.Warn(TrucoDebugLog.Category.OneVsOne,
+                    "PreGameWatchdog cancel not confirmed — keep match id for next login refund match=" + matchId);
+            }
         }
         catch (System.Exception ex)
         {
