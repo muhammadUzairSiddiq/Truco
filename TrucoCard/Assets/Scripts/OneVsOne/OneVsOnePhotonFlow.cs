@@ -47,6 +47,18 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     bool _matchFoundFired;
     int _joinRetryCount;
     Coroutine _joinRetryRoutine;
+    Action<string> _pendingHostError;
+
+    // Device-specific "cannot create room": some phones/networks block Photon UDP, or hold a stale
+    // region override. The old OnDisconnected loop reconnected forever with no error, leaving
+    // IsMatchmakingBusy stuck and the Create button dead. Now: UDP → TCP fallback, bounded retries,
+    // a watchdog, and a visible failure that also rolls back the API match.
+    static readonly ConnectionProtocol[] ProtocolFallbacks = { ConnectionProtocol.Udp, ConnectionProtocol.Tcp };
+    const int MaxConnectFailuresPerPurpose = 4;
+    const float PurposeConnectTimeoutSeconds = 30f;
+    int _protocolIndex;
+    int _connectFailures;
+    Coroutine _purposeWatchdog;
 
     static int MaxJoinRetries => TrucoClientSettings.PhotonJoinMaxAttempts;
     float JoinRetryDelaySeconds => TrucoClientSettings.PhotonJoinRetryIntervalSeconds;
@@ -83,17 +95,21 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     /// <summary>Llamar después de player-create y RegisterPhoton; session ya rellenada con SetHostContext.</summary>
     public void StartHostPhoton(int maxPlayers, Action<string> onError = null)
     {
+        _pendingHostError = onError;
         if (string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName))
         {
             onError?.Invoke("Nombre de sala Photon vacío.");
+            _pendingHostError = null;
             return;
         }
         IsConnecting = true;
         _matchFoundFired = false;
         CurrentPurpose = Purpose.CreateHostedRoom;
+        BeginPurposeWatchdog();
         if (EnsureConnectedToFixedRegion()) return;
         TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "StartHostPhoton → " + OneVsOneMatchSession.PhotonRoomName
-                  + " region=" + (PhotonNetwork.CloudRegion ?? "?"));
+                  + " region=" + (PhotonNetwork.CloudRegion ?? "?")
+                  + " protocol=" + CurrentProtocol());
         PhotonNetwork.AutomaticallySyncScene = true;
         if (PhotonNetwork.InRoom)
         {
@@ -112,11 +128,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "Waiting for Photon MasterServer before CreateRoom…");
             return;
         }
-        if (!PhotonNetwork.ConnectUsingSettings())
+        if (!ConnectWithCurrentProtocol())
         {
-            IsConnecting = false;
             TrucoDebugLog.Error(TrucoDebugLog.Category.Photon, "ConnectUsingSettings failed (host create)");
-            onError?.Invoke(TrucoTextosClient.PhotonConnectFailed);
+            AbortPurpose("ConnectUsingSettings=false");
         }
     }
     public void StartJoinPhoton(Action<string> onError = null)
@@ -131,6 +146,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         _joinRetryCount = 0;
         StopJoinRetryRoutine();
         CurrentPurpose = Purpose.JoinHostedRoom;
+        BeginPurposeWatchdog();
         if (EnsureConnectedToFixedRegion()) return;
         TrucoDebugLog.Always(TrucoDebugLog.Category.Photon, "StartJoinPhoton → " + OneVsOneMatchSession.PhotonRoomName
                   + " region=" + (PhotonNetwork.CloudRegion ?? "?")
@@ -153,12 +169,141 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "Waiting for Photon MasterServer before JoinRoom…");
             return;
         }
-        if (!PhotonNetwork.ConnectUsingSettings())
+        if (!ConnectWithCurrentProtocol())
         {
-            IsConnecting = false;
             TrucoDebugLog.Error(TrucoDebugLog.Category.Photon, "ConnectUsingSettings failed (guest join)");
             onError?.Invoke(TrucoTextosClient.PhotonConnectFailed);
+            AbortPurpose("ConnectUsingSettings=false", notifyJoin: false);
         }
+    }
+
+    // ---- Connection robustness (protocol fallback / bounded retries / watchdog) ----
+
+    ConnectionProtocol CurrentProtocol()
+    {
+        var s = PhotonNetwork.PhotonServerSettings;
+        return s != null && s.AppSettings != null ? s.AppSettings.Protocol : ConnectionProtocol.Udp;
+    }
+
+    void ApplyProtocol(ConnectionProtocol protocol)
+    {
+        var s = PhotonNetwork.PhotonServerSettings;
+        if (s == null || s.AppSettings == null) return;
+        if (s.AppSettings.Protocol == protocol) return;
+        s.AppSettings.Protocol = protocol;
+        TrucoDebugLog.Always(TrucoDebugLog.Category.Photon, "Photon protocol → " + protocol);
+    }
+
+    bool ConnectWithCurrentProtocol()
+    {
+        TrucoPhotonRegionSettings.ApplyToPhoton();
+        ApplyProtocol(ProtocolFallbacks[Mathf.Clamp(_protocolIndex, 0, ProtocolFallbacks.Length - 1)]);
+        return PhotonNetwork.ConnectUsingSettings();
+    }
+
+    static bool IsConnectFailureCause(DisconnectCause cause)
+    {
+        switch (cause)
+        {
+            case DisconnectCause.ExceptionOnConnect:
+            case DisconnectCause.DnsExceptionOnConnect:
+            case DisconnectCause.ServerAddressInvalid:
+            case DisconnectCause.ServerTimeout:
+            case DisconnectCause.ClientTimeout:
+            case DisconnectCause.Exception:
+            case DisconnectCause.InvalidRegion:
+            case DisconnectCause.InvalidAuthentication:
+            case DisconnectCause.AuthenticationTicketExpired:
+            case DisconnectCause.OperationNotAllowedInCurrentState:
+            case DisconnectCause.DisconnectByOperationLimit:
+            case DisconnectCause.MaxCcuReached:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Pick the next transport / clear a bad region so the retry has a real chance.</summary>
+    void ApplyConnectFallback(DisconnectCause cause)
+    {
+        if (cause == DisconnectCause.InvalidRegion || cause == DisconnectCause.InvalidAuthentication
+            || cause == DisconnectCause.ServerAddressInvalid)
+        {
+            // A stale per-device region override (PlayerPrefs) can point at a region this app cannot use.
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon, "Photon " + cause + " — clearing region override");
+            TrucoPhotonRegionSettings.ClearPlayerPrefsOverride();
+        }
+        if (_protocolIndex < ProtocolFallbacks.Length - 1)
+        {
+            _protocolIndex++;
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
+                "Photon connect failed (" + cause + ") — falling back to " + ProtocolFallbacks[_protocolIndex]);
+        }
+    }
+
+    void BeginPurposeWatchdog()
+    {
+        StopPurposeWatchdog();
+        _connectFailures = 0;
+        _purposeWatchdog = StartCoroutine(PurposeWatchdogRoutine());
+    }
+
+    void StopPurposeWatchdog()
+    {
+        if (_purposeWatchdog != null)
+        {
+            StopCoroutine(_purposeWatchdog);
+            _purposeWatchdog = null;
+        }
+    }
+
+    IEnumerator PurposeWatchdogRoutine()
+    {
+        yield return new WaitForSecondsRealtime(PurposeConnectTimeoutSeconds);
+        _purposeWatchdog = null;
+        if (CurrentPurpose == Purpose.None || PhotonNetwork.InRoom || _matchFoundFired) yield break;
+        // Join has its own bounded retry loop once we are on the Master server.
+        if (CurrentPurpose == Purpose.JoinHostedRoom && PhotonNetwork.IsConnectedAndReady
+            && PhotonNetwork.Server == ServerConnection.MasterServer && _joinRetryCount > 0)
+            yield break;
+        TrucoDebugLog.Error(TrucoDebugLog.Category.Photon,
+            "Photon purpose timeout purpose=" + CurrentPurpose
+            + " state=" + PhotonNetwork.NetworkClientState
+            + " protocol=" + CurrentProtocol()
+            + " region=" + (PhotonNetwork.CloudRegion ?? "?"));
+        AbortPurpose("timeout " + PhotonNetwork.NetworkClientState);
+    }
+
+    /// <summary>Give up the current create/join: unstick busy flags and tell the caller (create → API rollback).</summary>
+    void AbortPurpose(string reason, bool notifyJoin = true)
+    {
+        var purpose = CurrentPurpose;
+        StopPurposeWatchdog();
+        StopJoinRetryRoutine();
+        _joinRetryCount = 0;
+        IsConnecting = false;
+        CurrentPurpose = Purpose.None;
+        _deferredCreateAfterLeave = false;
+        _deferredJoinAfterLeave = false;
+        _deferredCreateAfterLeaveLobby = false;
+        _deferredJoinAfterLeaveLobby = false;
+        _connectFailures = 0;
+        // Next attempt starts from UDP again; a working TCP fallback will be re-found on failure.
+        _protocolIndex = 0;
+        string detail = TrucoTextosClient.PhotonConnectFailed + " (" + reason + ")";
+        TrucoNotificationLog.Warning("PHOTON ABORT purpose=" + purpose + " " + reason);
+        if (purpose == Purpose.CreateHostedRoom)
+        {
+            bool hadCallback = _pendingHostError != null;
+            InvokeHostError(detail);
+            if (!hadCallback) AppManager.Instance?.DisplayNotification(detail);
+        }
+        else if (purpose == Purpose.JoinHostedRoom && notifyJoin)
+        {
+            FailJoinAndClearGuestSession(detail, clearGuestSession: false);
+        }
+        if (PhotonNetwork.IsConnected && !PhotonNetwork.InRoom && PhotonNetwork.NetworkClientState != ClientState.ConnectedToMasterServer)
+            PhotonNetwork.Disconnect();
     }
 
     public override void OnLeftRoom()
@@ -202,6 +347,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
+        _connectFailures = 0;
+        TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
+            "Photon OnConnectedToMaster region=" + (PhotonNetwork.CloudRegion ?? "?")
+            + " protocol=" + CurrentProtocol() + " purpose=" + CurrentPurpose);
         TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
         if (CurrentPurpose == Purpose.CreateHostedRoom)
             ProceedToCreateRoom(OneVsOneMatchSession.PhotonRoomName, OneVsOneMatchSession.MaxPlayersPhoton);
@@ -292,13 +441,23 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
         TrucoDebugLog.Error(TrucoDebugLog.Category.Photon,
             "CreateRoomFailed code=" + returnCode + " msg=" + message);
+        StopPurposeWatchdog();
         IsConnecting = false;
         CurrentPurpose = Purpose.None;
         _deferredCreateAfterLeave = false;
         _deferredJoinAfterLeave = false;
         _deferredCreateAfterLeaveLobby = false;
         _deferredJoinAfterLeaveLobby = false;
-        AppManager.Instance.DisplayNotification(string.Format(TrucoTextosClient.PhotonCreateFailed, message));
+        string detail = string.Format(TrucoTextosClient.PhotonCreateFailed, message);
+        AppManager.Instance.DisplayNotification(detail);
+        InvokeHostError(detail);
+    }
+
+    void InvokeHostError(string err)
+    {
+        var cb = _pendingHostError;
+        _pendingHostError = null;
+        cb?.Invoke(err);
     }
 
     void AttemptJoinTargetRoom()
@@ -372,6 +531,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     void FailJoinAndClearGuestSession(string message, bool clearGuestSession = true)
     {
         StopJoinRetryRoutine();
+        StopPurposeWatchdog();
         _joinRetryCount = 0;
         IsConnecting = false;
         CurrentPurpose = Purpose.None;
@@ -443,11 +603,26 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         _lobbyRoomPlayerCount.Clear();
         _lobbySyncReceived = false;
         if (_applicationQuitting || Application.isPlaying == false) return;
-        if (CurrentPurpose != Purpose.None && !PhotonNetwork.OfflineMode)
+        if (cause == DisconnectCause.ApplicationQuit) return;
+        TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
+            "Photon OnDisconnected cause=" + cause + " purpose=" + CurrentPurpose
+            + " protocol=" + CurrentProtocol() + " failures=" + _connectFailures);
+        bool connectFailure = IsConnectFailureCause(cause);
+        // Rotate transport even without a purpose so the next lobby/create attempt is not stuck on blocked UDP.
+        if (connectFailure) ApplyConnectFallback(cause);
+        if (CurrentPurpose == Purpose.None || PhotonNetwork.OfflineMode) return;
+
+        if (cause != DisconnectCause.DisconnectByClientLogic)
         {
-            TrucoPhotonRegionSettings.ApplyToPhoton();
-            PhotonNetwork.ConnectUsingSettings();
+            _connectFailures++;
+            if (_connectFailures >= MaxConnectFailuresPerPurpose)
+            {
+                AbortPurpose(cause.ToString());
+                return;
+            }
         }
+        if (!ConnectWithCurrentProtocol())
+            AbortPurpose(cause + " / reconnect rejected");
     }
 
     public override void OnJoinedLobby()
@@ -486,8 +661,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             return;
         if (!PhotonNetwork.IsConnected)
         {
-            TrucoPhotonRegionSettings.ApplyToPhoton();
-            PhotonNetwork.ConnectUsingSettings();
+            ConnectWithCurrentProtocol();
             return;
         }
         if (PhotonNetwork.Server != ServerConnection.MasterServer) return;
@@ -530,7 +704,11 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     {
         IsConnecting = false;
         _joinRetryCount = 0;
+        _connectFailures = 0;
         StopJoinRetryRoutine();
+        StopPurposeWatchdog();
+        if (CurrentPurpose == Purpose.CreateHostedRoom)
+            _pendingHostError = null;
         if (PhotonNetwork.CurrentRoom != null
             && PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue("targetScore", out object targetValue))
         {
@@ -650,6 +828,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public void ResetPurpose()
     {
         StopJoinRetryRoutine();
+        StopPurposeWatchdog();
         _joinRetryCount = 0;
         CurrentPurpose = Purpose.None;
         _matchFoundFired = false;

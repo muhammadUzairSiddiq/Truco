@@ -99,7 +99,9 @@ public class MainMenuManager : MonoBehaviour
                 return;
             }
         }
+        //
         if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
+        TrucoActiveHostMatchStore.Clear();
         ApiController.ClearClientSessionState();
         MainMenuViewCoordinator.DestroyBottomNavIfPresent();
         TrucoSceneTransition.Go(LoginSceneName);

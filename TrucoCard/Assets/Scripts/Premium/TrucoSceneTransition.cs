@@ -18,6 +18,7 @@ public class TrucoSceneTransition : MonoBehaviour
     CanvasGroup _group;
     Image _cover;
     Coroutine _running;
+    bool _holdCoverUntilReleased;
 
     const float DefaultFadeOut = 0.35f;
     const float DefaultFadeIn = 0.45f;
@@ -91,9 +92,38 @@ public class TrucoSceneTransition : MonoBehaviour
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (mode != LoadSceneMode.Single) return;
+        if (_holdCoverUntilReleased && scene.name == "Gameplay")
+        {
+            // Stay black until the deal paints card faces (ShowDealtHandCards → ReleaseCover).
+            if (_group != null)
+            {
+                _group.alpha = 1f;
+                _group.blocksRaycasts = true;
+            }
+            return;
+        }
         FadeIn();
         if (scene.name == PostLoginSceneRouter.MainMenuSceneName)
             StartCoroutine(RestoreMainMenuNavAfterFade());
+    }
+
+    /// <summary>Keep the cover opaque across Gameplay reload until cards are dealt.</summary>
+    public static void HoldCoverUntilReleased()
+    {
+        Ensure()._holdCoverUntilReleased = true;
+        if (Ensure()._group != null)
+        {
+            Ensure()._group.alpha = 1f;
+            Ensure()._group.blocksRaycasts = true;
+        }
+    }
+
+    public static void ReleaseCover()
+    {
+        var t = Ensure();
+        if (!t._holdCoverUntilReleased) return;
+        t._holdCoverUntilReleased = false;
+        t.FadeIn();
     }
 
     IEnumerator RestoreMainMenuNavAfterFade()

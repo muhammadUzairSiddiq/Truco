@@ -132,6 +132,15 @@ public class OneVsOneRoomListController : MonoBehaviour
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         OneVsOneMatchLifecycle.SanitizeSessionForRoomBrowser();
         TrucoLobbyMatchmakingUi.HideWaitingOverlay();
+        _createRoomInFlight = false;
+        // Unstick create on devices that still carry orphaned host prefs from a failed Photon create.
+        if (!OneVsOneMatchLifecycle.IsHostWaitingForGuest()
+            && string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId))
+        {
+            string remembered = TrucoActiveHostMatchStore.GetRememberedMatchId();
+            if (!string.IsNullOrEmpty(remembered) && !TrucoPendingRefundStore.IsPending(remembered))
+                TrucoActiveHostMatchStore.Clear();
+        }
         if (_root != null)
         {
             _root.SetActive(true);
@@ -285,6 +294,13 @@ public class OneVsOneRoomListController : MonoBehaviour
         list = await ApiController.FetchPlayer1v1MatchList();
         if (list == null) return;
         OneVsOneMatchLifecycle.ReconcilePersistedLobbyState(list);
+<<<<<<< Updated upstream
+=======
+        ReconcileStickyHostAfterList(list);
+        // Clear immediately before spawning: any await above could otherwise let a second pass
+        // append its rows to a list this one already emptied, showing every room twice.
+        ClearSpawnedRows();
+>>>>>>> Stashed changes
         var seenIds = new HashSet<string>();
         foreach (var m in list.OrderBy(m => m.name ?? string.Empty))
         {
@@ -360,9 +376,13 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     bool IsCurrentlyHosting()
     {
-        if (_myHostedRoom != null) return true;
+        // Live lobby only — do NOT treat orphaned PlayerPrefs alone as hosting.
+        // Sticky truco_active_host_match on one phone was blocking create forever while
+        // another phone (clean prefs) could still create with the same account.
         if (OneVsOneMatchLifecycle.IsHostWaitingForGuest()) return true;
-        if (!string.IsNullOrEmpty(TrucoActiveHostMatchStore.GetRememberedMatchId())
+        if (_myHostedRoom != null && _myHostedRoom.IsLobbyLikeStatus()) return true;
+        string sessionId = OneVsOneMatchSession.CurrentMatchId;
+        if (!string.IsNullOrEmpty(sessionId) && OneVsOneMatchSession.IsHost
             && !OneVsOneMatchSession.GameStarted)
             return true;
         return false;
@@ -514,6 +534,35 @@ public class OneVsOneRoomListController : MonoBehaviour
         TrucoRoomPersistence.Clear();
     }
 
+    /// <summary>
+    /// Clear device-local host memory when GET /matches no longer lists that lobby.
+    /// Fixes the "one phone cannot create" ghost after the room was purged elsewhere.
+    /// Pending refunds are kept so DrainPendingEntryRefundsAsync can still reclaim coins.
+    /// </summary>
+    void ReconcileStickyHostAfterList(List<Player1v1Match> list)
+    {
+        string remembered = TrucoActiveHostMatchStore.GetRememberedMatchId();
+        if (string.IsNullOrEmpty(remembered)) return;
+        if (OneVsOneMatchLifecycle.IsHostWaitingForGuest()
+            && OneVsOneMatchSession.CurrentMatchId == remembered)
+            return;
+        if (list != null)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                var m = list[i];
+                if (m != null && m._id == remembered && m.IsLobbyLikeStatus())
+                    return;
+            }
+        }
+        TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby,
+            "Clear sticky host prefs — match gone from list id=" + remembered);
+        TrucoActiveHostMatchStore.Clear();
+        if (OneVsOneMatchSession.CurrentMatchId == remembered
+            && !OneVsOneMatchSession.GameStarted)
+            OneVsOneMatchSession.Clear();
+    }
+
     async System.Threading.Tasks.Task DeleteHostedRoomAsync(Player1v1Match room)
     {
         if (room == null) return;
@@ -577,7 +626,12 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     async void OnCreateRoomConfirmed(OneVsOneCreateRoomPanel panel)
     {
-        if (_createRoomInFlight || IsCurrentlyHosting())
+        if (_createRoomInFlight)
+        {
+            panel?.SetConfirmInteractable(true);
+            return;
+        }
+        if (OneVsOneMatchLifecycle.IsHostWaitingForGuest())
         {
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.YaTienesSala);
             panel?.SetConfirmInteractable(true);
@@ -588,8 +642,12 @@ public class OneVsOneRoomListController : MonoBehaviour
         if (_buttonCreate != null) _buttonCreate.interactable = false;
         try
         {
+            // Fresh wallet before stake check — stops stale cached Trucoins on a second device.
+            await ApiController.GetCurrentUserProfile();
             await OneVsOneMatchLifecycle.PurgeAllMyActiveLobbyMatchesAsync();
             var list = await ApiController.FetchPlayer1v1MatchList();
+            // Drop ghost host prefs when the backend no longer has that lobby row.
+            ReconcileStickyHostAfterList(list);
             var leftover = FindMyHostedRoom(list);
             if (leftover != null && !string.IsNullOrEmpty(leftover._id))
             {
@@ -601,6 +659,16 @@ public class OneVsOneRoomListController : MonoBehaviour
                 leftover = FindMyHostedRoom(list);
             }
             if (leftover != null)
+            {
+                AppManager.Instance.DisplayNotification(TrucoTextosClient.YaTienesSala);
+                panel?.Close();
+                _skipNextOnEnableRefresh = true;
+                Open();
+                return;
+            }
+            string uid = ApiController.GetSessionUser?.Data?._id;
+            var stillHosting = OneVsOneLobbyFlowRules.GetAllHostedMatchIds(list, uid);
+            if (stillHosting != null && stillHosting.Count > 0)
             {
                 AppManager.Instance.DisplayNotification(TrucoTextosClient.YaTienesSala);
                 panel?.Close();
@@ -672,8 +740,18 @@ public class OneVsOneRoomListController : MonoBehaviour
         PrepareMatchmakingUi();
         _skipNextOnEnableRefresh = true;
         _photonFlow = OneVsOnePhotonFlow.EnsureInstance();
-        _photonFlow.StartHostPhoton(OneVsOneMatchSession.MaxPlayersPhoton,
-            err => AppManager.Instance?.DisplayNotification(TrucoUserFacingErrors.ForApiOrPhoton(err)));
+        string createdMatchId = created._id;
+        int createdFee = storedStake > 0 ? storedStake : fee;
+        _photonFlow.StartHostPhoton(OneVsOneMatchSession.MaxPlayersPhoton, err =>
+        {
+            AppManager.Instance?.DisplayNotification(
+                !string.IsNullOrEmpty(err) ? TrucoUserFacingErrors.ForApiOrPhoton(err) : TrucoTextosClient.PhotonConnectFailed);
+            // Photon failed after API create — cancel the lobby row so this phone is not stuck
+            // forever on YaTienesSala / ghost host (common device-specific create failure).
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby,
+                "Host Photon failed after create — cancelling match=" + createdMatchId + " err=" + err);
+            _ = RollbackFailedHostCreateAsync(createdMatchId, createdFee);
+        });
         Open(refreshOnOpen: false);
         // Soft refresh (no force purge) so the new room appears in the list.
         Refresh(showLoading: false, forcePurge: false);
@@ -681,12 +759,38 @@ public class OneVsOneRoomListController : MonoBehaviour
         TrucoLobbyMatchmakingUi.HideWaitingOverlay();
         TrucoNotificationLog.Success(TrucoTextosClient.LogSalaCreada);
         }
+        catch (System.Exception ex)
+        {
+            // async void: an unhandled exception here used to die silently — the tester saw a Create
+            // button that "does nothing" on one phone. Surface it and unstick the button.
+            AppManager.Instance?.HideLoadingUI();
+            TrucoDebugLog.Error(TrucoDebugLog.Category.Lobby, "OnCreateRoomConfirmed failed: " + ex);
+            TrucoNotificationLog.Warning("CREATE FAILED: " + ex.GetType().Name + " " + ex.Message);
+            AppManager.Instance?.DisplayNotification(TrucoTextosClient.ErrorCrearSala + " (" + ex.Message + ")");
+        }
         finally
         {
             _createRoomInFlight = false;
             panel?.SetConfirmInteractable(true);
             UpdateCreateButtonState(null);
         }
+    }
+
+    async System.Threading.Tasks.Task RollbackFailedHostCreateAsync(string matchId, int expectedRefund)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        try
+        {
+            await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId, expectedRefund);
+        }
+        catch (System.Exception ex)
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby, "RollbackFailedHostCreate: " + ex.Message);
+        }
+        ClearLocalHostingState();
+        TrucoActiveHostMatchStore.Clear();
+        _skipNextOnEnableRefresh = true;
+        Refresh(showLoading: false, forcePurge: true);
     }
 
     void OnClickJoin(Player1v1Match m, OneVsOneRoomRowView row)
@@ -820,6 +924,7 @@ public class OneVsOneRoomListController : MonoBehaviour
             return;
         }
         int stake = m.GetEntryStake();
+        await ApiController.GetCurrentUserProfile();
         if (!ClientBalanceOk(stake, out int bal))
         {
             TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby,

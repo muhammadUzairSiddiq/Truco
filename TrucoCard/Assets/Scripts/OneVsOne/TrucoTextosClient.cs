@@ -101,6 +101,7 @@ public static class TrucoTextosClient
     public static string ReconectarFallo => TrucoLocalization.T(TrucoLocalization.Key.ReconectarFallo);
     public static string ReconexOk => TrucoLocalization.T(TrucoLocalization.Key.ReconexOk);
     public static string ReconexionPerdida1v1 => TrucoLocalization.T(TrucoLocalization.Key.ReconexionPerdida1v1);
+    public static string DesconexionMutuaReembolso => TrucoLocalization.T(TrucoLocalization.Key.DesconexionMutuaReembolso);
     public static string EspectandoAdmin => TrucoLocalization.T(TrucoLocalization.Key.EspectandoAdmin);
 
     public static string GanastePartida => TrucoLocalization.T(TrucoLocalization.Key.GanastePartida);

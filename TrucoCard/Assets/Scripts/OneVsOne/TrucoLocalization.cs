@@ -184,6 +184,7 @@ public static class TrucoLocalization
             case Key.ReconectarFallo: return "No se pudo reconectar. Volviendo al menú.";
             case Key.ReconexOk: return "Reconexión correcta. Seguís en la partida.";
             case Key.ReconexionPerdida1v1: return "Se cortó la conexión. Perdiste la partida; gana el rival.";
+            case Key.DesconexionMutuaReembolso: return "Ambos se desconectaron. Partida anulada — se reintegran las entradas (sin comisión).";
             case Key.EspectandoAdmin: return "Modo espectador (admin).";
             case Key.GanastePartida: return "¡Ganaste la partida!";
             case Key.PerdistePartida: return "Perdiste la partida.";
@@ -310,6 +311,7 @@ public static class TrucoLocalization
             case Key.ReconectarFallo: return "Could not reconnect. Returning to menu.";
             case Key.ReconexOk: return "Reconnected. You are back in the match.";
             case Key.ReconexionPerdida1v1: return "Connection lost. You lose the match; opponent wins.";
+            case Key.DesconexionMutuaReembolso: return "Both players disconnected. Match cancelled — entry fees refunded (no commission).";
             case Key.EspectandoAdmin: return "Spectator mode (admin).";
             case Key.GanastePartida: return "You won the match!";
             case Key.PerdistePartida: return "You lost the match.";
@@ -380,7 +382,7 @@ public static class TrucoLocalization
         TiempoEsgotadoJugada, CuentaRegresiva, TuTurno, TurnoRival, RivalAusente, Responde,
         EsperandoRespuestaRival, EsperandoJugadaRival, TiempoRespuestaAgotado,
         GanastePremio, GanaPorAbandono, RivalReconectando, Reconectando, ReconectandoOverlay,
-        ReconectarFallo, ReconexOk, ReconexionPerdida1v1, EspectandoAdmin,
+        ReconectarFallo, ReconexOk, ReconexionPerdida1v1, DesconexionMutuaReembolso, EspectandoAdmin,
         GanastePartida, PerdistePartida, PerdisteMano, NuevaMano, FaltaPanelCrear,
         ValidandoContrasena, ContrasenaInvalida, ContrasenaIncorrecta, EntryPrizeFormat,
         CodigoMinPlaceholder, PleaseWait, PhotonCreateFailed, PhotonSyncWarning, PhotonConnectFailed, EsperandoAnfitrionPhoton, ChampionCongrats,

@@ -155,6 +155,17 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
                 yield break;
             }
 
+            // We also dropped — never claim walkover. Mutual-disconnect refund owns this case.
+            if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
+            {
+                TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
+                    "WaitForOpponentReconnect ABORT — local also disconnected (mutual path)");
+                _opponentReconnectSecondsRemaining = 0;
+                _opponentWatch = null;
+                _ui?.Hide();
+                yield break;
+            }
+
             bool opponentBack = false;
             foreach (var p in PhotonNetwork.PlayerListOthers)
                 if (p != null && !p.IsInactive) { opponentBack = true; break; }
@@ -175,7 +186,9 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
 
         _opponentReconnectSecondsRemaining = 0;
         _opponentWatch = null;
-        if (GameManager.Instance != null)
+        // Walkover only if we are still the connected stayer.
+        if (PhotonNetwork.IsConnected && PhotonNetwork.InRoom && GameManager.Instance != null
+            && !GameManager.Instance._gameEnded)
             GameManager.Instance.WinByOpponentWalkover();
     }
 

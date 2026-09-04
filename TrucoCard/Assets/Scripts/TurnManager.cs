@@ -399,7 +399,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
     /// <param name="force">When true, restart even if challenge pending flags were left dirty (clears timer freeze).</param>
     public void RestartTurnTimersIfActive(bool force = false, double startedAt = -1)
     {
-        if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved) return;
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved
+            || GameManager.Instance.IsMatchEndPending()) return;
         if (!force && UIMANAGER.Instance != null &&
             (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
         {

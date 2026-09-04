@@ -1,18 +1,34 @@
-TrucoPy Unity — ready for client APK rebuild (2026-08-10)
-==========================================================
+TrucoPy Unity — Version 1.0.9 follow-up fixes (2026-09-02)
+=============================================================
 
-CONFIRMED done for client retest list (#1–#9) PLUS residual defects found in pre-build scan:
+  ✅ #1 P2 buttons flash after P1 Flor: guests request scores only (no full
+       state rebuild) after point changes; Flor response guard in
+       RestoreChallengeStateFromSync when Flor already denied/resolved
+  ✅ #2 Create room (one device): Photon UDP→TCP protocol fallback, region
+       reset on connect failure, purpose watchdog + user-facing error toast;
+       exception guard around OnCreateRoomConfirmed
+  ✅ #3 Final winning card: hand close waits for card tween + FinalCardHoldSeconds
+       (CoCloseHandAfterFinalCard) before Winner RPC; tweens snap to target
+       instead of being cut mid-flight
+  ✅ #4/#5 Flor cards after Truco→NoQuiero: _handCloseHoldActive blocks
+       premature ResetGame on guest during Flor reveal (both seats)
+  ✅ #6 Falta Envido cards at match end: _envidoRevealOwed + hold before
+       ForceEvaluateMatchOutcome / ResetGame
+  ✅ #7 Flor score: TrucoFlorScore.Compute (sum of all 3 cards + 20; three
+       face cards = 30)
 
-  ✅ Match end at 15/30 after Envido/Flor awards
-  ✅ Loser never sees prize-support toast
-  ✅ MAZO off during Envido / Retruco / Vale4 / Flor response
-  ✅ MAZO after Envido NoQuiero = 1 (not Envido stake)
-  ✅ TRUCO→ENVIDO→QUIERO announces + scores Envido (stake restored; Master accepts locally)
-  ✅ Flor auto-award: RaiseToOthers + no double UI close (anti-freeze)
-  ✅ Flor→Truco hides Envido; P2 Flor not cleared by P1 Truco/Envido
-  ✅ Flor Chica / Con Flor Quiero resume without double-run on sender
-  ✅ Create room: force-cancel leftover host row after purge
-  ✅ ConFlorQuieroWinner no longer reopens play mid hand-end
+  Compile check: Roslyn csc over Assets (excl. Photon/PlayFab/Editor) = 0 errors.
 
-Build APK and send. Two-phone functional QA still required on client side.
-  ❌ Photon Dashboard webhooks (force-kill auto-refund) — not Unity-owned
+TrucoPy Unity — Version 1.0.8 follow-up fixes (2026-08-31)
+=============================================================
+
+  ✅ #1 Double-disconnect: stayer who also drops never claims walkover;
+       mutual cancel+refund (no loss / no winner toast)
+  ✅ #2/#3 Hand-ending NoQuiero (Truco/Retruco/Vale4) locks buttons;
+       FinishChallengeUiAndRestartTimers respects HandResolved
+  ✅ #3 Flor cards placed on table seats (canvas-local lift, not world offset)
+  ✅ #4 Mazo+Flor→NuevaMano: fade to black before reload, hold cover until deal
+  ✅ #5 Create room: rollback API match if Photon host fails; clear sticky prefs on Open
+
+Backend still required for atomic mutual-disconnect refunds if /leave after start
+does not return entry Trucoins (see Docs/BACKEND_SINGLE_SESSION_AND_BALANCE.md).
