@@ -326,7 +326,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
         currentTurnIndex = idx >= 0 ? idx : 0;
     }
     
-    // This function is called to end the turn of the players
+    // This function is called to end the turn of the players ...
     public void EndTurn()
     {
         if (PhotonNetwork.IsMasterClient)

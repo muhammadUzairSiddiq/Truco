@@ -266,9 +266,14 @@ public class OneVsOneRoomListController : MonoBehaviour
         Refresh(showLoading: false, forcePurge: false);
     }
 
+    /// <summary>Bumped on every Refresh; overlapping calls abort so two passes never spawn the same room twice.</summary>
+    int _refreshGeneration;
+
     public async void Refresh(bool showLoading = false, bool forcePurge = false, string keepMatchId = null)
     {
+        int generation = ++_refreshGeneration;
         var purgeResult = await TryPurgeMyLobbyMatchesAsync(force: forcePurge, keepMatchId: keepMatchId);
+        if (generation != _refreshGeneration) return;
         _lastRefreshTime = Time.unscaledTime;
         if (_scrollContent == null || _rowPrefab == null) return;
         if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.EnsureInstance();
@@ -285,22 +290,18 @@ public class OneVsOneRoomListController : MonoBehaviour
             if (showLoading)
                 AppManager.Instance.HideLoadingUI();
         }
-        foreach (var v in _spawned)
-            if (v != null) Destroy(v.gameObject);
-        _spawned.Clear();
+        if (generation != _refreshGeneration) return;
         if (list == null) return;
         await CancelAllExtraHostedRoomsAsync(list);
         await ScrubAbandonedHostRoomsAsync(list);
         list = await ApiController.FetchPlayer1v1MatchList();
+        if (generation != _refreshGeneration) return;
         if (list == null) return;
         OneVsOneMatchLifecycle.ReconcilePersistedLobbyState(list);
-<<<<<<< Updated upstream
-=======
         ReconcileStickyHostAfterList(list);
         // Clear immediately before spawning: any await above could otherwise let a second pass
         // append its rows to a list this one already emptied, showing every room twice.
         ClearSpawnedRows();
->>>>>>> Stashed changes
         var seenIds = new HashSet<string>();
         foreach (var m in list.OrderBy(m => m.name ?? string.Empty))
         {
@@ -315,6 +316,21 @@ public class OneVsOneRoomListController : MonoBehaviour
         NotifyPurgeResult(purgeResult, _spawned.Count, forcePurge);
         if (showLoading)
             TrucoNotificationLog.Info(string.Format(TrucoTextosClient.LogSalasActualizadas, _spawned.Count));
+    }
+
+    /// <summary>Destroys every row instance under the scroll content, including any orphaned by an aborted refresh.</summary>
+    void ClearSpawnedRows()
+    {
+        foreach (var v in _spawned)
+            if (v != null) Destroy(v.gameObject);
+        _spawned.Clear();
+        if (_scrollContent == null) return;
+        var strays = _scrollContent.GetComponentsInChildren<OneVsOneRoomRowView>(true);
+        for (int i = 0; i < strays.Length; i++)
+        {
+            if (strays[i] == null || strays[i] == _rowPrefab) continue;
+            Destroy(strays[i].gameObject);
+        }
     }
 
     void SpawnRoomRow(Player1v1Match m)
@@ -734,6 +750,8 @@ public class OneVsOneRoomListController : MonoBehaviour
         OneVsOneMatchSession.SetHostContext(created._id, photon, storedStake > 0 ? storedStake : fee,
             withFlor, targetScore);
         TrucoActiveHostMatchStore.Remember(created._id, storedStake > 0 ? storedStake : fee);
+        // Entry deducted for a room nobody has joined yet — owed back until the match actually starts.
+        TrucoPendingRefundStore.Remember(created._id, storedStake > 0 ? storedStake : fee);
         TrucoRoomPersistence.SavePendingLobby(photon, created._id, fee, withFlor, isHost: true,
             targetScore: targetScore);
         panel.Close();
@@ -1006,6 +1024,7 @@ public class OneVsOneRoomListController : MonoBehaviour
         _skipNextOnEnableRefresh = true;
         Open(refreshOnOpen: false);
         OneVsOneMatchSession.SetGuestContext(id, photon, fee, withFlor, result.targetScore);
+        TrucoPendingRefundStore.Remember(id, fee);
         TrucoRoomPersistence.SavePendingLobby(photon, id, fee, withFlor, isHost: false,
             targetScore: result.targetScore);
         if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.EnsureInstance();

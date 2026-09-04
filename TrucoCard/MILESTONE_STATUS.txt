@@ -1,3 +1,33 @@
+TrucoPy Unity — Version 1.1.1 follow-up fixes (2026-09-04)
+=============================================================
+
+  ✅ #1 False "problema al acreditar el premio" after a valid 30-pt win:
+       - winner: after POST /result retries fail, GET /matches/:id and accept
+         when the server already shows us as winner; wallet check now also
+         compares against the balance at game start (not a cached value that
+         may already include the prize); one late re-check (2 s) before any
+         support toast. Success toast only when actually confirmed.
+       - dropper: reconnect-fail no longer POSTs /leave+/end immediately.
+         It waits past the stayer's 60 s walkover window and cancels only if
+         the server still shows the match unsettled (this cancel raced the
+         stayer's /result or /walkover and stripped the prize).
+  ✅ #2 P1 could play a card while P2 chose Flor Chica / Con Flor Quiero /
+       Contra Flor: ChallengeFlor now locks cards (SetCanPlayCard false) and
+       sets _awaitingRivalFlorResponse; EnableButtons treats it as a live
+       canto (no TRUCO/MAZO, no stale-key clearing); CanPlayCard/SetCanPlayCard
+       honour it (late Turn RPC cannot re-enable). Released on Flor Chica /
+       Con Flor Quiero / Contra Flor / NoQuiero / auto-award / hand reset /
+       reconnect snapshot. Contra Flor receiver also locks cards.
+
+  Repo note: the "Version 1.1.0" commit on main was made after a GitHub
+  Desktop branch switch that stash-popped the Version-1.0,7 working tree onto
+  the older main; it contained conflict markers and lost files only present on
+  Version-1.0,7 (TrucoPendingRefundStore.cs, TrucoGameplayAudio.cs, …). The
+  working tree was restored from the stash snapshot (dangling commit 0a1a5c2)
+  and the 1.1.1 edits applied on top. Commit this working tree as-is.
+
+  Compile check: Roslyn csc over Assets (excl. Photon/PlayFab/Editor) = 0 errors.
+
 TrucoPy Unity — Version 1.0.9 follow-up fixes (2026-09-02)
 =============================================================
 

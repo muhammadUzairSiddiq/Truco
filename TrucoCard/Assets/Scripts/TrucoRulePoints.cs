@@ -70,6 +70,27 @@ public static class TrucoRulePoints
         }
     }
 
+    /// <summary>
+    /// Extra point conceded by folding while the Envido phase was still open — i.e. before any card was
+    /// played, before the Truco chain was called, and with no Envido or Flor stake already scored.
+    /// Folding then hands the opponent 1 for the unplayed Envido on top of the Truco part.
+    /// Flor is excluded because it replaces the Envido phase and pays its own 3 points.
+    /// </summary>
+    public static int MazoUnplayedEnvidoPoint(
+        int acceptedTrucoLevel,
+        bool anyCardPlayed,
+        bool trucoChainCalled,
+        bool envidoStakeResolved,
+        bool florInHand)
+    {
+        if (acceptedTrucoLevel > 0) return 0;
+        if (anyCardPlayed) return 0;
+        if (trucoChainCalled) return 0;
+        if (envidoStakeResolved) return 0;
+        if (florInHand) return 0;
+        return 1;
+    }
+
     /// <summary>0=none, 1=Truco accepted, 2=Retruco accepted, 3=Vale4 accepted.</summary>
     public static int AcceptedTrucoLevel(bool trucoPlayed, bool retrucoInvoked, bool vale4Invoked)
     {

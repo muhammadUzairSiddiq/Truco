@@ -115,6 +115,34 @@ public class TrucoRulesEditModeTests
         Assert.AreEqual(3, TrucoRulePoints.AcceptedTrucoLevel(true, true, true));
     }
 
+    /// <summary>Mazo at the start of the first trick: the Envido part is scored independently.</summary>
+    [Test]
+    public void MazoOnFirstTrick_SplitsEnvidoAndTrucoParts()
+    {
+        // Case A: fold before any card and before any canto → 1 (envido) + 1 (truco) = 2.
+        Assert.AreEqual(1, TrucoRulePoints.MazoUnplayedEnvidoPoint(0, false, false, false, false));
+        Assert.AreEqual(1, TrucoRulePoints.MazoAwardForAcceptedTrucoLevel(0));
+
+        // Case B: Truco was called but never accepted → only the 1 point Truco part.
+        Assert.AreEqual(0, TrucoRulePoints.MazoUnplayedEnvidoPoint(0, false, true, false, false));
+
+        // Case C: Envido / Real Envido / Falta Envido called but unresolved → 1 + 1 = 2.
+        Assert.AreEqual(1, TrucoRulePoints.MazoUnplayedEnvidoPoint(0, false, false, false, false));
+
+        // Case D: Flor replaces the Envido phase and pays its own 3 → only the 1 point Truco part.
+        Assert.AreEqual(0, TrucoRulePoints.MazoUnplayedEnvidoPoint(0, false, false, false, true));
+
+        // Envido already settled (e.g. Envido → Falta Envido → No Quiero) is never charged twice.
+        Assert.AreEqual(0, TrucoRulePoints.MazoUnplayedEnvidoPoint(0, false, false, true, false));
+
+        // After the first card the Envido phase is closed.
+        Assert.AreEqual(0, TrucoRulePoints.MazoUnplayedEnvidoPoint(0, true, false, false, false));
+
+        // An accepted Truco chain supersedes the Envido part entirely.
+        Assert.AreEqual(0, TrucoRulePoints.MazoUnplayedEnvidoPoint(1, false, false, false, false));
+        Assert.AreEqual(0, TrucoRulePoints.MazoUnplayedEnvidoPoint(3, false, false, false, false));
+    }
+
     [Test]
     public void NoQuieroEndsHand_OnlyTrucoChain()
     {

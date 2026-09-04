@@ -715,9 +715,16 @@ public static class ApiController
         return list;
     }
 
+    /// <summary>
+    /// False when the last <see cref="FetchPlayer1v1MatchList"/> could not reach the backend. The list is
+    /// empty in that case too, so callers that treat "not listed" as proof must check this first.
+    /// </summary>
+    public static bool LastMatchListFetchSucceeded { get; private set; }
+
     public static async Task<List<Player1v1Match>> FetchPlayer1v1MatchList()
     {
         var result = new List<Player1v1Match>();
+        LastMatchListFetchSucceeded = false;
         try
         {
             string response = await HttpApiClient.GetAsync(ApiConfig.ListMatches);
@@ -732,6 +739,7 @@ public static class ApiController
                         result.Add(m);
                 }
             }
+            LastMatchListFetchSucceeded = parsed != null;
             TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
                 "GET /matches raw=" + raw + " lobby-like=" + result.Count +
                 " (backend also returns cancelled/completed rows — filtered client-side)");
@@ -980,6 +988,25 @@ public static class ApiController
                     if (attempt < maxAttempts)
                         await System.Threading.Tasks.Task.Delay(400 * attempt);
                 }
+
+                // /result kept failing: ask the server what it actually recorded before anyone sees an error.
+                // The rival's forfeit / leave path (or a Photon webhook) may have settled this match already.
+                if (!resultOk)
+                {
+                    var probe = await ProbeMatchSettlement1v1(matchId);
+                    if (probe.SettledFor(winnerUserId))
+                    {
+                        resultOk = true;
+                        TrucoRulesScenarioLog.Backend("POST /result failed but server shows winner → treat OK",
+                            "match=" + matchId + " status=" + (probe.status ?? "?") + " winner=" + (probe.winnerUserId ?? "?"));
+                    }
+                    else
+                    {
+                        TrucoRulesScenarioLog.BackendFail("POST /result unresolved",
+                            "match=" + matchId + " status=" + (probe.status ?? "?")
+                            + " serverWinner=" + (probe.winnerUserId ?? "null") + " lastErr=" + (lastErr ?? "?"));
+                    }
+                }
             }
         }
 
@@ -1010,6 +1037,104 @@ public static class ApiController
         return resultOk;
     }
 
+    /// <summary>What the backend currently records for a match (GET /matches/:id), used to confirm settlement.</summary>
+    public struct MatchSettlementProbe
+    {
+        public bool found;
+        public string status;
+        public string winnerUserId;
+
+        public bool IsTerminal => found && IsTerminalMatchStatus(status);
+        public bool IsCancelled => found && IsCancelledMatchStatus(status);
+
+        /// <summary>True when the server shows this match finished with <paramref name="userId"/> as winner.</summary>
+        public bool SettledFor(string userId)
+            => found && !string.IsNullOrEmpty(userId) && !IsCancelled
+               && !string.IsNullOrEmpty(winnerUserId) && winnerUserId == userId;
+    }
+
+    public static async System.Threading.Tasks.Task<MatchSettlementProbe> ProbeMatchSettlement1v1(string matchId)
+    {
+        var probe = new MatchSettlementProbe();
+        if (string.IsNullOrEmpty(matchId)) return probe;
+        try
+        {
+            var m = await GetMatch1v1(matchId);
+            if (m == null || string.IsNullOrEmpty(m._id)) return probe;
+            probe.found = true;
+            probe.status = m.status;
+            probe.winnerUserId = m.ResolveWinnerUserId();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[ApiController] ProbeMatchSettlement1v1: " + ex.Message);
+        }
+        return probe;
+    }
+
+    static bool IsTerminalMatchStatus(string status)
+    {
+        if (string.IsNullOrEmpty(status)) return false;
+        string s = status.ToLowerInvariant();
+        return s.Contains("complet") || s.Contains("finish") || s.Contains("ended")
+               || s.Contains("closed") || s.Contains("finaliz") || s.Contains("cerrad")
+               || IsCancelledMatchStatus(s);
+    }
+
+    static bool IsCancelledMatchStatus(string status)
+    {
+        if (string.IsNullOrEmpty(status)) return false;
+        string s = status.ToLowerInvariant();
+        return s.Contains("cancel") || s.Contains("abandon") || s.Contains("refund") || s.Contains("anulad");
+    }
+
+    /// <summary>
+    /// Reconnect failed on THIS client. The rival may still be in the room and about to win (by score or by
+    /// walkover after their 60 s window), so cancelling the row right away would tear the prize out from under
+    /// them and surface "problema al acreditar el premio" on a legitimate winner. Wait past the stayer's
+    /// walkover window, then only cancel+refund when the server still shows the match unsettled.
+    /// </summary>
+    public static async System.Threading.Tasks.Task CancelMutualDisconnectIfUnsettled1v1(string matchId, float waitSeconds)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        try
+        {
+            var first = await ProbeMatchSettlement1v1(matchId);
+            if (first.IsTerminal)
+            {
+                TrucoRulesScenarioLog.Backend("MutualDisconnect skipped — match already settled",
+                    "match=" + matchId + " status=" + first.status + " winner=" + (first.winnerUserId ?? "null"));
+                await GetCurrentUserProfile();
+                TrucoWalletHudRefresh.Apply();
+                return;
+            }
+
+            int waitMs = Mathf.Clamp(Mathf.RoundToInt(waitSeconds * 1000f), 0, 180000);
+            TrucoRulesScenarioLog.Backend("MutualDisconnect deferred — give the stayer time to claim",
+                "match=" + matchId + " waitMs=" + waitMs);
+            if (waitMs > 0)
+                await System.Threading.Tasks.Task.Delay(waitMs);
+
+            var second = await ProbeMatchSettlement1v1(matchId);
+            if (second.IsTerminal || !string.IsNullOrEmpty(second.winnerUserId))
+            {
+                TrucoRulesScenarioLog.Backend("MutualDisconnect skipped — rival settled the match",
+                    "match=" + matchId + " status=" + (second.status ?? "?") + " winner=" + (second.winnerUserId ?? "null"));
+                await GetCurrentUserProfile();
+                TrucoWalletHudRefresh.Apply();
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            TrucoRulesScenarioLog.BackendFail("CancelMutualDisconnectIfUnsettled1v1 probe", ex.Message);
+        }
+
+        // Nobody settled it: both seats really dropped — same cancel+refund as before.
+        await CancelMutualDisconnect1v1(matchId);
+        TrucoWalletHudRefresh.Apply();
+    }
+
     static bool IsAlreadySettledError(string msg)
     {
         if (string.IsNullOrEmpty(msg)) return false;
@@ -1025,7 +1150,10 @@ public static class ApiController
     public static async System.Threading.Tasks.Task<bool> CancelPreGameMatch1v1(string matchId, int expectedRefund = 0)
     {
         if (string.IsNullOrEmpty(matchId)) return false;
-        int fee = expectedRefund > 0 ? expectedRefund : TrucoActiveHostMatchStore.GetRememberedEntryFee();
+        int fee = expectedRefund > 0 ? expectedRefund : ResolveRememberedEntryFee(matchId);
+        // Ledger the debt before touching the network: if the app dies mid-cancel (or the user
+        // never comes back to this screen) the next launch retries this exact room.
+        TrucoPendingRefundStore.Remember(matchId, fee);
         int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
             "CancelPreGameMatch1v1 match=" + matchId + " balBefore=" + balBefore + " expectRefund=" + fee);
@@ -1049,18 +1177,124 @@ public static class ApiController
                 confirmed = true;
             if (confirmed)
             {
-                if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
-                    TrucoActiveHostMatchStore.Clear();
-                OneVsOneMatchSession.ClearSavedRoomPersistence();
-                TrucoWalletHudRefresh.Apply();
+                SettleEntryRefund(matchId);
                 return true;
             }
             if (i < 2)
                 await System.Threading.Tasks.Task.Delay(400 * (i + 1));
         }
 
+        // /leave went through and the backend no longer lists the room for this user: the row is
+        // closed and re-posting /leave forever cannot recover anything else.
+        if (leaveOk && !await IsLobbyMatchStillMineAsync(matchId))
+        {
+            TrucoRulesScenarioLog.Backend("CancelPreGame settled (row gone)", "match=" + matchId);
+            SettleEntryRefund(matchId);
+            return true;
+        }
+
         TrucoWalletHudRefresh.Apply();
         return false;
+    }
+
+    static void SettleEntryRefund(string matchId)
+    {
+        TrucoPendingRefundStore.Forget(matchId);
+        if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
+            TrucoActiveHostMatchStore.Clear();
+        OneVsOneMatchSession.ClearSavedRoomPersistence();
+        TrucoWalletHudRefresh.Apply();
+    }
+
+    static int ResolveRememberedEntryFee(string matchId)
+    {
+        int fee = TrucoPendingRefundStore.GetFee(matchId);
+        if (fee > 0) return fee;
+        if (OneVsOneMatchSession.CurrentMatchId == matchId && OneVsOneMatchSession.EntryFee > 0)
+            return OneVsOneMatchSession.EntryFee;
+        return TrucoActiveHostMatchStore.GetRememberedEntryFee();
+    }
+
+    static async System.Threading.Tasks.Task<bool> IsLobbyMatchStillMineAsync(string matchId)
+    {
+        var list = await FetchPlayer1v1MatchList();
+        // Unreachable backend — keep the debt so the next attempt tries again.
+        if (!LastMatchListFetchSucceeded) return true;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var m = list[i];
+            if (m == null || m._id != matchId) continue;
+            return m.IsLobbyLikeStatus();
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Retries every room whose entry Trucoins are still owed back to this player. Covers the creator
+    /// disconnecting, a failed reconnect, a room that cannot be deleted manually, and rows the backend
+    /// removed on its own after the fact.
+    /// </summary>
+    public static async System.Threading.Tasks.Task<int> DrainPendingEntryRefundsAsync(string exceptMatchId = null)
+    {
+        AdoptLegacyRememberedHostRoom();
+        var pending = TrucoPendingRefundStore.All();
+        if (pending.Count == 0) return 0;
+        if (!await EnsureSessionUserLoadedAsync()) return 0;
+
+        // Only rows the backend still lists as an open lobby may be refunded: POST /leave on a match
+        // that was actually played re-deducts the winner's prize.
+        var openLobbies = await FetchPlayer1v1MatchList();
+        if (!LastMatchListFetchSucceeded) return 0;
+
+        int refunded = 0;
+        for (int i = 0; i < pending.Count; i++)
+        {
+            string matchId = pending[i].matchId;
+            if (string.IsNullOrEmpty(matchId) || matchId == exceptMatchId) continue;
+            // The room this player is actually sitting in / playing is not abandoned.
+            if (matchId == OneVsOneMatchSession.CurrentMatchId
+                && (OneVsOneMatchSession.GameStarted || OneVsOneMatchLifecycle.IsWaitingInPreGameLobby()))
+                continue;
+
+            if (!IsListedAsOpenLobby(openLobbies, matchId))
+            {
+                // The row is closed (played out, or the backend swept the abandoned room). There is no
+                // safe client-side call left, so stop carrying the debt and just resync the wallet.
+                TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+                    "Pending entry refund dropped, row no longer an open lobby match=" + matchId);
+                TrucoPendingRefundStore.Forget(matchId);
+                if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
+                    TrucoActiveHostMatchStore.Clear();
+                continue;
+            }
+
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+                "Retry pending entry refund match=" + matchId + " fee=" + pending[i].entryFee);
+            if (await CancelPreGameMatch1v1(matchId, pending[i].entryFee))
+                refunded++;
+        }
+        if (refunded > 0) TrucoWalletHudRefresh.Apply();
+        return refunded;
+    }
+
+    static bool IsListedAsOpenLobby(List<Player1v1Match> lobbyMatches, string matchId)
+    {
+        if (lobbyMatches == null) return false;
+        for (int i = 0; i < lobbyMatches.Count; i++)
+        {
+            var m = lobbyMatches[i];
+            if (m != null && m._id == matchId) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Builds from a previous app version that only tracked the last hosted room.</summary>
+    static void AdoptLegacyRememberedHostRoom()
+    {
+        string remembered = TrucoActiveHostMatchStore.GetRememberedMatchId();
+        if (string.IsNullOrEmpty(remembered)) return;
+        if (OneVsOneMatchSession.GameStarted && remembered == OneVsOneMatchSession.CurrentMatchId) return;
+        TrucoPendingRefundStore.Remember(remembered, TrucoActiveHostMatchStore.GetRememberedEntryFee());
     }
 
     /// <summary>
@@ -1415,7 +1649,10 @@ public static class ApiController
         await GetCurrentUserProfile();
         int balAfter = GetSessionUser?.Data?.wallet?.balance ?? -1;
         if (leaveOk || WalletGainedAtLeast(balBefore, balAfter, stake))
+        {
+            TrucoPendingRefundStore.Forget(m._id);
             return true;
+        }
 
         // Never POST /end without a successful /leave — that closes the row with NO refund.
         TrucoRulesScenarioLog.BackendFail("Purge lobby close",
@@ -1461,17 +1698,15 @@ public static class ApiController
         string uid = GetSessionUser?.Data?._id;
         if (string.IsNullOrEmpty(uid)) return result;
 
-        // Always try the persisted unused-room id first — Photon may have already
-        // closed the lobby row so it no longer appears in GET /matches.
-        string remembered = TrucoActiveHostMatchStore.GetRememberedMatchId();
-        if (!string.IsNullOrEmpty(remembered) && remembered != exceptMatchId)
+        // Always settle the persisted unused-room debts first — Photon (or the backend cleanup job)
+        // may have already closed those rows so they no longer appear in GET /matches at all.
+        int pendingBefore = TrucoPendingRefundStore.All().Count;
+        if (pendingBefore > 0)
         {
-            result.attempted++;
-            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Purge remembered unused room=" + remembered);
-            if (await CancelPreGameMatch1v1(remembered, TrucoActiveHostMatchStore.GetRememberedEntryFee()))
-                result.succeeded++;
-            else
-                result.failed++;
+            result.attempted += pendingBefore;
+            int reclaimed = await DrainPendingEntryRefundsAsync(exceptMatchId);
+            result.succeeded += reclaimed;
+            result.failed += Mathf.Max(0, pendingBefore - reclaimed);
         }
 
         var list = await FetchPlayer1v1MatchList();

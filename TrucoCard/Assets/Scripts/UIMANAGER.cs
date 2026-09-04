@@ -27,6 +27,8 @@ public class UIMANAGER : MonoBehaviour
     public static byte MAZO_CHALLENGE = 22;
     /// <summary>CustomData flag for FLOR when opponent cannot reject (auto +3).</summary>
     public const byte FlorAutoAwardFlag = 1;
+    /// <summary>Same as <see cref="FlorAutoAwardFlag"/> but bounced back to the raiser: UI only, no canto audio.</summary>
+    public const byte FlorAutoAwardEchoFlag = 2;
     
     // Contains a list off challenges 
     public List<ChallengeType> invokedChallenges = new List<ChallengeType>();
@@ -79,6 +81,12 @@ public class UIMANAGER : MonoBehaviour
     private bool _isDoubleRealEnvido = false;
     public bool _isChallengepPending = false;
     private bool _autoFlorQueued = false;
+    /// <summary>
+    /// Local player sang Flor against a rival who also holds Flor and is still choosing
+    /// Flor Chica / Con Flor Quiero / Contra Flor. Cards and TRUCO/MAZO stay locked until that answer lands.
+    /// </summary>
+    private bool _awaitingRivalFlorResponse = false;
+    public bool IsAwaitingRivalFlorResponse => _awaitingRivalFlorResponse;
 
     /// <summary>True only on the player who currently must answer a canto (truco/envido/flor).</summary>
     public bool _iOweChallengeResponse = false;
@@ -129,6 +137,7 @@ public class UIMANAGER : MonoBehaviour
         _envidoPlayed = false;
         _florPlayed = false;
         _autoFlorQueued = false;
+        _awaitingRivalFlorResponse = false;
         LastTrucoRaiseActor = 0;
         unAnsweredChallenges.Clear();
         invokedChallenges.Clear();
@@ -191,6 +200,7 @@ public class UIMANAGER : MonoBehaviour
             || type == ChallengeType.ConFlorQuiero || type == ChallengeType.FlorChica)
             invokedChallenges.Add(ChallengeType.Flor);
         unAnsweredChallenges.Clear();
+        _awaitingRivalFlorResponse = false;
         _isChallengepPending = pending;
         if (!pending || type == ChallengeType.None || responderActor <= 0)
         {
@@ -218,8 +228,12 @@ public class UIMANAGER : MonoBehaviour
         bool iRespond = responderActor == PhotonNetwork.LocalPlayer.ActorNumber;
         if (!iRespond)
         {
+            // Our Flor is still on the table waiting for the rival's Flor answer — keep cards locked too.
+            if (type == ChallengeType.Flor && raiserActor == PhotonNetwork.LocalPlayer.ActorNumber)
+                _awaitingRivalFlorResponse = true;
             CancelChallengeResponseCountdown();
             DisableButtons();
+            GameManager.Instance?.SetCanPlayCard(false);
             UpdateTurnText(TrucoTextosClient.FormatoBannerEsperandoRival(TrucoTextosClient.EsperandoRespuestaRival), -1f);
             return;
         }
@@ -808,6 +822,7 @@ public class UIMANAGER : MonoBehaviour
 
     void ClearEnvidoFlorPendingAfterFlor()
     {
+        _awaitingRivalFlorResponse = false;
         unAnsweredChallenges.Remove(ChallengeType.Envido);
         unAnsweredChallenges.Remove(ChallengeType.RealEnvido);
         unAnsweredChallenges.Remove(ChallengeType.FaltaEnvido);
@@ -834,6 +849,33 @@ public class UIMANAGER : MonoBehaviour
             return true;
         FinishChallengeUiAndRestartTimers("flor phase closed");
         return false;
+    }
+
+    /// <summary>
+    /// Flor phase is over on this client (Flor Chica / Con Flor Quiero already applied locally).
+    /// Restores the Truco/Mazo buttons so the Truco part of the hand can continue.
+    /// </summary>
+    public void RefreshTurnButtonsAfterFlorPhase()
+    {
+        _florPlayed = true;
+        if (!invokedChallenges.Contains(ChallengeType.Flor))
+            invokedChallenges.Add(ChallengeType.Flor);
+        ClearEnvidoFlorPendingAfterFlor();
+        _isChallengepPending = false;
+        _iOweChallengeResponse = false;
+        CancelChallengeResponseCountdown();
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded) return;
+        if (ResumePendingTrucoChain("flor phase refresh")) return;
+        if (GameManager.Instance.IsMyTurn())
+        {
+            GameManager.Instance.SetCanPlayCard(true);
+            EnableButtons();
+        }
+        else
+        {
+            DisableButtons();
+        }
+        TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
     }
 
     bool ResumePendingTrucoChain(string reason)
@@ -884,6 +926,7 @@ public class UIMANAGER : MonoBehaviour
     {
         _florPlayed = true;
         _autoFlorQueued = false;
+        _awaitingRivalFlorResponse = false;
         if (!invokedChallenges.Contains(ChallengeType.Flor))
             invokedChallenges.Add(ChallengeType.Flor);
         flor.SetActive(false);
@@ -1144,6 +1187,13 @@ public class UIMANAGER : MonoBehaviour
             DisableButtons();
             return;
         }
+        // Our Flor is waiting for the rival's Flor Chica / Con Flor Quiero / Contra Flor: this is a LIVE
+        // canto, not a stale key — no TRUCO/MAZO and no cards until the answer arrives.
+        if (_awaitingRivalFlorResponse)
+        {
+            DisableButtons();
+            return;
+        }
         // Challenge response UI is configured by *Challenged methods — block play buttons while any canto is open.
         if (HasUnresolvedChallengeState())
         {
@@ -1160,8 +1210,6 @@ public class UIMANAGER : MonoBehaviour
             }
         }
 
-<<<<<<< Updated upstream
-=======
         // A Flor still owed must be sung on an empty board — never flash Envido/Truco while it is queued.
         // Once Flor is already resolved, ignore a stale queue flag so TRUCO/MAZO can come back.
         if (_autoFlorQueued && !_florPlayed)
@@ -1169,7 +1217,6 @@ public class UIMANAGER : MonoBehaviour
             DisableButtons();
             return;
         }
->>>>>>> Stashed changes
         if (ShouldAutoCallFlorNow())
         {
             DisableButtons();
@@ -1219,25 +1266,11 @@ public class UIMANAGER : MonoBehaviour
         }
         else
         {
-            if (!_challengeAccepted)
+            if (!_challengeAccepted && !envidoLocked)
             {
-                Debug.LogWarning("It is my turn, enabling buttons");
-                if (!envidoLocked)
-                {
-                    envido.SetActive(true);
-                    realEnvido.SetActive(true);
-                    faltaEnvido.SetActive(true);
-                }
-                if (OneVsOneMatchSession.WithFlor
-                                                         && GameManager.Instance.PlayerHasFlor() && !_florPlayed
-                                                         && !invokedChallenges.Contains(ChallengeType.Flor) 
-                                                         && !invokedChallenges.Contains(ChallengeType.Envido)
-                                                         && !invokedChallenges.Contains(ChallengeType.FaltaEnvido)
-                                                         && !invokedChallenges.Contains(ChallengeType.RealEnvido)
-                                                         && !invokedChallenges.Contains(ChallengeType.Truco))
-                {
-                    QueueAutoFlor("turn flor button");
-                }
+                envido.SetActive(true);
+                realEnvido.SetActive(true);
+                faltaEnvido.SetActive(true);
             }
         }
 
@@ -1882,6 +1915,7 @@ public class UIMANAGER : MonoBehaviour
             bool hasPendingRetruco = unAnsweredChallenges.ContainsKey(ChallengeType.Retruco);
             bool hasPendingVale4 = unAnsweredChallenges.ContainsKey(ChallengeType.Vale4);
 
+            GameManager.Instance.BroadcastFlorResolved(PhotonNetwork.LocalPlayer.ActorNumber);
             GameManager.Instance.RequestNetworkAward(PhotonNetwork.LocalPlayer.ActorNumber, 3, false);
             TrucoPunChallenges.RaiseToOthers(FLOR_CHALLENGE, FlorAutoAwardFlag);
             TrucoRulesScenarioLog.Ok("Local RAISE Flor AUTO-AWARD (+3)", "rivalDeniedFlor=true");
@@ -1906,6 +1940,10 @@ public class UIMANAGER : MonoBehaviour
         GameManager.Instance.lastChallengeType = ChallengeType.Flor;
         TrucoRulesScenarioLog.Ok("Local RAISE Flor (challenge rival)");
         unAnsweredChallenges[ChallengeType.Flor] = PhotonNetwork.LocalPlayer.ActorNumber;
+        // The rival may also hold Flor and must answer (Flor Chica / Con Flor Quiero / Contra Flor).
+        // Until then our cards are not playable — a card here would silently cancel the Flor canto.
+        _awaitingRivalFlorResponse = true;
+        GameManager.Instance.SetCanPlayCard(false);
         double deadline = MarkChallengeSentNow();
         TrucoPunChallenges.RaiseToOthers(FLOR_CHALLENGE, deadline);
     }
@@ -1963,6 +2001,7 @@ public class UIMANAGER : MonoBehaviour
         noQueiro.SetActive(false);
         GameManager.Instance.lastChallengeType = ChallengeType.ConFlorQuiero;
         GameManager.Instance.challengePoints = 6;
+        GameManager.Instance.conFlorQuieroPending = true;
         TrucoRulesScenarioLog.Ok("Local RAISE ConFlorQuiero", "challengePts=6 deferred to hand end");
         unAnsweredChallenges.Remove(ChallengeType.Flor);
         double deadline = MarkChallengeSentNow();
@@ -2198,6 +2237,7 @@ public class UIMANAGER : MonoBehaviour
     public void FlorChicaChallenged()
     {
         _isChallengepPending = false;
+        _awaitingRivalFlorResponse = false;
         _florPlayed = true;
         unAnsweredChallenges.Remove(ChallengeType.Flor);
         unAnsweredChallenges.Remove(ChallengeType.FlorChica);
@@ -2233,6 +2273,7 @@ public class UIMANAGER : MonoBehaviour
     public void ConFlorQuieroChallenged()
     {
         _isChallengepPending = false;
+        _awaitingRivalFlorResponse = false;
         _florPlayed = true;
         unAnsweredChallenges.Remove(ChallengeType.Flor);
         unAnsweredChallenges.Remove(ChallengeType.FlorChica);
@@ -2258,6 +2299,8 @@ public class UIMANAGER : MonoBehaviour
     public void ContraFlorChallenged()
     {
         _isChallengepPending = true;
+        // The rival answered our Flor with Contra Flor — now WE owe the reply (Flor Chica / Quiero).
+        _awaitingRivalFlorResponse = false;
         _florPlayed = true;
         if (!invokedChallenges.Contains(ChallengeType.Flor))
             invokedChallenges.Add(ChallengeType.Flor);
@@ -2366,6 +2409,7 @@ public class UIMANAGER : MonoBehaviour
         bool endsHand = TrucoRulePoints.NoQuieroEndsHand(declined);
 
         _isChallengepPending = false;
+        _awaitingRivalFlorResponse = false;
         _cantChallenge = false;
         DisableButtons();
         flor.SetActive(false);
@@ -2406,6 +2450,11 @@ public class UIMANAGER : MonoBehaviour
         {
             envido.SetActive(false);
             realEnvido.SetActive(false);
+            // The Flor canto is closed — drop its keys so a pending Truco (if any) or normal play resumes.
+            unAnsweredChallenges.Remove(ChallengeType.Flor);
+            unAnsweredChallenges.Remove(ChallengeType.ContraFlor);
+            unAnsweredChallenges.Remove(ChallengeType.FlorChica);
+            unAnsweredChallenges.Remove(ChallengeType.ConFlorQuiero);
         }
 
         if (GameManager.Instance != null)

@@ -34,11 +34,7 @@ public class MainMenuManager : MonoBehaviour
             TrucoDebugLog.Always(TrucoDebugLog.Category.MainMenu,
                 "MainMenu profile loaded user=" + (ApiController.GetSessionUser?.Data?.username ?? "?"));
             // Abandoned unused rooms: refund on next login even if the previous process was killed.
-            string leftover = TrucoActiveHostMatchStore.GetRememberedMatchId();
-            int leftoverFee = TrucoActiveHostMatchStore.GetRememberedEntryFee();
-            if (!string.IsNullOrEmpty(leftover) && !OneVsOneMatchSession.GameStarted)
-                await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(leftover,
-                    leftoverFee > 0 ? leftoverFee : OneVsOneMatchSession.EntryFee);
+            await ApiController.DrainPendingEntryRefundsAsync();
             await OneVsOneMatchLifecycle.PurgeAllMyActiveLobbyMatchesAsync();
             await ApiController.GetCurrentUserProfile();
 

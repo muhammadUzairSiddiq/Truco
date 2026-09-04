@@ -59,8 +59,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public bool otherPlayerDeniedFlor = false;
     public bool deniedFlor = false;
     public int EnvidoFirstCallerActor { get; private set; }
-<<<<<<< Updated upstream
-=======
     /// <summary>Envido/Real/Falta stake already awarded this hand — Mazo must not concede it again.</summary>
     public bool envidoResolvedThisHand;
     /// <summary>Flor points already awarded this hand (auto +3, Flor Chica, Con Flor Quiero, Contra Flor).</summary>
@@ -85,7 +83,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     /// <summary>Accepted Envido/Real/Falta this hand — its winning cards must be shown before the hand or match closes.</summary>
     bool _envidoRevealOwed;
     bool _envidoRevealHeld;
->>>>>>> Stashed changes
 
     public List<ChallengeType> ActiveChallenges = new List<ChallengeType>();
 
@@ -298,6 +295,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 ? TrucoRulePoints.EnvidoNoQuieroAward(type, challengePoints, envidoCantoCount)
                 : TrucoRulePoints.NoQuieroAward(type));
         bool endHand = TrucoRulePoints.NoQuieroEndsHand(type);
+        if (TrucoRulePoints.IsEnvidoFamily(type)) envidoResolvedThisHand = true;
         TrucoRulesScenarioLog.Ok("MasterResolveNoQuiero",
             "decliner=" + declinerActor + " winner=" + winnerActor
             + " type=" + type + " pts=" + pts + " endHand=" + endHand
@@ -498,8 +496,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         acceptedTrucoLevel = 0;
         _trickLeadActor = 0;
         envidoCantoCount = 0;
-<<<<<<< Updated upstream
-=======
         envidoResolvedThisHand = false;
         florResolvedThisHand = false;
         florOwnerActorThisHand = 0;
@@ -510,7 +506,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         _handCloseHoldActive = false;
         _envidoRevealOwed = false;
         _envidoRevealHeld = false;
->>>>>>> Stashed changes
         lastChallengeType = ChallengeType.None;
         ActiveChallenges.Clear();
         _pendingScoringCardReveal = false;
@@ -842,9 +837,15 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             _1v1ResultPosted = true;
             if (gameHadStarted)
             {
-                TrucoRulesScenarioLog.Backend("MUTUAL_OR_SELF reconnect-fail → cancel+refund (no winner)",
-                    "match=" + matchIdSnapshot);
-                _ = ApiController.CancelMutualDisconnect1v1(matchIdSnapshot);
+                // The stayer (if any) wins by score or by walkover once their window expires. Cancelling the
+                // row right now raced that claim and produced "problema al acreditar el premio" on the winner.
+                // Give them the full window (+ settle margin) and cancel only if the server still shows no result.
+                float waitSeconds = Mathf.Max(15f,
+                    TrucoPunReconnectionManager.OpponentReconnectWindowSeconds + 15f
+                    - TrucoPunReconnectionManager.SecondsSinceLocalDisconnect);
+                TrucoRulesScenarioLog.Backend("SELF reconnect-fail → deferred mutual cancel check",
+                    "match=" + matchIdSnapshot + " waitSec=" + waitSeconds.ToString("0"));
+                _ = ApiController.CancelMutualDisconnectIfUnsettled1v1(matchIdSnapshot, waitSeconds);
             }
             else
             {
@@ -1004,7 +1005,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public void OnEvent(EventData photonEvent)
     {
-        if (TrucoPunChallenges.IsChallengeEventCode(photonEvent.Code))
+        if (TrucoPunChallenges.IsChallengeEventCode(photonEvent.Code) && !IsFlorAutoAwardEcho(photonEvent))
             TrucoGameplayAudio.PlayFromPhotonEvent(photonEvent);
         if (_isSpectator) return;
         if (photonEvent.Code == _cardSendEvent || TrucoPunChallenges.IsChallengeEventCode(photonEvent.Code))
@@ -1188,7 +1189,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         else if (photonEvent.Code == UIMANAGER.FLOR_CHALLENGE)
         {
-            bool autoAward = photonEvent.CustomData is byte fb && fb == UIMANAGER.FlorAutoAwardFlag;
+            bool autoAward = photonEvent.CustomData is byte fb
+                             && (fb == UIMANAGER.FlorAutoAwardFlag || fb == UIMANAGER.FlorAutoAwardEchoFlag);
             if (autoAward)
             {
                 TrucoRulesScenarioLog.Opp("RECV Flor AUTO-AWARD +3", "fromActor=" + photonEvent.Sender);
@@ -1206,9 +1208,12 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 UIMANAGER.Instance._florPlayed = true;
                 UIMANAGER.Instance.invokedChallenges.Add(ChallengeType.Flor);
                 if (photonEvent.Sender > 0)
+                {
+                    BroadcastFlorResolved(photonEvent.Sender);
                     RequestNetworkAward(photonEvent.Sender, 3, false);
-                // Notify rival only (not self) so raiser leaves pending Flor without double UI.
-                TrucoPunChallenges.RaiseToOthers(UIMANAGER.FLOR_CHALLENGE, UIMANAGER.FlorAutoAwardFlag);
+                }
+                // Echo flag: the raiser already sang Flor locally, so their client must stay silent.
+                TrucoPunChallenges.RaiseToOthers(UIMANAGER.FLOR_CHALLENGE, UIMANAGER.FlorAutoAwardEchoFlag);
                 UIMANAGER.Instance.CompleteFlorAutoAwardUi("recv local denied flor");
                 return;
             }
@@ -1226,12 +1231,17 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             TrucoRulesScenarioLog.Opp("RECV FlorChica -> rival gets +4", "fromActor=" + photonEvent.Sender);
             lastChallengeType = ChallengeType.FlorChica;
-            UIMANAGER.Instance.FlorChicaChallenged();
             if (PhotonNetwork.IsMasterClient && photonEvent.Sender > 0)
-                BroadcastNetworkAward(GetOpponentActorNumber(photonEvent.Sender), 4, false);
-            // Sender already resumed locally after RaiseToAll — peers only.
+            {
+                int florChicaWinner = GetOpponentActorNumber(photonEvent.Sender);
+                BroadcastFlorResolved(florChicaWinner);
+                BroadcastNetworkAward(florChicaWinner, 4, false);
+            }
+            // RaiseToAll echoes back to the sender, whose Flor UI is already closed —
+            // replaying FlorChicaChallenged there would blank the Truco/Mazo buttons it just enabled.
             if (photonEvent.Sender != PhotonNetwork.LocalPlayer.ActorNumber)
             {
+                UIMANAGER.Instance.FlorChicaChallenged();
                 if (!UIMANAGER.Instance.ResumePendingTrucoChainAfterFlorPublic())
                 {
                     if (IsMyTurn())
@@ -1239,12 +1249,17 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                     TurnManager.Instance?.RestartTurnTimersIfActive(force: true);
                 }
             }
+            else
+            {
+                UIMANAGER.Instance.RefreshTurnButtonsAfterFlorPhase();
+            }
         }
         else if (photonEvent.Code == UIMANAGER.CON_FLOR_QUIERO_CHALLENGE)
         {
             TrucoRulesScenarioLog.Opp("RECV ConFlorQuiero", "fromActor=" + photonEvent.Sender);
             lastChallengeType = ChallengeType.ConFlorQuiero;
             challengePoints = 6;
+            conFlorQuieroPending = true;
             UIMANAGER.Instance.ConFlorQuieroChallenged();
             if (photonEvent.Sender != PhotonNetwork.LocalPlayer.ActorNumber)
             {
@@ -1261,6 +1276,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             TrucoRulesScenarioLog.Opp("RECV ContraFlor", "fromActor=" + photonEvent.Sender);
             lastChallengeType = ChallengeType.ContraFlor;
             UIMANAGER.Instance.ContraFlorChallenged();
+            // The Flor caller now owes Flor Chica / Quiero — a card play must not bypass the Contra Flor.
+            SetCanPlayCard(false);
         }
         else if (photonEvent.Code == UIMANAGER.MAZO_CHALLENGE)
         {
@@ -1279,6 +1296,13 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             ResolveMazoHand(winnerActor);
         }
     }
+
+    /// <summary>The +3 acknowledgement bounced back to the player who just sang Flor — never re-play the canto.</summary>
+    static bool IsFlorAutoAwardEcho(EventData photonEvent) =>
+        photonEvent != null
+        && photonEvent.Code == UIMANAGER.FLOR_CHALLENGE
+        && photonEvent.CustomData is byte flag
+        && flag == UIMANAGER.FlorAutoAwardEchoFlag;
 
     static int GetOpponentActorNumber(int actor)
     {
@@ -1311,12 +1335,42 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (level <= 0 && UIMANAGER.Instance != null && UIMANAGER.Instance.trucoPlayed)
             level = 1;
         int award = TrucoRulePoints.MazoAwardForAcceptedTrucoLevel(level);
+        int envidoPart = ComputeMazoEnvidoPart(level);
         TrucoRulesScenarioLog.Ok("ComputeMazoHandPoints",
-            "acceptedLevel=" + level + " award=" + award
+            "acceptedLevel=" + level + " trucoPart=" + award + " envidoPart=" + envidoPart
             + " last=" + lastChallengeType
             + " trucoPlayed=" + (UIMANAGER.Instance != null && UIMANAGER.Instance.trucoPlayed));
-        return award;
+        return award + envidoPart;
     }
+
+    int ComputeMazoEnvidoPart(int acceptedTrucoChainLevel) =>
+        TrucoRulePoints.MazoUnplayedEnvidoPoint(
+            acceptedTrucoChainLevel,
+            AnyCardPlayedThisHand(),
+            TrucoChainCalledThisHand(),
+            EnvidoStakeAlreadyResolvedThisHand(),
+            florResolvedThisHand || IsFlorFamilyInHand());
+
+    bool AnyCardPlayedThisHand() =>
+        (player1Score != null && player1Score.Count > 0) || (player2Score != null && player2Score.Count > 0);
+
+    /// <summary>True once Truco/Retruco/Vale 4 was called by either seat, accepted or not.</summary>
+    bool TrucoChainCalledThisHand()
+    {
+        if (acceptedTrucoLevel > 0) return true;
+        var ui = UIMANAGER.Instance;
+        if (ui == null) return false;
+        return ui.trucoPlayed
+               || ui.invokedChallenges.Contains(ChallengeType.Truco)
+               || ui.invokedChallenges.Contains(ChallengeType.Retruco)
+               || ui.invokedChallenges.Contains(ChallengeType.Vale4)
+               || ui.unAnsweredChallenges.ContainsKey(ChallengeType.Truco)
+               || ui.unAnsweredChallenges.ContainsKey(ChallengeType.Retruco)
+               || ui.unAnsweredChallenges.ContainsKey(ChallengeType.Vale4);
+    }
+
+    bool EnvidoStakeAlreadyResolvedThisHand() =>
+        envidoResolvedThisHand || (UIMANAGER.Instance != null && UIMANAGER.Instance._envidoPlayed);
 
     void StripEnvidoFlorFromActiveChallenges()
     {
@@ -1349,43 +1403,16 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         if (_gameEnded || HandResolved || _handOutcomeCommitted || _restartScheduled) return;
 
-        // Con Flor Quiero is scored at hand end — MAZO still ends the Truco part.
-        bool conFlorPending = UIMANAGER.Instance != null
-                              && UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.ConFlorQuiero);
-        if (conFlorPending && PhotonNetwork.IsMasterClient)
-        {
-            UIMANAGER.Instance.invokedChallenges.Remove(ChallengeType.ConFlorQuiero);
-            GetScore(ChallengeType.ConFlorQuiero);
-            FlushPendingScoringCardReveal(immediate: true);
-        }
-
-        // P2 still has an unannounced Flor — award +3 and reveal before the MAZO Truco point.
-        if (PhotonNetwork.IsMasterClient
-            && UIMANAGER.Instance != null && !UIMANAGER.Instance._florPlayed)
-        {
-            int florActor = ActorWithUnannouncedFlor(winnerActor);
-            if (florActor > 0)
-            {
-                UIMANAGER.Instance._florPlayed = true;
-                if (!UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.Flor))
-                    UIMANAGER.Instance.invokedChallenges.Add(ChallengeType.Flor);
-                QueueOpponentFlorReveal(florActor);
-                FlushPendingScoringCardReveal(immediate: true);
-                RequestNetworkAward(florActor, 3, false);
-            }
-        }
+        bool florShown = PhotonNetwork.IsMasterClient
+                         && SettleFlorBeforeHandCloses(winnerActor, handConceded: true);
 
         MarkHandResolved();
         int points = ComputeMazoHandPoints();
         TrucoRulesScenarioLog.Ok("ResolveMazoHand",
             "winnerActor=" + winnerActor + " handPts=" + points
             + " last=" + lastChallengeType + " cardPlayed=" + cardPlayed
+            + " florShown=" + florShown
             + " trucoPlayed=" + (UIMANAGER.Instance != null && UIMANAGER.Instance.trucoPlayed));
-<<<<<<< Updated upstream
-        photonView.RPC(nameof(Winner), RpcTarget.All, winnerActor, points);
-    }
-
-=======
         if (florShown)
             StartCoroutine(CoSendHandWinnerAfterFlorReveal(winnerActor, points));
         else
@@ -1553,7 +1580,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         TrucoGameplayAudio.PlayFlorCanto(mine);
     }
 
->>>>>>> Stashed changes
     int ActorWithUnannouncedFlor(int mazoWinnerActor)
     {
         if (!OneVsOneMatchSession.WithFlor) return 0;
@@ -1719,7 +1745,10 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                         : player1FlorScore > player2FlorScore
                             ? PhotonNetwork.LocalPlayer.ActorNumber
                             : GetManoActorForCurrentHand();
+                    conFlorQuieroPending = false;
+                    BroadcastFlorResolved(florWinnerActor);
                     QueueFlorCardReveal(florWinnerActor);
+                    _florCardsRevealedThisHand = true;
                     TrucoRulesScenarioLog.Ok("GetScore ConFlorQuiero",
                         "p1Flor=" + player1FlorScore + " p2Flor=" + player2FlorScore + " award=6 winner=" + florWinnerActor);
                     photonView.RPC(nameof(ConFlorQuieroWinner), RpcTarget.All, florWinnerActor, 6);
@@ -1731,14 +1760,12 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                     int player2FlorScore = CalculateFlor(_player2Cards);
                     photonView.RPC(nameof(AnnounceFlorPoints), RpcTarget.All, player1FlorScore, player2FlorScore);
                     QueueFlorCardReveal();
-                    if (player2FlorScore > player1FlorScore)
-                    {
-                        photonView.RPC(nameof(ContraFlorWinner), RpcTarget.All, PhotonNetwork.PlayerListOthers[0].ActorNumber);
-                    }
-                    else
-                    {
-                        photonView.RPC(nameof(ContraFlorWinner), RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber);
-                    }
+                    _florCardsRevealedThisHand = true;
+                    int contraFlorWinnerActor = player2FlorScore > player1FlorScore
+                        ? PhotonNetwork.PlayerListOthers[0].ActorNumber
+                        : PhotonNetwork.LocalPlayer.ActorNumber;
+                    BroadcastFlorResolved(contraFlorWinnerActor);
+                    photonView.RPC(nameof(ContraFlorWinner), RpcTarget.All, contraFlorWinnerActor);
                     points = 1;
                     break;
                 }
@@ -2000,11 +2027,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (_isSpectator) return;
         TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
             "EnvidoWinner points queued reveal id=" + ID + " pts=" + _points);
-<<<<<<< Updated upstream
-=======
         envidoResolvedThisHand = true;
         _envidoRevealOwed = true;
->>>>>>> Stashed changes
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             Debug.Log("You win!");
@@ -2052,13 +2076,9 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         SyncScoresAfterPointChange();
         FlushPendingScoringCardReveal(immediate: true);
-<<<<<<< Updated upstream
-        // Do not Evaluate/Continue here — Winner (truco/mazo) or the Falta path owns match-end.
-=======
         // An accepted Contra Flor is decisive: the higher Flor takes the whole match right away.
         BeginPendingMatchEnd("contra flor");
         StartCoroutine(CoEvaluateMatchAfterScoringReveal());
->>>>>>> Stashed changes
     }
 
     [PunRPC]
@@ -2067,11 +2087,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (_isSpectator) return;
         TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne,
             "FaltaEnvidoWinner points + reveal cards id=" + ID);
-<<<<<<< Updated upstream
-=======
         envidoResolvedThisHand = true;
         _envidoRevealOwed = true;
->>>>>>> Stashed changes
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             myPlayerScoreHandler.UpdateScore(_points, true);
@@ -2236,9 +2253,13 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         return (rank >= 10) ? 0 : rank;
     }
 
+    /// <summary>Our Flor canto is still waiting for the rival's Flor answer — no card may be played meanwhile.</summary>
+    static bool AwaitingRivalFlorResponse()
+        => UIMANAGER.Instance != null && UIMANAGER.Instance.IsAwaitingRivalFlorResponse;
+
     public void SetCanPlayCard(bool _value)
     {
-        if (_value && (_gameEnded || _matchEndPending || HandResolved))
+        if (_value && (_gameEnded || _matchEndPending || HandResolved || AwaitingRivalFlorResponse()))
         {
             _canPlayCard = false;
             UIMANAGER.Instance?.DisableButtons();
@@ -2251,7 +2272,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public bool CanPlayCard()
     {
-        return _canPlayCard && !_gameEnded && !_matchEndPending && !HandResolved;
+        return _canPlayCard && !_gameEnded && !_matchEndPending && !HandResolved
+               && !AwaitingRivalFlorResponse();
     }
 
     public bool IsMyTurn() => _myTurn;
@@ -2567,18 +2589,56 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
 
         int balAfter = ApiController.GetSessionUser?.Data?.wallet?.balance ?? -1;
-        bool prizeVisible = balBefore >= 0 && balAfter > balBefore;
+        // balBefore may already include the prize (rival's forfeit/leave path + any profile refresh), so also
+        // compare against the wallet as it was when the cards were first dealt.
+        int balAtStart = OneVsOneMatchSession.WalletBalanceAtGameStart;
+        bool prizeVisible = balAfter >= 0
+                            && ((balBefore >= 0 && balAfter > balBefore)
+                                || (balAtStart >= 0 && balAfter > balAtStart));
         if (submitResult && (ok || prizeVisible))
             _1v1ResultPosted = true;
-
-        _1v1SettlementBusy = false;
 
         // Prize toast only for the WINNER — losers never receive the prize and must not see support copy.
         bool iAmWinner = !string.IsNullOrEmpty(resolvedWinner)
                          && resolvedWinner == PhotonPlayerHelper.GetLocalTrucoPlayerUserId();
+
+        if (submitResult && iAmWinner && !ok && !prizeVisible)
+        {
+            // Last check before alarming a legitimate winner: does the server already show us as winner,
+            // or did the wallet move after a short settle delay? (rival disconnect at match end = slow backend)
+            yield return new WaitForSecondsRealtime(2f);
+            var probeTask = ApiController.ProbeMatchSettlement1v1(matchId);
+            while (!probeTask.IsCompleted) yield return null;
+            var probe = probeTask.IsFaulted ? default : probeTask.Result;
+            var refresh = ApiController.GetCurrentUserProfile();
+            while (!refresh.IsCompleted) yield return null;
+            int balLate = ApiController.GetSessionUser?.Data?.wallet?.balance ?? -1;
+            bool walletMoved = balLate >= 0
+                               && ((balBefore >= 0 && balLate > balBefore)
+                                   || (balAtStart >= 0 && balLate > balAtStart));
+            if (probe.SettledFor(resolvedWinner) || walletMoved)
+            {
+                ok = true;
+                _1v1ResultPosted = true;
+                TrucoRulesScenarioLog.Backend("Prize confirmed on late check",
+                    "match=" + matchId + " serverWinner=" + (probe.winnerUserId ?? "null")
+                    + " status=" + (probe.status ?? "?") + " balStart=" + balAtStart
+                    + " balBefore=" + balBefore + " balLate=" + balLate);
+            }
+            else
+            {
+                TrucoRulesScenarioLog.BackendFail("Prize NOT confirmed",
+                    "match=" + matchId + " status=" + (probe.status ?? "?")
+                    + " serverWinner=" + (probe.winnerUserId ?? "null")
+                    + " balStart=" + balAtStart + " balBefore=" + balBefore + " balLate=" + balLate);
+            }
+        }
+
+        _1v1SettlementBusy = false;
+
         if (submitResult && iAmWinner && !ok && !prizeVisible)
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ErrorPremioNoConfirmado);
-        else if (submitResult && iAmWinner && (ok || prizeVisible))
+        else if (submitResult && iAmWinner)
             AppManager.Instance?.DisplayNotification(FormatWinPrizeAwardedMessage());
 
         TrucoWalletHudRefresh.Apply();
@@ -2858,20 +2918,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 ? PhotonNetwork.PlayerListOthers[0].ActorNumber
                 : PhotonNetwork.LocalPlayer.ActorNumber);
 
-<<<<<<< Updated upstream
-        if (UIMANAGER.Instance.invokedChallenges.Contains(ChallengeType.ConFlorQuiero))
-        {
-            UIMANAGER.Instance.invokedChallenges.Remove(ChallengeType.ConFlorQuiero);
-            GetScore(ChallengeType.ConFlorQuiero);
-            FlushPendingScoringCardReveal(immediate: true);
-        }
-        int handPts = ComputeMazoHandPoints();
-        TrucoRulesScenarioLog.Ok("Hand decided → Winner RPC",
-            "winnerActor=" + winnerActor + " handPts=" + handPts
-            + " tricks=" + trickResults.Count
-            + " acceptedTruco=" + acceptedTrucoLevel);
-        photonView.RPC(nameof(Winner), RpcTarget.All, winnerActor, handPts);
-=======
         // Lock the hand now (no more cantos / plays), but let the deciding card land and stay
         // visible before Flor reveal + Winner. Guest seats only learn the result via Winner.
         MarkHandResolved();
@@ -2879,7 +2925,6 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             "winnerActor=" + winnerActor + " tricks=" + trickResults.Count
             + " hold=" + FinalCardHoldSeconds + "s");
         StartCoroutine(CoCloseHandAfterFinalCard(winnerActor));
->>>>>>> Stashed changes
     }
 
     private void CheckChallengePoints()

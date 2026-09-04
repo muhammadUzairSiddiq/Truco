@@ -344,6 +344,19 @@ public class Player1v1Match
     public bool withFlor = true;
     public int targetScore = TrucoMatchRules.DefaultTargetScore;
     public User[] players;
+    /// <summary>Settled winner when the API populates it as an object (GET /matches/:id after /result).</summary>
+    public User winner;
+    /// <summary>Settled winner when the API sends a plain id instead of an object.</summary>
+    public string winnerId;
+
+    /// <summary>Winner user id from whichever shape the API used, or null when not settled.</summary>
+    public string ResolveWinnerUserId()
+    {
+        if (!string.IsNullOrEmpty(winnerId)) return winnerId;
+        if (winner == null) return null;
+        if (!string.IsNullOrEmpty(winner._id)) return winner._id;
+        return string.IsNullOrEmpty(winner.id) ? null : winner.id;
+    }
 }
 
 [Serializable]

@@ -15,6 +15,11 @@ public static class OneVsOneMatchSession
     public static string CachedOpponentUserId { get; private set; }
     /// <summary>True after POST /start-game (cards dealt). Lobby cancel must not refund after this.</summary>
     public static bool GameStarted { get; private set; }
+    /// <summary>
+    /// Cached wallet balance when the cards were first dealt (entry fee already charged), or -1 when unknown.
+    /// Prize verification compares against this instead of a balance that may already include the prize.
+    /// </summary>
+    public static int WalletBalanceAtGameStart { get; private set; } = -1;
     public const int MaxPlayersGameplay = 2;
     /// <summary>1v1 real: dos jugadores (sin hueco “reservado” extra).</summary>
     public const int MaxPlayersPhoton = 2;
@@ -49,7 +54,14 @@ public static class OneVsOneMatchSession
     public static void SetTargetScore(int targetScore) =>
         TargetScore = TrucoMatchRules.NormalizeTargetScore(targetScore);
 
-    public static void MarkGameStarted() => GameStarted = true;
+    public static void MarkGameStarted()
+    {
+        if (!GameStarted)
+            WalletBalanceAtGameStart = ApiController.GetSessionUser?.Data?.wallet?.balance ?? -1;
+        GameStarted = true;
+        // Cards are dealt: the entry fee is consumed and must never be reclaimed as an abandoned room.
+        TrucoPendingRefundStore.Forget(CurrentMatchId);
+    }
 
     public static void Clear()
     {
@@ -60,6 +72,7 @@ public static class OneVsOneMatchSession
         WithFlor = true;
         TargetScore = TrucoMatchRules.DefaultTargetScore;
         GameStarted = false;
+        WalletBalanceAtGameStart = -1;
         CachedOpponentUserId = null;
     }
 

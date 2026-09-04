@@ -139,6 +139,13 @@ public class TrucoGameplayAudio : MonoBehaviour
             Instance._calloutSource.PlayOneShot(c);
     }
 
+    /// <summary>Flor canto (voice + banner) raised by game logic instead of a button press.</summary>
+    public static void PlayFlorCanto(bool mine)
+    {
+        if (mine) PlayLocalRaise(UIMANAGER.FLOR_CHALLENGE);
+        else PlayIncomingEvent(UIMANAGER.FLOR_CHALLENGE, 0);
+    }
+
     public static void PlayCardPlaced()
     {
         if (Instance == null || IsMuted || Instance._cardSource == null || Instance._cardPlaced == null) return;

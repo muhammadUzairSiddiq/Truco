@@ -27,6 +27,17 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
     public static int OpponentReconnectSecondsRemaining =>
         Instance != null ? Instance._opponentReconnectSecondsRemaining : 0;
 
+    /// <summary>Stayer's walkover window (seconds) — the dropper must not cancel the match before this elapses.</summary>
+    public static float OpponentReconnectWindowSeconds =>
+        Instance != null ? Instance._opponentReconnectWindowSeconds : 60f;
+
+    float _localDisconnectAt = -1f;
+    /// <summary>Seconds since this client lost its Photon connection (0 when not tracking).</summary>
+    public static float SecondsSinceLocalDisconnect =>
+        Instance != null && Instance._localDisconnectAt >= 0f
+            ? Mathf.Max(0f, Time.unscaledTime - Instance._localDisconnectAt)
+            : 0f;
+
     void Awake() => Instance = this;
 
     void OnDestroy()
@@ -54,6 +65,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         {
             return;
         }
+        _localDisconnectAt = Time.unscaledTime;
         _routine = StartCoroutine(TryReconnectAndRejoin());
     }
 

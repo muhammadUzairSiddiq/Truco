@@ -66,6 +66,18 @@ public static class OneVsOneMatchLifecycle
     return ok;
   }
 
+  /// <summary>
+  /// Forget the last hosted room only after its entry fee is settled — otherwise a room the backend
+  /// already deleted would drop out of every retry path and the Trucoins would be lost.
+  /// </summary>
+  static void ClearHostMemoryIfRefundSettled()
+  {
+    string remembered = TrucoActiveHostMatchStore.GetRememberedMatchId();
+    if (string.IsNullOrEmpty(remembered)) return;
+    if (TrucoPendingRefundStore.IsPending(remembered)) return;
+    TrucoActiveHostMatchStore.Clear();
+  }
+
   /// <summary>POST /leave on every active lobby row for the logged-in user (refunds entry).</summary>
   public static async Task<int> PurgeAllMyActiveLobbyMatchesAsync(string keepMatchId = null)
   {
@@ -90,7 +102,7 @@ public static class OneVsOneMatchLifecycle
     var result = await ApiController.PurgeAllMyLobbyMatchesAsync(except);
     if (result.succeeded > 0 && !keepLiveLobby)
     {
-      TrucoActiveHostMatchStore.Clear();
+      ClearHostMemoryIfRefundSettled();
       if (string.IsNullOrEmpty(except) || OneVsOneMatchSession.CurrentMatchId != except)
       {
         OneVsOneMatchSession.Clear();
@@ -119,6 +131,8 @@ public static class OneVsOneMatchLifecycle
       await ApiController.TryNotifyPlayerLeftMatch1v1(matchId);
       await ApiController.GetCurrentUserProfile();
     }
+    // The match was played: the entry is spent, not owed back.
+    TrucoPendingRefundStore.Forget(matchId);
     TrucoActiveHostMatchStore.Clear();
   }
 
@@ -128,7 +142,7 @@ public static class OneVsOneMatchLifecycle
         if (string.IsNullOrEmpty(remembered)) return;
         if (activeList == null)
         {
-            TrucoActiveHostMatchStore.Clear();
+            ClearHostMemoryIfRefundSettled();
             return;
         }
         for (int i = 0; i < activeList.Count; i++)
@@ -137,7 +151,9 @@ public static class OneVsOneMatchLifecycle
             if (m != null && m._id == remembered && m.IsLobbyLikeStatus())
                 return;
         }
-        TrucoActiveHostMatchStore.Clear();
+        // The row vanished from the backend. If its entry fee is still owed, keep the id so the
+        // pending-refund retry can still POST /leave for it.
+        ClearHostMemoryIfRefundSettled();
     }
 
     /// <summary>Clears PlayerPrefs / in-memory lobby state when the backend no longer has an open match.</summary>
@@ -160,7 +176,7 @@ public static class OneVsOneMatchLifecycle
         if (IsMatchActiveInList(current, activeList)) return;
 
         OneVsOneMatchSession.Clear();
-        TrucoActiveHostMatchStore.Clear();
+        ClearHostMemoryIfRefundSettled();
         TrucoRoomPersistence.Clear();
         if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
     }
