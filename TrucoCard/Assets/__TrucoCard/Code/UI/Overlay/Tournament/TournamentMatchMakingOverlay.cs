@@ -47,24 +47,24 @@ public class TournamentMatchmakingOverlay : MonoBehaviour
             if (currentPlayerCount == 0)
                 _playerCounterText.text = "";
             else
-                _playerCounterText.text = "Waiting For Other Players";
+                _playerCounterText.text = "Esperando jugadores…";
 
             return;
         }
 
         int maxPlayers = _currentTournamentRequest?.MaxPlayerCount ?? 0;
-        _playerCounterText.text = $"Players: {currentPlayerCount}/{maxPlayers}";
+        _playerCounterText.text = $"Jugadores: {currentPlayerCount}/{maxPlayers}";
 
         if (currentPlayerCount >= maxPlayers && maxPlayers > 0)
         {
             _cancelTournamentMatchmakingBtn.gameObject.SetActive(false);
-            _matchmakingInfoText.text = "Starting tournament Battle";
+            _matchmakingInfoText.text = "Iniciando cuadro del torneo…";
         }
         else
         {
             _cancelTournamentMatchmakingBtn.gameObject.SetActive(true);
 
-            _matchmakingInfoText.text = "Preparing your next tournament battle";
+            _matchmakingInfoText.text = "Preparando tu próxima partida…";
         }
     }
 
@@ -79,7 +79,8 @@ public class TournamentMatchmakingOverlay : MonoBehaviour
 
         //int bracketLevels = CalculateBracketLevels(request.MaxPlayerCount);
         string bracketInfo = GetBracketLevelNames(request.MaxPlayerCount);
-        _bracketInfoText.text = $"Tournament Format: {bracketInfo}";
+        string flor = request.WithFlor ? "Con Flor" : "Sin Flor";
+        _bracketInfoText.text = $"{bracketInfo}\n{flor} · {request.TargetScore} puntos · Premio: {request.Prize} TRUCOINS";
 
         UpdatePlayerCount(0);
 
@@ -87,7 +88,7 @@ public class TournamentMatchmakingOverlay : MonoBehaviour
             (error) =>
             {
                 _contentHolder.gameObject.SetActive(false);
-                AppManager.Instance.DisplayNotification("Matchmaking Error: " + error);
+                AppManager.Instance.DisplayNotification("Error de emparejamiento: " + error);
             });
     }
     public void HideTournamentMatchmakingUI()
@@ -110,13 +111,13 @@ public class TournamentMatchmakingOverlay : MonoBehaviour
         switch (maxPlayers)
         {
             case 4:
-                return "Semi-Final → Final";
+                return "Semifinales → Final";
             case 8:
-                return "Quarter-Final → Semi-Final → Final";
+                return "Cuartos → Semifinales → Final";
             case 16:
-                return "Round of 16 → Quarter-Final → Semi-Final → Final";
+                return "Octavos → Cuartos → Semifinales → Final";
             default:
-                return $"{maxPlayers} Player Tournament";
+                return $"Torneo de {maxPlayers} jugadores";
         }
     }
 

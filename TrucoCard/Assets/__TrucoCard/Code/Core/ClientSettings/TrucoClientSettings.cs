@@ -62,6 +62,10 @@ public static class TrucoClientSettings
     public static string GameSecret =>
         Instance != null ? (Instance.gameSecret ?? string.Empty) : string.Empty;
 
+    /// <summary>Optional extra API key. Empty until backend provides it.</summary>
+    public static string ApiKey =>
+        Instance != null ? (Instance.apiKey ?? string.Empty) : string.Empty;
+
     public static float PhotonJoinRetryTotalSeconds =>
         Instance != null ? Instance.photonJoinRetryTotalSeconds : 8f;
 

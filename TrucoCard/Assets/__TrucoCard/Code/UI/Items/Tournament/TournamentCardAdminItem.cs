@@ -22,21 +22,20 @@ public class TournamentCardAdminItem : MonoBehaviour
         _iTournamentData = tournament;
 
         _titleText.SetText(_iTournamentData.name);
-        _descriptionText.SetText(_iTournamentData.description);
+        if (_descriptionText != null)
+            _descriptionText.SetText(string.IsNullOrEmpty(_iTournamentData.description) ? "" : _iTournamentData.description);
 
+        string flor = _iTournamentData.withFlor ? "Con Flor" : "Sin Flor";
+        string type = _iTournamentData.IsPrivateTournament() ? "Privado" : "Público";
+        int pts = TrucoMatchRules.NormalizeTargetScore(_iTournamentData.targetScore);
+        _rulesText.text = $"{_iTournamentData.maxPlayers} jugadores  ·  {flor}  ·  {pts} pts\n"
+                          + $"{type}  ·  Ingreso {_iTournamentData.entryFee}  ·  Premio {_iTournamentData.prizePool}";
 
-        _rulesText.text = $"Max Player: {_iTournamentData.maxPlayers}\nEntry Fee: {_iTournamentData.entryFee}\n Start Date: {_iTournamentData.startDate}\n End Date: {_iTournamentData.endDate}";
-
+        if (_manageTournamentBtn == null) return;
         _manageTournamentBtn.onClick.RemoveAllListeners();
         _manageTournamentBtn.onClick.AddListener(() =>
         {
-            ManageTournamentBtn_fn();
+            ManageTournamentOverlay.Open(_iTournamentData);
         });
-
-    }
-
-    private void ManageTournamentBtn_fn()
-    {
-
     }
 }

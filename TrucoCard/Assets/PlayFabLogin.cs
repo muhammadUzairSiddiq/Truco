@@ -57,7 +57,15 @@ public class PlayFabLogin : MonoBehaviour
      
         ApiController.Init(loginRequestData, () =>
         {
-            if (ApiController.GetSessionUser.Data.emailVerified)
+            User user = ApiController.GetSessionUser?.Data;
+            if (user == null)
+            {
+                AppManager.Instance.DisplayNotification(
+                    "Error al iniciar sesión: no se pudo cargar el perfil del usuario.");
+                return;
+            }
+
+            if (user.emailVerified)
             {
                 OnLoginSuccess();
             }

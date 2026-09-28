@@ -17,16 +17,80 @@ namespace MH.Multiplayer {
         private static MultiplayerCallbacks _multiplayerCallbacks;
         private static MultiplayerRPC _multiplayerRPC;
         private static string _pendingMatchRoomName;
+        private static string _pendingHubThenMatch;
+        private static bool _publishBracketOnNextHub;
         private static int _currentBracketLevel = 0;
         private static int _currentPlayerCounts = 0;
         private static bool _hasEnteredTournament = false;
         private static bool _isInTournamentMatch = false;
+        private static int _generation;
+        private static bool _starting;
+        private static bool _loadingTable;
+        private static bool _advancing;
         
         public static TournamentRequest CurrentTournamentRequest => _currentTournamentRequest;
         public static (int roundNumber, string bracketTitle) CurrentBracketLevel => (_currentBracketLevel, GetBracketTitle(_currentBracketLevel));
         public static bool IsTournamentActive => _currentTournamentRequest != null;
         public static TournamentMatch ActiveMatch;
         public static TournamentMatch NextMatch;
+        /// <summary>Client presentation of the active bracket; it contains no economy/result authority.</summary>
+        public static TournamentBracketState BracketState { get; private set; }
+        public static void ReplaceBracketState(TournamentBracketState state)
+        {
+            if (state != null) BracketState = state;
+        }
+
+        public static void ApplyBracketFromCurrentRoom()
+        {
+            if (PhotonNetwork.CurrentRoom?.CustomProperties == null) return;
+            if (!PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue("bracketJson", out object raw)) return;
+            var parsed = TournamentBracketState.FromJson(raw as string);
+            if (parsed == null) return;
+            parsed.MergeResults(BracketState);
+            BracketState = parsed;
+            for (int r = 0; r < parsed.rounds.Count; r++)
+                for (int m = 0; m < parsed.rounds[r].Count; m++)
+                    if (PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue("result_" + r + "_" + m, out object result))
+                    {
+                        var finished = JsonUtility.FromJson<TournamentBracketState.BracketMatch>(result as string);
+                        if (finished != null) parsed.RecordWinner(r, m, finished.winnerId, finished.winnerName);
+                    }
+            TournamentBracketOverlay.RefreshIfOpen();
+        }
+
+        public static void PublishBracketToCurrentRoom()
+        {
+            if (!PhotonNetwork.InRoom || BracketState == null) return;
+            var changes = new Hashtable();
+            if (!PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("bracketJson"))
+                changes["bracketJson"] = BracketState.ToJson();
+            for (int r = 0; r < BracketState.rounds.Count; r++)
+                for (int m = 0; m < BracketState.rounds[r].Count; m++)
+                    if (BracketState.rounds[r][m].IsFinished)
+                        changes["result_" + r + "_" + m] = JsonUtility.ToJson(BracketState.rounds[r][m]);
+            PhotonNetwork.CurrentRoom.SetCustomProperties(changes);
+        }
+
+        public static void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
+        {
+            if (propertiesThatChanged == null) return;
+            if (propertiesThatChanged.Keys.OfType<string>().Any(k => k.StartsWith("result_")))
+                ApplyBracketFromCurrentRoom();
+            if (propertiesThatChanged.ContainsKey("backendMatchId") && ActiveMatch != null)
+            {
+                ActiveMatch.matchId = propertiesThatChanged["backendMatchId"] as string;
+                ValidateRoom();
+            }
+            if (propertiesThatChanged.ContainsKey("tournamentFailure"))
+            {
+                string message = propertiesThatChanged["tournamentFailure"] as string;
+                LeaveTournamentMatchmaking();
+                AppManager.Instance?.DisplayNotification(message);
+                return;
+            }
+            if (propertiesThatChanged.ContainsKey("bracketJson")) ApplyBracketFromCurrentRoom();
+            if (propertiesThatChanged.ContainsKey("openingTables")) ApplyOpeningTables();
+        }
 
         #endregion
 
@@ -38,6 +102,10 @@ namespace MH.Multiplayer {
 
         #region Initialization and Setup
         public static void InitMultiplayerSession_Tournament(TournamentRequest tournamentRequest, Action<string> onErrorAction = null) {
+            if (_currentTournamentRequest != null) return;
+            _generation++;
+            PhotonNetwork.AutomaticallySyncScene = true;
+            OneVsOnePhotonFlow.Instance?.ResetPurpose();
             ValidateMultiplayerCallbacks();
 
             Action JoinTournamentMatchMaking = () => {
@@ -48,7 +116,9 @@ namespace MH.Multiplayer {
                 _hasEnteredTournament = false;
                 _isInTournamentMatch = false;
                 PhotonNetwork.NickName = ApiController.GetSessionUser.Data.username;
-                JoinTournamentLobby(tournamentRequest);
+                if (PhotonNetwork.IsConnectedAndReady && !PhotonNetwork.InRoom)
+                    JoinTournamentLobby(tournamentRequest);
+                else if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
             };
 
             if (!PhotonNetwork.IsConnectedAndReady) {
@@ -72,6 +142,9 @@ namespace MH.Multiplayer {
                     ["tournamentId"] = request.TournamentId,
                     ["maxPlayers"] = _currentPlayerCounts,
                     ["entryFee"] = request.EntryFee,
+                    ["prize"] = request.Prize,
+                    ["withFlor"] = request.WithFlor,
+                    ["targetScore"] = request.TargetScore,
                     ["bracketLevel"] = _currentBracketLevel,
                     ["tournamentName"] = request.TournamentName,
                     ["isTournament"] = true
@@ -122,151 +195,87 @@ namespace MH.Multiplayer {
         #endregion
 
         #region Tournament Management
-        private async static void StartTournamentNow() 
+        [Serializable] sealed class OpeningTables { public TournamentMatch[] tables; }
+
+        static void ApplyOpeningTables()
         {
+            if (_isInTournamentMatch || PhotonNetwork.CurrentRoom == null) return;
+            if (!PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue("openingTables", out object raw)) return;
+            var plan = JsonUtility.FromJson<OpeningTables>(raw as string);
+            string id = ApiController.GetSessionUser?.Data?._id;
+            if (plan?.tables == null || string.IsNullOrEmpty(id)) return;
+            ApplyBracketFromCurrentRoom();
+            foreach (var table in plan.tables)
+                if (table.playerIds != null && table.playerIds.Contains(id))
+                { JoinSpecificTournamentMatch(table, null); return; }
+        }
+
+        private async static void StartTournamentNow()
+        {
+            if (_starting || _isInTournamentMatch || _currentTournamentRequest == null) return;
+            int generation = _generation;
+            var room = PhotonNetwork.CurrentRoom;
+            string tournamentId = _currentTournamentRequest.TournamentId;
+            _starting = true;
             try
             {
+                if (!_hasEnteredTournament)
+                {
+                    bool entered = await ApiController.EnterTournament(tournamentId);
+                    if (generation != _generation || PhotonNetwork.CurrentRoom != room) return;
+                    if (!entered) throw new InvalidOperationException("No se pudo confirmar la inscripción.");
+                    _hasEnteredTournament = true;
+                    PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable { ["tournamentRegistered"] = tournamentId });
+                }
+                if (room.CustomProperties.ContainsKey("openingTables")) { ApplyOpeningTables(); return; }
+                if (!PhotonNetwork.IsMasterClient) return;
+                var seats = room.Players.Values.Where(p => !p.IsInactive).OrderBy(p => p.ActorNumber).ToList();
+                if (seats.Count != _currentTournamentRequest.MaxPlayerCount
+                    || seats.Any(p => !p.CustomProperties.TryGetValue("tournamentRegistered", out object r)
+                                     || (string)r != tournamentId)) return;
                 OnTournamentBrackedMatch?.Invoke();
-
-                await Task.Delay(1000 * (PhotonNetwork.LocalPlayer.ActorNumber + 1));
-
-                bool enteredTournament = await ApiController.EnterTournament(_currentTournamentRequest.TournamentId, null, (err) =>
-                {
-                    AppManager.Instance.DisplayNotification(err, () =>
-                    {
-                        LeaveTournamentMatchmaking(() =>
-                        {
-                            TournamentManager.Instance.HideTournamentWaitingRoomOverlay();
-                        });
-                    });
-                });
-
-                await Task.Delay(5000);
-
-                if (!PhotonNetwork.IsMasterClient || _hasEnteredTournament || PhotonNetwork.CurrentRoom.PlayerCount < _currentTournamentRequest.MaxPlayerCount) return;
-
-                _tournamentPlayers.Clear();
-
-                foreach (Player player in PhotonNetwork.CurrentRoom.Players.Values)
-                {
-                    if (player.CustomProperties.TryGetValue("userId", out object userId) &&
-                        player.CustomProperties.TryGetValue("username", out object username))
-                    {
-                        _tournamentPlayers.Add(new User
-                        {
-                            _id = userId.ToString(),
-                            username = username.ToString()
-                        });
-                    }
-                }
-
-
-                // === NEXT ROUND ===
-                TournamentMatch nextMatch = new TournamentMatch();
-
-                if (_currentBracketLevel > 1)
-                {
-                    string nextTitle = GetBracketTitle(_currentBracketLevel - 1);
-
-                    string combinedNames = string.Join("_", _tournamentPlayers.Select(p => p.username));
-                    string nextRoom = $"{nextTitle}_Lobby_{combinedNames}_{_currentTournamentRequest.TournamentId}";
-
-                    nextMatch = new TournamentMatch
-                    {
-                        matchId = $"{nextTitle}_Lobby_{_currentTournamentRequest.TournamentId}",
-                        roomName = nextRoom,
-                        playerIds = _tournamentPlayers.Select(p => p._id).ToList(),
-                        playerNames = _tournamentPlayers.Select(p => p.username).ToList()
-                    };
-                }
-
-                // === CURRENT ROUND ===
-                string currentTitle = GetBracketTitle(_currentBracketLevel);
-
-                for (int i = 0; i < _tournamentPlayers.Count; i += 2)
-                {
-                    var matchPlayers = _tournamentPlayers.Skip(i).Take(2).ToList();
-
-                    if (matchPlayers.Count < 2) continue;
-
-                    string p1 = matchPlayers[0]._id;
-                    string p2 = matchPlayers[1]._id;
-
-                    string targetPlayer = p1;
-                    string opponentPlayer = p2;
-
-                    if(targetPlayer == ApiController.GetSessionUser.Data._id && PhotonNetwork.IsMasterClient)
-                    {
-
-                    }
-                    else if(opponentPlayer == ApiController.GetSessionUser.Data._id && PhotonNetwork.IsMasterClient)
-                    {
-                        targetPlayer = p2;
-                        opponentPlayer = p1;
-                    }
-
-                    _multiplayerRPC.photonView.RPC("CreateTournamentMatch", FindPlayerByUserId(targetPlayer), opponentPlayer, JsonUtility.ToJson(nextMatch));
-
-                    //    MatchDto createdMatchViaApi = await ApiController.CreateTournamentMatch(_currentTournamentRequest.TournamentId, new List<string> { p1, p2 });
-
-                    //    if (createdMatchViaApi == null)
-                    //    {
-
-                    //        int totalLetters = p1.Length + p2.Length;
-                    //        string uniqueCode = System.Guid.NewGuid().ToString("N").Substring(0, 6);
-                    //        string roomName = $"{currentTitle}_{uniqueCode}_{p1}Vs{p2}_{totalLetters}";
-                    //        string matchId = $"{currentTitle}_{p1}Vs{p2}_{_currentTournamentRequest.TournamentId}";
-
-                    //        currentMatches.Add(new TournamentMatch
-                    //        {
-                    //            matchId = matchId,
-                    //            roomName = roomName,
-                    //            playerIds = new List<string> { matchPlayers[0]._id, matchPlayers[1]._id },
-                    //            playerNames = new List<string> { p1, p2 }
-                    //        });
-                    //    }
-                    //    else
-                    //    {
-                    //        currentMatches.Add(new TournamentMatch
-                    //        {
-                    //            matchId = createdMatchViaApi._id,
-                    //            roomName = createdMatchViaApi._id,
-                    //            playerIds = new List<string> { matchPlayers[0]._id, matchPlayers[1]._id },
-                    //            playerNames = new List<string> { p1, p2 }
-                    //        });
-                    //    }
-                    //}
-
-                    //allBrackets.Add(new TournamentBracket {
-                    //    bracketTitle = currentTitle,
-                    //    matches = currentMatches
-                    //});
-
-
-
-                    //// === SEND FULL BRACKET TO ALL ===
-                    //CurrentTournamentFullBracket = new TournamentFullBracket {
-                    //    tournamentId = _currentTournamentRequest.TournamentId,
-                    //    brackets = allBrackets
-                }
-
-                //string fullJson = JsonUtility.ToJson(CurrentTournamentFullBracket);
-                //_multiplayerRPC.photonView.RPC("ReceiveTournamentFullBracket", RpcTarget.Others, fullJson);
-
-
-                //LeanTween.delayedCall(3, () =>
-                //{
-                //    _multiplayerRPC.photonView.RPC("ReceiveTournamentFullBracket", RpcTarget.MasterClient, fullJson);
-                //});
-
+                _tournamentPlayers = seats.Select(p => new User {
+                    _id = p.CustomProperties["userId"] as string, username = p.NickName }).ToList();
+                if (_tournamentPlayers.Any(p => string.IsNullOrEmpty(p._id))
+                    || _tournamentPlayers.Select(p => p._id).Distinct().Count() != seats.Count)
+                    throw new InvalidOperationException("Jugadores del torneo inválidos.");
+                BracketState = new TournamentBracketState(seats.Count);
+                BracketState.Seed(_tournamentPlayers);
+                var tasks = new List<Task<match>>();
+                for (int n = 0; n < seats.Count; n += 2)
+                    tasks.Add(ApiController.CreateTournamentMatch(tournamentId,
+                        new List<string> { _tournamentPlayers[n]._id, _tournamentPlayers[n + 1]._id }));
+                var created = await Task.WhenAll(tasks);
+                if (generation != _generation || PhotonNetwork.CurrentRoom != room) return;
+                if (created.Any(m => string.IsNullOrEmpty(m?._id)))
+                    throw new InvalidOperationException("No se pudieron crear todas las partidas. El torneo no inició.");
+                var plan = new OpeningTables { tables = new TournamentMatch[created.Length] };
+                for (int n = 0; n < created.Length; n++)
+                    plan.tables[n] = new TournamentMatch {
+                        matchId = created[n]._id,
+                        roomName = TournamentBracketState.MatchRoomName(tournamentId, 0, n),
+                        playerIds = new List<string> { _tournamentPlayers[n * 2]._id, _tournamentPlayers[n * 2 + 1]._id },
+                        playerNames = new List<string> { _tournamentPlayers[n * 2].username, _tournamentPlayers[n * 2 + 1].username },
+                        round = 0, matchIndex = n };
+                // Publish all seats in one event before any local RPC can leave the lobby.
+                room.SetCustomProperties(new Hashtable { ["openingTables"] = JsonUtility.ToJson(plan),
+                    ["bracketJson"] = BracketState.ToJson() });
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[MultiplayerController] - Error starting tournament: {ex.Message}");
+                if (generation == _generation)
+                {
+                    room?.SetCustomProperties(new Hashtable { ["tournamentFailure"] = ex.Message });
+                    AppManager.Instance?.DisplayNotification(ex.Message);
+                }
             }
+            finally { if (generation == _generation) _starting = false; }
         }
         public static async Task PlayNextBracket()
         {
+            if (_advancing || ActiveMatch == null || _currentTournamentRequest == null) return;
+            _advancing = true;
+            int generation = _generation;
             try
             {
                 if (_currentTournamentRequest == null)
@@ -275,48 +284,76 @@ namespace MH.Multiplayer {
                     return;
                 }
 
+                string myId = ApiController.GetSessionUser?.Data?._id;
+                string myName = ApiController.GetSessionUser?.Data?.username;
+                int round = ActiveMatch != null ? ActiveMatch.round : 0;
+                int index = ActiveMatch != null ? ActiveMatch.matchIndex : 0;
+                if (BracketState == null || !await ApiController.FinalizeTournamentMatch(
+                        _currentTournamentRequest.TournamentId, ActiveMatch.matchId, myId))
+                {
+                    if (generation != _generation) return;
+                    TrucoConfirmDialog.Show("RESULTADO PENDIENTE", "El servidor no confirmó el resultado. No se avanzó ni se acreditó un premio.",
+                        "SALIR", "REINTENTAR", () => { _ = PlayNextBracket(); },
+                        () => { LeaveTournamentMatchmaking(); TrucoSceneTransition.Go("MainMenu"); });
+                    return;
+                }
+                if (generation != _generation) return;
+                BracketState.RecordWinner(round, index, myId, myName);
+
                 _currentBracketLevel = Math.Max(0, _currentBracketLevel - 1);
                 _currentPlayerCounts = Math.Max(1, _currentPlayerCounts / 2);
-                _pendingMatchRoomName = string.Empty;
 
-                TournamentManager.Instance.DisplayTournamentWaitingRoomOverlay();
-
-                await Task.Delay(2000);
-
-                await FinalizeCurrentMatch();
-
-                if (NextMatch != null)
+                int nextRound = round + 1;
+                bool isFinal = BracketState == null || nextRound >= BracketState.rounds.Count;
+                if (isFinal)
                 {
-
-                    if (_currentBracketLevel > 1)
-                    {
-                        _isInTournamentMatch = false;
-                    }
-
-                    ActiveMatch = NextMatch;
-                    _pendingMatchRoomName = NextMatch.roomName;
-                    NextMatch = null;
-
-                    Debug.Log($"[MultiplayerController] - Proceeding to next bracket: {_pendingMatchRoomName}");
-
-                    if (PhotonNetwork.InRoom)
-                        PhotonNetwork.LeaveRoom();
+                    int prize = _currentTournamentRequest != null ? _currentTournamentRequest.Prize : 0;
+                    bool paid = await ApiController.FinalizeTournament(_currentTournamentRequest.TournamentId, myId);
+                    if (generation != _generation) return;
+                    TournamentChampionOverlay.Show(prize, _currentTournamentRequest?.TournamentName,
+                        paid && TournamentFinalizeGuard.AlreadyDone(_currentTournamentRequest.TournamentId, "prize-paid", myId));
+                    _publishBracketOnNextHub = true;
+                    _pendingMatchRoomName = TournamentBracketState.HubRoomName(_currentTournamentRequest.TournamentId);
+                    _isInTournamentMatch = false;
+                    if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
+                    return;
                 }
-                else
+
+                var next = new TournamentMatch
                 {
-                    Debug.Log("[MultiplayerController] - No brackets or matches found in CurrentTournamentFullBracket.");
-                }
+                    round = nextRound,
+                    matchIndex = index / 2,
+                    matchId = null,
+                    roomName = TournamentBracketState.MatchRoomName(_currentTournamentRequest.TournamentId, nextRound, index / 2),
+                    playerIds = new List<string> { myId },
+                    playerNames = new List<string> { myName }
+                };
+                ActiveMatch = next;
+                _loadingTable = false;
+                TrucoMatchProgress.ResetForNewMatch();
+                UnityEngine.SceneManagement.SceneManager.LoadScene("TempScene");
+                NextMatch = null;
+                _publishBracketOnNextHub = true;
+                _pendingHubThenMatch = next.roomName;
+                _isInTournamentMatch = false;
+                _pendingMatchRoomName = TournamentBracketState.HubRoomName(_currentTournamentRequest.TournamentId);
+                TournamentBracketOverlay.Show(false);
+                TournamentManager.Instance?.DisplayTournamentWaitingRoomOverlay();
+                Debug.Log($"[MultiplayerController] - Hub then next table: {_pendingMatchRoomName} → {_pendingHubThenMatch}");
+                if (PhotonNetwork.InRoom)
+                    PhotonNetwork.LeaveRoom();
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[MultiplayerController] - Error in PlayNextBracket: {ex.Message}");
             }
+            finally { if (generation == _generation) _advancing = false; }
         }
         public static async Task FinalizeCurrentMatch(bool tournamentChampion = false)
         {
             string userID = ApiController.GetSessionUser.Data._id;
 
-            if (!string.IsNullOrEmpty(ActiveMatch.matchId))
+            if (!string.IsNullOrEmpty(ActiveMatch?.matchId))
             {
                 bool finalizeActiveMatch = await ApiController.FinalizeTournamentMatch(CurrentTournamentRequest.TournamentId, ActiveMatch.matchId, userID);
             }
@@ -329,33 +366,99 @@ namespace MH.Multiplayer {
             }
         }
 
+        public static void SpectateAfterLoss()
+        {
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Gameplay")
+                UnityEngine.SceneManagement.SceneManager.LoadScene("TempScene");
+            ActiveMatch = null;
+            _isInTournamentMatch = false;
+            _publishBracketOnNextHub = false;
+            _pendingHubThenMatch = null;
+            if (_currentTournamentRequest != null)
+                _pendingMatchRoomName = TournamentBracketState.HubRoomName(_currentTournamentRequest.TournamentId);
+            else
+                _pendingMatchRoomName = null;
+
+            ValidateMultiplayerCallbacks();
+            _multiplayerCallbacks?.EnableTournamentMode();
+
+            if (PhotonNetwork.InRoom)
+            {
+                PhotonNetwork.LeaveRoom();
+                return;
+            }
+            if (!string.IsNullOrEmpty(_pendingMatchRoomName) && PhotonNetwork.IsConnectedAndReady)
+            {
+                JoinOrCreateTournamentRoom(_pendingMatchRoomName);
+                return;
+            }
+            if (!PhotonNetwork.IsConnected && _currentTournamentRequest != null)
+            {
+                PhotonNetwork.AutomaticallySyncScene = true;
+                TrucoPhotonRegionSettings.ApplyToPhoton();
+                PhotonNetwork.ConnectUsingSettings();
+            }
+        }
+
         public static void LeaveTournamentMatchmaking(Action onCompleteAction = null)
         {
-
+            _generation++;
+            _starting = _loadingTable = _advancing = false;
             _currentTournamentRequest = null;
             _tournamentPlayers.Clear();
             _pendingMatchRoomName = null;
+            _pendingHubThenMatch = null;
+            _publishBracketOnNextHub = false;
             _currentBracketLevel = 0;
             _hasEnteredTournament = false;
             _isInTournamentMatch = false;
             _multiplayerCallbacks?.DisableTournamentMode();
             ActiveMatch = null;
             NextMatch = null;
+            BracketState = null;
 
-            if (!PhotonNetwork.InRoom)
-            {
-                onCompleteAction?.Invoke();
-            }
-            else if (PhotonNetwork.LeaveRoom())
-            {
-                PhotonNetwork.Disconnect();
-                Debug.Log("[MultiplayerController] - Left tournament room.");
-                onCompleteAction?.Invoke();
-            }
+            TournamentBracketOverlay.Hide();
+            TournamentChampionOverlay.Hide();
+            TournamentManager.Instance?.HideTournamentWaitingRoomOverlay();
+            TournamentManager.Instance?.HideTournamentMatchmakingUI();
+            if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
+            onCompleteAction?.Invoke();
         }
         private static void StartTournamentMatch() {
-            if (!PhotonNetwork.IsMasterClient) return;
+            if (_loadingTable || !PhotonNetwork.IsMasterClient || !TrucoMatchPlayGate.IsLiveTable()) return;
+            _loadingTable = true;
+            TournamentBracketOverlay.Hide();
             PhotonNetwork.LoadLevel("Gameplay");
+        }
+
+        public static void OnGameplayLoaded()
+        {
+            if (!IsTournamentActive || !TrucoMatchPlayGate.IsLiveTable()) return;
+            _loadingTable = true;
+            TournamentBracketOverlay.Hide();
+            TournamentManager.Instance?.HideTournamentWaitingRoomOverlay();
+            TournamentManager.Instance?.HideTournamentMatchmakingUI();
+        }
+
+        static async void EnsureNextMatchCreated()
+        {
+            if (_starting || !PhotonNetwork.IsMasterClient || ActiveMatch == null) return;
+            var room = PhotonNetwork.CurrentRoom;
+            if (room == null || room.PlayerCount != 2) return;
+            _starting = true;
+            int generation = _generation;
+            try
+            {
+                var ids = room.Players.Values.OrderBy(p => p.ActorNumber)
+                    .Select(p => p.CustomProperties["userId"] as string).ToList();
+                if (ids.Any(string.IsNullOrEmpty) || ids.Distinct().Count() != 2) return;
+                var created = await ApiController.CreateTournamentMatch(_currentTournamentRequest.TournamentId, ids);
+                if (generation != _generation || PhotonNetwork.CurrentRoom != room) return;
+                if (string.IsNullOrEmpty(created?._id))
+                { AppManager.Instance?.DisplayNotification("No se pudo crear la próxima partida."); return; }
+                room.SetCustomProperties(new Hashtable { ["backendMatchId"] = created._id });
+            }
+            finally { if (generation == _generation) _starting = false; }
         }
 
         #endregion
@@ -369,6 +472,14 @@ namespace MH.Multiplayer {
 
             ActiveMatch = match;
             NextMatch = upcomingMatch;
+            _loadingTable = false;
+            TrucoMatchProgress.ResetForNewMatch();
+
+            if (_currentTournamentRequest != null)
+            {
+                OneVsOneMatchSession.SetWithFlor(_currentTournamentRequest.WithFlor);
+                OneVsOneMatchSession.SetTargetScore(_currentTournamentRequest.TargetScore);
+            }
 
             _pendingMatchRoomName = match.roomName;
             _isInTournamentMatch = true;
@@ -377,12 +488,15 @@ namespace MH.Multiplayer {
             PhotonNetwork.LeaveRoom();
         }
 
-        private static void ValidateRoom()
+        public static void ValidateRoom()
         {
+            if (_currentTournamentRequest == null || PhotonNetwork.CurrentRoom == null) return;
             if (_isInTournamentMatch)
             {
                 if (PhotonNetwork.CurrentRoom.PlayerCount >= 2)
                 {
+                    if (string.IsNullOrEmpty(ActiveMatch?.matchId))
+                    { EnsureNextMatchCreated(); return; }
                     StartTournamentMatch();
                 }
             }
@@ -405,29 +519,57 @@ namespace MH.Multiplayer {
 
             if (_currentTournamentRequest == null) return;
 
-            DataHandler.Instance.points = 0;
-            DataHandler.Instance.roundNumber = 0;
+            int generation = _generation;
+            var joinedRoom = PhotonNetwork.CurrentRoom;
+            if (_isInTournamentMatch && ActiveMatch != null)
+            {
+                if (joinedRoom.CustomProperties.TryGetValue("backendMatchId", out object matchId))
+                    ActiveMatch.matchId = matchId as string;
+                ApplyBracketFromCurrentRoom();
+                PublishBracketToCurrentRoom();
+                OneVsOneMatchSession.SetWithFlor(_currentTournamentRequest.WithFlor);
+                OneVsOneMatchSession.SetTargetScore(_currentTournamentRequest.TargetScore);
+            }
 
             if (PhotonNetwork.CurrentRoom.Name == _pendingMatchRoomName) _pendingMatchRoomName = null;
             Debug.Log($"[MultiplayerController] - Joined Room: {PhotonNetwork.CurrentRoom.Name} with player count: {PhotonNetwork.CurrentRoom.PlayerCount}, max player can be {PhotonNetwork.CurrentRoom.MaxPlayers}");
-            ValidateMultiplayerRPC(); // Initialize RPC system FIRST
+            ApplyOpeningTables();
+
+            if (TournamentBracketState.IsHubRoom(PhotonNetwork.CurrentRoom.Name))
+            {
+                ApplyBracketFromCurrentRoom();
+                if (_publishBracketOnNextHub)
+                {
+                    PublishBracketToCurrentRoom();
+                    _publishBracketOnNextHub = false;
+                }
+                TournamentBracketOverlay.Show(string.IsNullOrEmpty(_pendingHubThenMatch));
+                if (!string.IsNullOrEmpty(_pendingHubThenMatch))
+                {
+                    await Task.Delay(400);
+                    if (generation != _generation || PhotonNetwork.CurrentRoom != joinedRoom) return;
+                    _pendingMatchRoomName = _pendingHubThenMatch;
+                    _pendingHubThenMatch = null;
+                    _isInTournamentMatch = true;
+                    if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom();
+                    return;
+                }
+                return;
+            }
+
+            if (_isInTournamentMatch && PhotonNetwork.CurrentRoom.PlayerCount < 2)
+                TournamentBracketOverlay.Show(false);
             await Task.Delay(1000);
-            ValidateRoom(); // Then validate the room and potentially start tournament
+            if (generation == _generation && PhotonNetwork.CurrentRoom == joinedRoom) ValidateRoom();
         }
         public static void OnLeftRoom()
         {
             if (_currentTournamentRequest == null) return;
+            if (string.IsNullOrEmpty(_pendingMatchRoomName))
+            { JoinTournamentLobby(_currentTournamentRequest); return; }
             if (!string.IsNullOrEmpty(_pendingMatchRoomName))
             {
                 string roomToJoin = _pendingMatchRoomName;
-                Hashtable roomProperties = new Hashtable
-                {
-                    ["tournamentId"] = _currentTournamentRequest.TournamentId,
-                    ["bracketLevel"] = _currentBracketLevel,
-                    ["isTournamentMatch"] = true,
-                    ["matchRoomName"] = roomToJoin
-                };
-
                 Hashtable playerProperties = new Hashtable
                 {
                     ["userId"] = ApiController.GetSessionUser.Data._id,
@@ -435,17 +577,7 @@ namespace MH.Multiplayer {
                 };
 
                 PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
-
-                RoomOptions roomOptions = new RoomOptions
-                {
-                    MaxPlayers = _isInTournamentMatch ? 2 : _currentPlayerCounts, // Tournament matches are 1v1
-                    PlayerTtl = 60000,
-                    EmptyRoomTtl = 120000,
-                    CustomRoomProperties = roomProperties,
-                    CustomRoomPropertiesForLobby = new string[] { "tournamentId", "bracketLevel", "isTournamentMatch" }
-                };
-
-                PhotonNetwork.JoinOrCreateRoom(roomToJoin, roomOptions, TypedLobby.Default);
+                JoinOrCreateTournamentRoom(roomToJoin);
                 Debug.Log($"[MultiplayerController] - Joining tournament match room: {roomToJoin}");
             }
         }
@@ -456,7 +588,8 @@ namespace MH.Multiplayer {
                 return;
             
             Debug.Log($"[MultiplayerController] - Player joined match: {newPlayer.NickName}");
-            
+            if (PhotonNetwork.CurrentRoom != null && TournamentBracketState.IsHubRoom(PhotonNetwork.CurrentRoom.Name))
+                return;
             ValidateRoom();
         }
         public static void OnPlayerLeftRoom(Player otherPlayer) {
@@ -474,29 +607,45 @@ namespace MH.Multiplayer {
             if (_currentTournamentRequest == null) return;
 
             if (!string.IsNullOrEmpty(_pendingMatchRoomName)) {
-                string roomToJoin = _pendingMatchRoomName;
-                Hashtable roomProperties = new Hashtable {
-                    ["tournamentId"] = _currentTournamentRequest.TournamentId,
-                    ["bracketLevel"] = _currentBracketLevel,
-                    ["isTournamentMatch"] = true,
-                    ["matchRoomName"] = roomToJoin
-                };
-
-                RoomOptions roomOptions = new RoomOptions {
-                    MaxPlayers = _isInTournamentMatch ?  2 : _currentPlayerCounts, // Tournament matches are 1v1
-                    PlayerTtl = 60000,
-                    EmptyRoomTtl = 120000,
-                    CustomRoomProperties = roomProperties,
-                    CustomRoomPropertiesForLobby = new string[] { "tournamentId", "bracketLevel", "isTournamentMatch" }
-                };
-
-                PhotonNetwork.JoinOrCreateRoom(roomToJoin, roomOptions, TypedLobby.Default);
-                Debug.Log($"[MultiplayerController] - Joining tournament match room: {roomToJoin}");
+                JoinOrCreateTournamentRoom(_pendingMatchRoomName);
+                Debug.Log($"[MultiplayerController] - Joining tournament match room: {_pendingMatchRoomName}");
                 return;
             }
 
+            if (_isInTournamentMatch) return;
             Debug.Log("[MultiplayerController] - Connected to Master Server, starting tournament matchmaking...");
             JoinTournamentLobby(_currentTournamentRequest);
+        }
+
+        static void JoinOrCreateTournamentRoom(string roomToJoin)
+        {
+            if (string.IsNullOrEmpty(roomToJoin) || _currentTournamentRequest == null) return;
+            bool hub = TournamentBracketState.IsHubRoom(roomToJoin);
+            Hashtable roomProperties = new Hashtable
+            {
+                ["tournamentId"] = _currentTournamentRequest.TournamentId,
+                ["bracketLevel"] = _currentBracketLevel,
+                ["withFlor"] = _currentTournamentRequest.WithFlor,
+                ["targetScore"] = _currentTournamentRequest.TargetScore,
+                ["isTournamentMatch"] = !hub,
+                ["isTournamentHub"] = hub,
+                ["matchRoomName"] = roomToJoin
+            };
+            if (BracketState != null)
+                roomProperties["bracketJson"] = BracketState.ToJson();
+            if (!hub && !string.IsNullOrEmpty(ActiveMatch?.matchId))
+                roomProperties["backendMatchId"] = ActiveMatch.matchId;
+
+            byte maxPlayers = hub ? (byte)16 : (_isInTournamentMatch ? (byte)2 : (byte)Mathf.Max(2, _currentPlayerCounts));
+            var roomOptions = new RoomOptions
+            {
+                MaxPlayers = maxPlayers,
+                PlayerTtl = 60000,
+                EmptyRoomTtl = 120000,
+                CustomRoomProperties = roomProperties,
+                CustomRoomPropertiesForLobby = new string[] { "tournamentId", "bracketLevel", "isTournamentMatch", "isTournamentHub" }
+            };
+            PhotonNetwork.JoinOrCreateRoom(roomToJoin, roomOptions, TypedLobby.Default);
         }
 
         #endregion

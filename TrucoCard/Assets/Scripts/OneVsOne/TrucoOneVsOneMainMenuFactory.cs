@@ -230,7 +230,7 @@ public static class TrucoOneVsOneMainMenuFactory
         rulesHl.childAlignment = TextAnchor.MiddleCenter;
         rulesHl.childControlWidth = true;
         rulesHl.childForceExpandWidth = true;
-        var target30 = ToggleField("Target30", rulesRow, font, "30 points", false);
+        var target30 = ToggleField("Target30", rulesRow, font, "30 puntos", false);
 
         var prizePreview = TmpText("PrizePreview", center, font, Player1v1MatchExtensions.FormatEntryPrizeLabel(5), 22);
         var prizeLe = prizePreview.gameObject.AddComponent<LayoutElement>();

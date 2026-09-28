@@ -30,23 +30,20 @@ public class TournamentWaitingRoomOverlay : MonoBehaviour
     {
         if (!MultiplayerController.IsTournamentActive)
         {
-            _tournamentNameText.text = "No Active Tournament";
-            _currentBracketInfoText.text = "Waiting for tournament...";
+            _tournamentNameText.text = "SIN TORNEO ACTIVO";
+            _currentBracketInfoText.text = "Esperando torneo…";
             return;
         }
 
         TournamentRequest currentTournament = MultiplayerController.CurrentTournamentRequest;
         int currentBracketLevel = MultiplayerController.CurrentBracketLevel.roundNumber;
-        _currentBracketInfoText.text = MultiplayerController.CurrentBracketLevel.bracketTitle;
+        string flor = currentTournament.WithFlor ? "Con Flor" : "Sin Flor";
+        _currentBracketInfoText.text = $"{MultiplayerController.CurrentBracketLevel.bracketTitle}\n{flor} · {currentTournament.TargetScore} puntos\nEsperando rival…";
 
         if (!string.IsNullOrEmpty(currentTournament.TournamentName))
-        {
             _tournamentNameText.text = currentTournament.TournamentName;
-        }
         else
-        {
-            _tournamentNameText.text = $"Tournament {currentTournament.TournamentId}";
-        }
+            _tournamentNameText.text = "Torneo";
     }
 
     #endregion

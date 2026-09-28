@@ -276,6 +276,7 @@ public class AdminLiveDashboardOverlay : MonoBehaviour
         if (m == null || string.IsNullOrEmpty(m._id)) return;
         if (AppManager.Instance != null) AppManager.Instance.DisplayLoadingUI("Cerrando partida…");
         bool o = await ApiController.AdminForceCloseMatch1v1(m._id, err => { if (AppManager.Instance != null) AppManager.Instance.DisplayNotification(err); });
+        TrucoAdminAuditLog.Record("FORCE_CLOSE_MATCH", m._id + " ok=" + o);
         if (AppManager.Instance != null) AppManager.Instance.HideLoadingUI();
         if (o) RequestRefresh();
     }

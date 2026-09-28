@@ -25,6 +25,11 @@ public class Tournament
     public int prizePool;
     public List<match> matches;
 
+    // Gameplay configuration used by the Unity lobby, bracket and Gameplay scene.
+    public bool withFlor = true;
+    public int targetScore = TrucoMatchRules.DefaultTargetScore;
+    public bool passwordRequired;
+
 }
 
 [Serializable]
@@ -243,6 +248,28 @@ public class FinalizeChampionRequest
 }
 
 [Serializable]
+public class FinalizeMatchRequest
+{
+    public string matchId;
+    public string winnerId;
+}
+
+[Serializable]
+public class AdminCreditCoinsRequest
+{
+    public string userId;
+    public int amount;
+    public string reason;
+}
+
+[Serializable]
+public class AdminForceCloseTournamentRequest
+{
+    public string tournamentId;
+    public string reason;
+}
+
+[Serializable]
 public class CreateTournamentRequestAdmin
 {
     public string name;
@@ -251,6 +278,11 @@ public class CreateTournamentRequestAdmin
     public string endDate;
     public int maxPlayers;
     public int entryFee;
+    public int prize;
+    public bool withFlor = true;
+    public int targetScore = TrucoMatchRules.DefaultTargetScore;
+    public string type = "public";
+    public string password;
 }
 
 // --- 1v1 player rooms (GET /matches, POST /matches/player-create, join, photon-room) ---

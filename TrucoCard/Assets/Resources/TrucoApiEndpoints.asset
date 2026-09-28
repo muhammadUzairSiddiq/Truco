@@ -26,3 +26,5 @@ MonoBehaviour:
     pathTemplate: /matches/{0}/match-token
   - key: MatchPlayerLeave
     pathTemplate: /matches/{0}/leave
+  - key: MatchCancelLobbyRefund
+    pathTemplate: /matches/{0}/cancel-lobby-refund

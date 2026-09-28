@@ -40,16 +40,17 @@ public static class TrucoLobbyLeaveConfirm
         if (string.IsNullOrEmpty(matchId))
             matchId = TrucoActiveHostMatchStore.GetRememberedMatchId();
         // Refund BEFORE Photon leave — leaving first can webhook-close without /leave refund.
-        if (!string.IsNullOrEmpty(matchId))
-            await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
+        bool settled = string.IsNullOrEmpty(matchId)
+            || await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
         if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
         OneVsOneMatchSession.Clear();
         TrucoMatchProgress.ClearAllMatchMemory();
-        TrucoActiveHostMatchStore.Clear();
+        if (settled) TrucoActiveHostMatchStore.Clear();
         if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
         TrucoLobbyMatchmakingUi.HideWaitingOverlay();
         TrucoWalletHudRefresh.Apply();
-        TrucoNotificationLog.Success(TrucoTextosClient.SalaCanceladaReembolso);
+        if (settled) TrucoNotificationLog.Success(TrucoTextosClient.SalaCanceladaReembolso);
+        else TrucoNotificationLog.Pending("Saliste de la sala. Reembolso pendiente de confirmación del servidor.");
         var list = UnityEngine.Object.FindObjectOfType<OneVsOneRoomListController>(true);
         if (list != null && list.IsLobbyVisible)
             list.Refresh(showLoading: false);

@@ -170,6 +170,12 @@ public class UIMANAGER : MonoBehaviour
     public void RestoreChallengeStateFromSync(ChallengeType type, bool pending, int raiserActor,
         int responderActor, int trucoLevel, bool envidoPlayed, int lastTrucoRaiseActor = 0)
     {
+        if (!OneVsOneMatchSession.WithFlor && GameManager.IsFlorChallenge(type))
+        {
+            type = ChallengeType.None;
+            pending = false;
+            ApplyTableVariantUi();
+        }
         TrucoDebugLog.Log(TrucoDebugLog.Category.Photon,
             "RestoreChallengeStateFromSync type=" + type + " pending=" + pending
             + " raiser=" + raiserActor + " responder=" + responderActor
@@ -349,11 +355,9 @@ public class UIMANAGER : MonoBehaviour
         EnsureCalloutLabel();
         if (_calloutTmp == null || _calloutGo == null) return;
         LayoutCalloutForSpeaker(mine);
-        string who = mine
-            ? (TrucoLocalization.IsEnglish ? "You" : "Vos")
-            : (TrucoLocalization.IsEnglish ? "Rival" : "Rival");
+        string who = mine ? "VOS" : "RIVAL";
         string color = mine ? "#7CFC9B" : "#FFC24A";
-        _calloutTmp.text = $"<color={color}><b>{who}</b></color>  Â·  {phrase}";
+        _calloutTmp.text = $"<size=16><color={color}>{who}</color></size>\n<b>{phrase}</b>";
         _calloutGo.SetActive(true);
         _calloutGo.transform.SetAsLastSibling();
         CancelInvoke(nameof(HideCallout));
@@ -378,7 +382,7 @@ public class UIMANAGER : MonoBehaviour
             _calloutRt.pivot = new Vector2(0.5f, 1f);
             _calloutRt.anchoredPosition = new Vector2(0f, -168f);
         }
-        _calloutRt.sizeDelta = new Vector2(620f, 56f);
+        _calloutRt.sizeDelta = new Vector2(360f, 76f);
     }
 
     /// <summary>Show a free-form declaration (e.g. "Tengo 31", "Son buenas", "Flor: 38").</summary>
@@ -401,7 +405,7 @@ public class UIMANAGER : MonoBehaviour
         _calloutRt.anchorMax = new Vector2(0.5f, 1f);
         _calloutRt.pivot = new Vector2(0.5f, 1f);
         _calloutRt.anchoredPosition = new Vector2(0f, -210f);
-        _calloutRt.sizeDelta = new Vector2(620f, 56f);
+        _calloutRt.sizeDelta = new Vector2(360f, 76f);
         var bg = _calloutGo.AddComponent<Image>();
         bg.color = new Color(0.04f, 0.05f, 0.08f, 0.82f);
         bg.raycastTarget = false;
@@ -437,19 +441,19 @@ public class UIMANAGER : MonoBehaviour
             {
                 if (mine)
                 {
-                    textRt.anchorMin = new Vector2(0.5f, 0f);
-                    textRt.anchorMax = new Vector2(0.5f, 0f);
+                    textRt.anchorMin = new Vector2(0.16f, 0f);
+                    textRt.anchorMax = new Vector2(0.16f, 0f);
                     textRt.pivot = new Vector2(0.5f, 0f);
                     textRt.anchoredPosition = new Vector2(0f, 280f);
                 }
                 else
                 {
-                    textRt.anchorMin = new Vector2(0.5f, 1f);
-                    textRt.anchorMax = new Vector2(0.5f, 1f);
+                    textRt.anchorMin = new Vector2(0.16f, 1f);
+                    textRt.anchorMax = new Vector2(0.16f, 1f);
                     textRt.pivot = new Vector2(0.5f, 1f);
                     textRt.anchoredPosition = new Vector2(0f, -56f);
                 }
-                textRt.sizeDelta = new Vector2(640f, 96f);
+                textRt.sizeDelta = new Vector2(132f, 132f);
             }
         }
         if (turnTextBackground != null)
@@ -707,8 +711,46 @@ public class UIMANAGER : MonoBehaviour
         if (!SpectatorContext.IsSpectator) EnsureMuteButton();
         // Scene buttons start active â€” force off until Turn RPC assigns mano (Pie must not flash).
         DisableButtons();
-        // Hide undealt faces so NuevaMano scene load never flashes blank white Images.
+        ApplyTableVariantUi();
         HideUndealtHandCards();
+    }
+
+    /// <summary>Hides every Flor control/text on a Sin Flor table. Does not alter Truco/Envido rules.</summary>
+    public void ApplyTableVariantUi()
+    {
+        if (OneVsOneMatchSession.WithFlor) return;
+        _autoFlorQueued = false;
+        _awaitingRivalFlorResponse = false;
+        _florPlayed = false;
+        invokedChallenges.RemoveAll(GameManager.IsFlorChallenge);
+        foreach (var type in new[] { ChallengeType.Flor, ChallengeType.FlorChica,
+                     ChallengeType.ConFlorQuiero, ChallengeType.ContraFlor })
+            unAnsweredChallenges.Remove(type);
+        var game = GameManager.Instance;
+        if (game != null)
+        {
+            game.conFlorQuieroPending = false;
+            game.florResolvedThisHand = false;
+            game.ActiveChallenges.RemoveAll(GameManager.IsFlorChallenge);
+            if (GameManager.IsFlorChallenge(game.lastChallengeType))
+            {
+                game.lastChallengeType = ChallengeType.None;
+                game.challengePoints = 0;
+                _isChallengepPending = false;
+                _iOweChallengeResponse = false;
+                _cantChallenge = false;
+                CancelChallengeResponseCountdown();
+            }
+        }
+        HideFlorFamilyButtons();
+    }
+
+    void HideFlorFamilyButtons()
+    {
+        if (flor != null) flor.SetActive(false);
+        if (contraFlor != null) contraFlor.SetActive(false);
+        if (conFlorQuiero != null) conFlorQuiero.SetActive(false);
+        if (florChica != null) florChica.SetActive(false);
     }
 
     void HideUndealtHandCards()
@@ -1061,27 +1103,45 @@ public class UIMANAGER : MonoBehaviour
             if (t == null) return;
             var existing = t.Find("TurnTimerBannerBg");
             if (existing != null)
+            {
                 turnTextBackground = existing.GetComponent<RectTransform>();
+                ApplyTurnBannerSprite(existing.GetComponent<Image>());
+            }
             else
             {
                 var go = new GameObject("TurnTimerBannerBg");
                 go.transform.SetParent(t, false);
-                if (_cachedUiWhiteSprite == null)
-                {
-                    var tex = Texture2D.whiteTexture;
-                    _cachedUiWhiteSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
-                }
                 var im = go.AddComponent<Image>();
-                im.sprite = _cachedUiWhiteSprite;
-                im.type = Image.Type.Simple;
+                ApplyTurnBannerSprite(im);
                 im.raycastTarget = false;
-                im.color = TurnBannerBgNormal;
                 go.transform.SetSiblingIndex(textRt.GetSiblingIndex());
                 turnTextBackground = go.GetComponent<RectTransform>();
             }
         }
         SyncTurnBannerBackgroundRect(textRt);
         turnText.transform.SetAsLastSibling();
+    }
+
+    void ApplyTurnBannerSprite(Image im)
+    {
+        if (im == null) return;
+        var bannerSprite = TrucoGameplayUiSprites.ButtonRound;
+        if (bannerSprite != null)
+        {
+            im.sprite = bannerSprite;
+            im.type = Image.Type.Simple;
+            im.preserveAspect = true;
+            im.color = Color.white;
+            return;
+        }
+        if (_cachedUiWhiteSprite == null)
+        {
+            var tex = Texture2D.whiteTexture;
+            _cachedUiWhiteSprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+        }
+        im.sprite = _cachedUiWhiteSprite;
+        im.type = Image.Type.Simple;
+        im.color = TurnBannerBgNormal;
     }
 
     void SyncTurnBannerBackgroundRect(RectTransform textRt)
@@ -1091,9 +1151,7 @@ public class UIMANAGER : MonoBehaviour
         turnTextBackground.anchorMax = textRt.anchorMax;
         turnTextBackground.pivot = textRt.pivot;
         turnTextBackground.anchoredPosition = textRt.anchoredPosition;
-        turnTextBackground.sizeDelta = new Vector2(
-            Mathf.Max(textRt.sizeDelta.x + 24f, 560f),
-            Mathf.Max(textRt.sizeDelta.y + 8f, 92f));
+        turnTextBackground.sizeDelta = new Vector2(148f, 148f);
     }
 
     void ApplyTurnBannerSize(bool largeCountdown)
@@ -1103,9 +1161,7 @@ public class UIMANAGER : MonoBehaviour
         var textRt = turnText.GetComponent<RectTransform>();
         if (textRt == null) return;
         // Same compact lane for timers and short messages â€” avoids ballooning into name/score UI.
-        textRt.sizeDelta = largeCountdown
-            ? new Vector2(640f, 100f)
-            : new Vector2(640f, 88f);
+        textRt.sizeDelta = new Vector2(132f, 132f);
         SyncTurnBannerBackgroundRect(textRt);
     }
 
@@ -1145,6 +1201,14 @@ public class UIMANAGER : MonoBehaviour
         if (turnTextBackground == null) return;
         var img = turnTextBackground.GetComponent<Image>();
         if (img == null) return;
+        bool spriteBanner = img.sprite != null && img.sprite != _cachedUiWhiteSprite;
+        if (spriteBanner)
+        {
+            if (reconnect) img.color = new Color(0.55f, 0.6f, 0.85f, 1f);
+            else if (urgent) img.color = new Color(1f, 0.55f, 0.5f, 1f);
+            else img.color = Color.white;
+            return;
+        }
         if (reconnect) img.color = TurnBannerBgReconnect;
         else if (urgent) img.color = TurnBannerBgUrgent;
         else img.color = TurnBannerBgNormal;
@@ -1176,6 +1240,7 @@ public class UIMANAGER : MonoBehaviour
     // This enables all the buttons in the UI Depending on the game state
     public void EnableButtons()
     {
+        ApplyTableVariantUi();
         if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved
             || GameManager.Instance.IsMatchEndPending())
         {
@@ -1277,6 +1342,7 @@ public class UIMANAGER : MonoBehaviour
         // Mazo is always available on your turn (concede the hand).
         if (mazo != null)
             mazo.SetActive(true);
+        ApplyTableVariantUi();
     }
     
     // This disables all the buttons in the UI
@@ -1893,6 +1959,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeFlor()
     {
+         if (!OneVsOneMatchSession.WithFlor) return;
          if (!CanRaiseChallengeNow() && !_autoFlorQueued) return;
          MarkChallengeSentNow();
          _isChallengepPending = true;
@@ -1950,6 +2017,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeFlorChica()
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         TrucoGameplayAudio.PlayLocalRaise(FLOR_CHICA_CHALLENGE);
         _isChallengepPending = false;
         _florPlayed = true;
@@ -1984,6 +2052,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeConFlorQuiero()
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         TrucoGameplayAudio.PlayLocalRaise(CON_FLOR_QUIERO_CHALLENGE);
         _isChallengepPending = false;
         _florPlayed = true;
@@ -2017,6 +2086,7 @@ public class UIMANAGER : MonoBehaviour
 
     public void ChallengeContraFlor()
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         TrucoGameplayAudio.PlayLocalRaise(CONTRA_FLOR_CHALLENGE);
         MarkChallengeSentNow();
         _isChallengepPending = true;
@@ -2215,6 +2285,12 @@ public class UIMANAGER : MonoBehaviour
     // This is called When Other player Challenges us with this Challenge
     public void FlorChallenged()
     {
+        if (!OneVsOneMatchSession.WithFlor)
+        {
+            ApplyTableVariantUi();
+            EnableButtons();
+            return;
+        }
         _isChallengepPending = true;
         _florPlayed = true;
         if (!invokedChallenges.Contains(ChallengeType.Flor))
@@ -2236,6 +2312,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called When Other player Challenges us with this Challenge
     public void FlorChicaChallenged()
     {
+        if (!OneVsOneMatchSession.WithFlor) { ApplyTableVariantUi(); EnableButtons(); return; }
         _isChallengepPending = false;
         _awaitingRivalFlorResponse = false;
         _florPlayed = true;
@@ -2272,6 +2349,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called When Other player Challenges us with this Challenge
     public void ConFlorQuieroChallenged()
     {
+        if (!OneVsOneMatchSession.WithFlor) { ApplyTableVariantUi(); EnableButtons(); return; }
         _isChallengepPending = false;
         _awaitingRivalFlorResponse = false;
         _florPlayed = true;
@@ -2298,6 +2376,7 @@ public class UIMANAGER : MonoBehaviour
     // This is called When Other player Challenges us with this Challenge
     public void ContraFlorChallenged()
     {
+        if (!OneVsOneMatchSession.WithFlor) { ApplyTableVariantUi(); EnableButtons(); return; }
         _isChallengepPending = true;
         // The rival answered our Flor with Contra Flor — now WE owe the reply (Flor Chica / Quiero).
         _awaitingRivalFlorResponse = false;

@@ -30,6 +30,20 @@ public static class OneVsOneMatchLifecycle
         return !string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId);
     }
 
+    /// <summary>True only while this client is actually seated in the Photon lobby (not a restored session after disconnect).</summary>
+    public static bool IsLivePhotonPreGameLobby()
+    {
+        if (OneVsOneMatchSession.GameStarted) return false;
+        if (!IsWaitingInPreGameLobby()) return false;
+        if (PhotonNetwork.InRoom) return true;
+        if (OneVsOnePhotonFlow.IsMatchmakingBusyGlobally) return true;
+        var state = PhotonNetwork.NetworkClientState;
+        return state == Photon.Realtime.ClientState.Joining
+               || state == Photon.Realtime.ClientState.JoiningLobby
+               || state == Photon.Realtime.ClientState.ConnectingToGameServer
+               || state == Photon.Realtime.ClientState.Authenticating;
+    }
+
     /// <summary>User is in a paid lobby before cards are dealt (leaving should confirm + refund).</summary>
     public static bool IsWaitingInPreGameLobby() =>
         IsHostWaitingForGuest() || IsGuestWaitingInLobby();
@@ -90,10 +104,10 @@ public static class OneVsOneMatchLifecycle
     // Never kick the host/guest out of their waiting Photon room — that used to
     // fire OnLeftRoom → cancel the match they just created.
     string except = keepMatchId;
-    if (string.IsNullOrEmpty(except) && IsWaitingInPreGameLobby())
+    if (string.IsNullOrEmpty(except) && IsLivePhotonPreGameLobby())
         except = OneVsOneMatchSession.CurrentMatchId;
 
-    bool keepLiveLobby = !string.IsNullOrEmpty(except) && IsWaitingInPreGameLobby()
+    bool keepLiveLobby = !string.IsNullOrEmpty(except) && IsLivePhotonPreGameLobby()
         && except == OneVsOneMatchSession.CurrentMatchId;
 
     if (PhotonNetwork.InRoom && !OneVsOneMatchSession.GameStarted && !keepLiveLobby)

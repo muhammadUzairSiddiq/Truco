@@ -140,9 +140,11 @@ public static class TrucoTextosClient
     public static string PurgeLobbyNoneMine => TrucoLocalization.T(TrucoLocalization.Key.PurgeLobbyNoneMine);
     public static string PurgeLobbyStillMine => TrucoLocalization.T(TrucoLocalization.Key.PurgeLobbyStillMine);
 
-    // Admin / live dashboard (English-only labels kept for admin tooling)
+    // Admin / live dashboard
     public const string LiveDashboardTitle = "Panel en vivo — partidas 1v1";
-    public const string LiveDashboardButton = "Live Dashboard";
+    public const string LiveDashboardButton = "Panel en vivo";
+    public const string AdminControlTitle = "Centro de control admin";
+    public const string AdminControlButton = "Control / kill switch";
     public const string AdminVolver = "Volver";
     public const string AdminRefreshList = "Actualizar";
     public const string AdminPhotonRoomLabel = "Sala Photon:";

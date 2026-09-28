@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>Full-screen dim + bold white countdown for network reconnection (Gameplay).</summary>
+/// <summary>Compact reconnect timer; transparent input shield prevents play while disconnected.</summary>
 public class TrucoReconnectionUi : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI _label;
@@ -30,6 +30,10 @@ public class TrucoReconnectionUi : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
         canvas.sortingOrder = 65000;
+        var scaler = gameObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0.5f;
         gameObject.AddComponent<GraphicRaycaster>();
 
         var dim = new GameObject("Dim");
@@ -40,17 +44,21 @@ public class TrucoReconnectionUi : MonoBehaviour
         dimRt.offsetMin = Vector2.zero;
         dimRt.offsetMax = Vector2.zero;
         var dimImg = dim.AddComponent<Image>();
-        dimImg.color = new Color(0f, 0f, 0f, 0.55f);
+        dimImg.color = Color.clear;
         dimImg.raycastTarget = true;
 
         var panel = new GameObject("Panel");
         panel.transform.SetParent(dim.transform, false);
         _panelRt = panel.AddComponent<RectTransform>();
-        _panelRt.anchorMin = _panelRt.anchorMax = new Vector2(0.5f, 0.5f);
-        _panelRt.pivot = new Vector2(0.5f, 0.5f);
-        _panelRt.sizeDelta = new Vector2(920f, 420f);
+        _panelRt.anchorMin = _panelRt.anchorMax = new Vector2(0.16f, 0f);
+        _panelRt.pivot = new Vector2(0.5f, 0f);
+        _panelRt.anchoredPosition = new Vector2(0f, 280f);
+        _panelRt.sizeDelta = new Vector2(148f, 148f);
         _panelBg = panel.AddComponent<Image>();
         _panelBg.color = TrucoGameplayTimerBanner.BgReconnect;
+        _panelBg.sprite = TrucoGameplayUiSprites.ButtonRound;
+        _panelBg.preserveAspect = true;
+        if (_panelBg.sprite != null) _panelBg.color = Color.white;
         _panelBg.raycastTarget = false;
 
         var textGo = new GameObject("Text");
@@ -58,8 +66,8 @@ public class TrucoReconnectionUi : MonoBehaviour
         var tr = textGo.AddComponent<RectTransform>();
         tr.anchorMin = Vector2.zero;
         tr.anchorMax = Vector2.one;
-        tr.offsetMin = new Vector2(24f, 20f);
-        tr.offsetMax = new Vector2(-24f, -20f);
+        tr.offsetMin = new Vector2(10f, 8f);
+        tr.offsetMax = new Vector2(-10f, -8f);
         _label = textGo.AddComponent<TextMeshProUGUI>();
         _label.alignment = TextAlignmentOptions.Center;
         _label.fontStyle = FontStyles.Bold;
@@ -75,8 +83,7 @@ public class TrucoReconnectionUi : MonoBehaviour
     public void Show(string line1, int secondsRemaining)
     {
         if (_label == null) Build();
-        _label.text = TrucoGameplayTimerBanner.OverlayTituloYSegundos(line1, secondsRemaining);
-        if (_panelBg != null) _panelBg.color = TrucoGameplayTimerBanner.BgReconnect;
+        _label.text = TrucoGameplayTimerBanner.ConSegundos("RECONEXIÓN", secondsRemaining);
         gameObject.SetActive(true);
         transform.SetAsLastSibling();
     }

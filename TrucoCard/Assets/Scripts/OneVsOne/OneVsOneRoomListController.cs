@@ -129,6 +129,7 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     public void Open(bool refreshOnOpen = true)
     {
+        if (!TrucoPlayAccess.TryTables()) return;
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         OneVsOneMatchLifecycle.SanitizeSessionForRoomBrowser();
         TrucoLobbyMatchmakingUi.HideWaitingOverlay();
@@ -642,6 +643,11 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     async void OnCreateRoomConfirmed(OneVsOneCreateRoomPanel panel)
     {
+        if (!TrucoPlayAccess.TryTables() || !TrucoPlayAccess.TryTransactions())
+        {
+            panel?.SetConfirmInteractable(true);
+            return;
+        }
         if (_createRoomInFlight)
         {
             panel?.SetConfirmInteractable(true);
@@ -813,6 +819,7 @@ public class OneVsOneRoomListController : MonoBehaviour
 
     void OnClickJoin(Player1v1Match m, OneVsOneRoomRowView row)
     {
+        if (!TrucoPlayAccess.TryTables()) return;
         if (m == null) return;
         if (m.IsPrivate())
         {

@@ -52,7 +52,13 @@ public static class MainMenuViewCoordinator
     public static void TriggerTournamentFromMain() => _showTournamentTab?.Invoke();
 
     /// <summary>Back from tournament list overlay: show main menu and nav highlight (same as bottom &quot;Menu&quot; tab).</summary>
-    public static void ReturnToMenuFromTournament() => _showMenuTab?.Invoke();
+    public static void ReturnToMenuFromTournament()
+    {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
+            MH.Multiplayer.MultiplayerController.LeaveTournamentMatchmaking();
+        _showMenuTab?.Invoke();
+        EnsureBottomNavVisible();
+    }
 
     /// <summary>Call after tournament UI opens so the bottom bar stays above overlay content.</summary>
     public static void EnsureTournamentNavPriority()
@@ -137,6 +143,8 @@ public static class MainMenuViewCoordinator
 
         void ShowMenuTab()
         {
+            if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
+                MH.Multiplayer.MultiplayerController.LeaveTournamentMatchmaking();
             TrucoLobbyLeaveConfirm.RunIfNeeded(() =>
             {
                 Deactivate1v1OverlaysInMain(main);
@@ -212,6 +220,7 @@ public static class MainMenuViewCoordinator
             mesa1vs1.onClick.RemoveAllListeners();
             mesa1vs1.onClick.AddListener(() =>
             {
+                if (!TrucoPlayAccess.TryTables()) return;
                 OneVsOneMatchLifecycle.SanitizeSessionForRoomBrowser();
                 if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
                 if (roomListPanel != null) roomListPanel.SetActive(true);
@@ -504,6 +513,8 @@ public static class MainMenuViewCoordinator
         {
             TrucoLobbyLeaveConfirm.RunIfNeeded(() =>
             {
+                if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
+                    MH.Multiplayer.MultiplayerController.LeaveTournamentMatchmaking();
                 Deactivate1v1OverlaysInMain(main);
                 ShowOnlyMainBlock(mainMenuPanel);
                 if (TournamentManager.Instance != null)

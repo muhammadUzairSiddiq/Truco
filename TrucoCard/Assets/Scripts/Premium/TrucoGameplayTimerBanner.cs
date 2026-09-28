@@ -16,7 +16,7 @@ public static class TrucoGameplayTimerBanner
         bool urgent = sec <= TrucoTextosClient.TurnoTimerUrgenteHastaSegundos;
         string numColor = urgent ? "#FFB4B4" : "#FFFFFF";
         return "<align=center><line-height=88%>"
-               + "<size=22><color=#D8DEE8>" + Escape(label) + "</color></size><br>"
+               + "<size=16><color=#D8DEE8>" + Escape(label) + "</color></size><br>"
                + "<size=40><color=" + numColor + "><b>" + sec + "</b></color></size>"
                + "<size=18><color=#A8B0BC> s</color></size>"
                + "</line-height></align>";
@@ -27,14 +27,14 @@ public static class TrucoGameplayTimerBanner
     {
         if (sec < 0) sec = 0;
         return "<align=center><line-height=88%>"
-               + "<size=20><color=#D8DEE8>" + Escape(msg) + "</color></size><br>"
+               + "<size=16><color=#D8DEE8>ESPERANDO</color></size><br>"
                + "<size=36><color=#FFFFFF><b>" + sec + "</b></color></size>"
                + "<size=16><color=#A8B0BC> s</color></size>"
                + "</line-height></align>";
     }
 
     public static string SoloMensaje(string msg) =>
-        "<align=center><size=26><color=#FFFFFF><b>" + Escape(msg) + "</b></color></size></align>";
+        "<align=center><size=16><color=#FFFFFF><b>" + Escape(msg) + "</b></color></size></align>";
 
     public static string OverlayTituloYSegundos(string title, int sec)
     {

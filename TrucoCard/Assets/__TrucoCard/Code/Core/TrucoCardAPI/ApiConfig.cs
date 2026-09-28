@@ -115,6 +115,14 @@ public static class ApiConfig
     public static string MatchPlayerLeave(string id) => Url("MatchPlayerLeave", "/matches/{0}/leave", id);
 
     /// <summary>
+    /// Idempotent financial settlement for a paid room that never started.  Unlike <see cref="MatchPlayerLeave"/>,
+    /// this route must work from a retained settlement tombstone after lobby cleanup and must return success only
+    /// after the original entry is credited exactly once.
+    /// </summary>
+    public static string MatchCancelLobbyRefund(string id) =>
+        Url("MatchCancelLobbyRefund", "/matches/{0}/cancel-lobby-refund", id);
+
+    /// <summary>
     /// End-of-match route. Default guesses <c>/matches/{id}/end</c>; override the exact path in the
     /// TrucoApiEndpoints asset (key=MatchEnd) when the backend dev provides it — no code change needed.
     /// </summary>
@@ -142,6 +150,9 @@ public static class ApiConfig
 
     public static string DashboardRealtimeActiveMatches => $"{BaseUrl}/dashboard/realtime/active-matches";
     public static string DashboardRealtimeFraudAlerts => $"{BaseUrl}/dashboard/realtime/fraud-alerts";
+    public static string DashboardRealtimeOnlinePlayers => Url("DashboardOnlinePlayers", "/dashboard/realtime/online-players");
+    public static string DashboardRealtimeActiveTournaments => Url("DashboardActiveTournaments", "/dashboard/realtime/active-tournaments");
+    public static string DashboardRealtimeReconnectAlerts => Url("DashboardReconnectAlerts", "/dashboard/realtime/reconnect-alerts");
 
     #endregion
 
@@ -158,6 +169,8 @@ public static class ApiConfig
     public static string AdminGetMatch(string id) => $"{BaseUrl}/admin/matches/{id}";
 
     public static string AdminForceCloseMatch(string id) => $"{BaseUrl}/matches/{id}/force-close";
+    public static string AdminForceCloseTournament(string id) => Url("AdminForceCloseTournament", "/admin/tournaments/{0}/force-close", id);
+    public static string AdminSetMaintenance => Url("AdminSetMaintenance", "/admin/system/maintenance");
     public static string ListTransactions => $"{BaseUrl}/admin/transactions";
     public static string GetSystemStatus => $"{BaseUrl}/admin/system/status";
     public static string GetAlertsDashboard => $"{BaseUrl}/admin/alerts/dashboard";

@@ -20,6 +20,16 @@ namespace MH.Multiplayer
         }
 
         [PunRPC]
+        public void BeginTournamentTable(string matchJson, string bracketJson)
+        {
+            var table = JsonUtility.FromJson<TournamentMatch>(matchJson);
+            var bracket = TournamentBracketState.FromJson(bracketJson);
+            if (bracket != null) MultiplayerController.ReplaceBracketState(bracket);
+            if (table == null || string.IsNullOrEmpty(table.roomName)) return;
+            MultiplayerController.JoinSpecificTournamentMatch(table, null);
+        }
+
+        [PunRPC]
         public void JoinTournamentMatch(string targetMatch, string nextMatch)
         {
             MultiplayerController.JoinSpecificTournamentMatch(JsonUtility.FromJson<TournamentMatch>(targetMatch), JsonUtility.FromJson<TournamentMatch>(nextMatch));

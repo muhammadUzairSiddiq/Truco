@@ -140,6 +140,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EspectandoAdmin, 4.5f);
             return;
         }
+        if (!TrucoMatchPlayGate.IsLiveTable()) return;
         if (_turnTimeoutRoutine != null)
         {
             StopCoroutine(_turnTimeoutRoutine);

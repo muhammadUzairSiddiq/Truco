@@ -34,7 +34,8 @@ public class TournamentManager : SingeltonBase<TournamentManager>
 
     public async void DisplayTournamentSelectionUI()
     {
-        AppManager.Instance.DisplayLoadingUI("Fetching Tournaments");
+        if (!TrucoPlayAccess.TryTournaments()) return;
+        AppManager.Instance.DisplayLoadingUI("Buscando torneos…");
         
         bool result = await ApiController.RequestLatestTournaments();
 
@@ -47,7 +48,7 @@ public class TournamentManager : SingeltonBase<TournamentManager>
 
             if (ApiController.GetActiveTournaments == null)
             {
-                AppManager.Instance.DisplayNotification("No active tournaments available at the moment. Please check back later.");
+                AppManager.Instance.DisplayNotification("No hay torneos activos por ahora. Volvé más tarde.");
             }
             else
             {
@@ -55,7 +56,7 @@ public class TournamentManager : SingeltonBase<TournamentManager>
 
                 if (tournaments.Length < 1)
                 {
-                    AppManager.Instance.DisplayNotification("No active tournaments available at the moment. Please check back later.");
+                    AppManager.Instance.DisplayNotification("No hay torneos activos por ahora. Volvé más tarde.");
                 }
                 else
                 {
@@ -66,7 +67,8 @@ public class TournamentManager : SingeltonBase<TournamentManager>
         }
         else
         {
-            AppManager.Instance.DisplayNotification("Failed to fetch tournaments. Please try again later.");
+            AppManager.Instance.HideLoadingUI();
+            AppManager.Instance.DisplayNotification("No se pudieron cargar los torneos. Probá de nuevo.");
         }
 
     }
@@ -94,7 +96,10 @@ public class TournamentManager : SingeltonBase<TournamentManager>
     }
     public void HideTournamentMatchmakingUI()
     {
-        _tournamentMatchmakingOverlay.CancelTournmentMatchmaking();
+        // This is a presentation-only operation. Calling Cancel here re-enters
+        // MultiplayerController.LeaveTournamentMatchmaking(), which calls this
+        // method again and causes a fatal StackOverflowException on MainMenu load.
+        _tournamentMatchmakingOverlay.HideTournamentMatchmakingUI();
     }
 
     #endregion

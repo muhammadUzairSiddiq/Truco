@@ -42,7 +42,7 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         SetPillLabel(_isPublicToggle, TrucoTextosClient.Publica);
         SetPillLabel(_isPrivateToggle, TrucoTextosClient.Privada);
         SetPillLabel(_withFlorToggle, TrucoTextosClient.ConFlor);
-        SetPillLabel(_target30Toggle, "30 points");
+        SetPillLabel(_target30Toggle, "30 puntos");
         SetFlorSegmentLabels();
         SetButtonLabel(_confirm, TrucoTextosClient.CrearSala);
         SetButtonLabel(_cancel, TrucoTextosClient.Volver);

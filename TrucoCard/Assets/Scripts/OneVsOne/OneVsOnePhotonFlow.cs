@@ -329,6 +329,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
         base.OnPlayerLeftRoom(otherPlayer);
         if (otherPlayer == null || otherPlayer.IsLocal) return;
         if (OneVsOneMatchSession.GameStarted || _matchFoundFired) return;
@@ -347,6 +348,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
         _connectFailures = 0;
         TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
             "Photon OnConnectedToMaster region=" + (PhotonNetwork.CloudRegion ?? "?")
@@ -407,7 +409,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         {
             ["onev1"] = true,
             ["matchId"] = OneVsOneMatchSession.CurrentMatchId ?? string.Empty,
-            ["targetScore"] = OneVsOneMatchSession.TargetScore
+            ["targetScore"] = OneVsOneMatchSession.TargetScore,
+            ["withFlor"] = OneVsOneMatchSession.WithFlor
         };
         var opts = new RoomOptions
         {
@@ -417,7 +420,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             PlayerTtl = 60000,
             EmptyRoomTtl = 120000,
             CustomRoomProperties = props,
-            CustomRoomPropertiesForLobby = new[] { "onev1", "matchId", "targetScore" }
+            CustomRoomPropertiesForLobby = new[] { "onev1", "matchId", "targetScore", "withFlor" }
         };
         PhotonNetwork.JoinOrCreateRoom(name, opts, TypedLobby.Default);
     }
@@ -594,6 +597,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnDisconnected(DisconnectCause cause)
     {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
         StopJoinRetryRoutine();
         _joinRetryCount = 0;
         _deferredJoinAfterLeave = false;
@@ -702,6 +706,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnJoinedRoom()
     {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
+        if (PhotonNetwork.CurrentRoom?.CustomProperties.TryGetValue("withFlor", out object flor) == true
+            && flor is bool enabled)
+            OneVsOneMatchSession.SetWithFlor(enabled);
         IsConnecting = false;
         _joinRetryCount = 0;
         _connectFailures = 0;
@@ -753,6 +761,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     void FireMatchFound()
     {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
         if (_matchFoundFired) return;
         if (PhotonNetwork.CurrentRoom == null) return;
         if (!OneVsOneLobbyFlowRules.IsReadyToLaunchGameplay(

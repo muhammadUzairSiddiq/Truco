@@ -25,6 +25,9 @@ public class MainMenuManager : MonoBehaviour
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         MainMenuViewCoordinator.TryCompleteNavigationIfNeeded();
         WireLogoutButton();
+        _ = TrucoMaintenanceMode.RefreshFromServerAsync();
+        InvokeRepeating(nameof(RefreshMaintenance), 15f, 15f);
+        TrucoMaintenanceBanner.Refresh();
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.PleaseWait);
 
 
@@ -44,10 +47,13 @@ public class MainMenuManager : MonoBehaviour
             MainMenuViewCoordinator.TryCompleteNavigationIfNeeded();
             MainMenuViewCoordinator.EnsureBottomNavVisible();
             RegisterButtonEvents();
+            TrucoClientMemory.UnloadUnusedAfterMenuReady(this);
 
         });
 
     }
+
+    void RefreshMaintenance() => _ = TrucoMaintenanceMode.RefreshFromServerAsync();
 
     public void StopMatchMaking()
     {

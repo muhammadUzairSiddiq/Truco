@@ -20,7 +20,7 @@ public class TournamentSelectionOverlay : MonoBehaviour
     /// <summary>Brown block + back + título (sin barra anidada duplicada).</summary>
     const string HeaderRootName = "TournamentListHeader";
 
-    [SerializeField] private float _headerBlockHeight = 96f;
+    [SerializeField] private float _headerBlockHeight = 128f;
 
     private List<TournamentCardItem> _instantiatedCards = new List<TournamentCardItem>();
 
@@ -36,8 +36,17 @@ public class TournamentSelectionOverlay : MonoBehaviour
             if (_contentHolder.GetComponent<Graphic>() is Image rootBg)
             {
                 rootBg.enabled = true;
-                rootBg.sprite = null;
-                rootBg.color = TrucoUiTheme.TournamentListScreenBg;
+                if (TrucoGameplayUiSprites.PanelBrown != null)
+                {
+                    rootBg.sprite = TrucoGameplayUiSprites.PanelBrown;
+                    rootBg.type = Image.Type.Sliced;
+                    rootBg.color = Color.white;
+                }
+                else
+                {
+                    rootBg.sprite = null;
+                    rootBg.color = new Color(0.12f, 0.07f, 0.04f, 1f);
+                }
             }
         }
     }
@@ -83,7 +92,7 @@ public class TournamentSelectionOverlay : MonoBehaviour
         {
             headerBg.sprite = null;
         }
-        headerBg.color = TrucoUiTheme.TournamentTopBarSolid;
+        headerBg.color = new Color(0.18f, 0.11f, 0.06f, 1f);
         header.transform.SetParent(holder, false);
         headerRt.SetAsFirstSibling();
         headerRt.anchorMin = new Vector2(0f, 1f);
@@ -124,23 +133,76 @@ public class TournamentSelectionOverlay : MonoBehaviour
         blRt.offsetMin = Vector2.zero;
         blRt.offsetMax = Vector2.zero;
 
+        if (TrucoGameplayUiSprites.PanelBrown != null)
+        {
+            headerBg.sprite = TrucoGameplayUiSprites.PanelBrown;
+            headerBg.type = Image.Type.Sliced;
+            headerBg.color = Color.white;
+        }
+        if (TrucoGameplayUiSprites.Back != null)
+        {
+            backImg.sprite = TrucoGameplayUiSprites.Back;
+            backImg.color = Color.white;
+            backImg.preserveAspect = true;
+            backLabel.SetActive(false);
+        }
+
+        var laurelL = new GameObject("LaurelL", typeof(RectTransform), typeof(Image));
+        laurelL.transform.SetParent(header.transform, false);
+        var ll = laurelL.GetComponent<RectTransform>();
+        ll.anchorMin = ll.anchorMax = new Vector2(0.5f, 0.62f);
+        ll.sizeDelta = new Vector2(72f, 64f);
+        ll.anchoredPosition = new Vector2(-168f, 4f);
+        var lli = laurelL.GetComponent<Image>();
+        lli.preserveAspect = true;
+        lli.raycastTarget = false;
+        if (TrucoGameplayUiSprites.Laurel != null) { lli.sprite = TrucoGameplayUiSprites.Laurel; lli.color = Color.white; }
+
+        var laurelR = new GameObject("LaurelR", typeof(RectTransform), typeof(Image));
+        laurelR.transform.SetParent(header.transform, false);
+        var lr = laurelR.GetComponent<RectTransform>();
+        lr.anchorMin = lr.anchorMax = new Vector2(0.5f, 0.62f);
+        lr.sizeDelta = new Vector2(72f, 64f);
+        lr.anchoredPosition = new Vector2(168f, 4f);
+        lr.localScale = new Vector3(-1f, 1f, 1f);
+        var lri = laurelR.GetComponent<Image>();
+        lri.preserveAspect = true;
+        lri.raycastTarget = false;
+        if (TrucoGameplayUiSprites.Laurel != null) { lri.sprite = TrucoGameplayUiSprites.Laurel; lri.color = Color.white; }
+
         var title = new GameObject("Encabezado", typeof(RectTransform), typeof(TextMeshProUGUI));
         title.transform.SetParent(header.transform, false);
         var trt = title.GetComponent<RectTransform>();
-        trt.anchorMin = new Vector2(0f, 0f);
+        trt.anchorMin = new Vector2(0f, 0.38f);
         trt.anchorMax = new Vector2(1f, 1f);
-        trt.offsetMin = new Vector2(100f, 0f);
+        trt.offsetMin = new Vector2(110f, 0f);
         trt.offsetMax = new Vector2(-16f, 0f);
         var tmp = title.GetComponent<TextMeshProUGUI>();
         tmp.text = string.IsNullOrEmpty(_headerTitle) ? "TORNEOS" : _headerTitle.Trim().ToUpperInvariant();
-        tmp.fontSize = 32;
+        tmp.fontSize = 36;
         tmp.fontStyle = FontStyles.Bold;
-        tmp.color = Color.white;
+        tmp.color = new Color(1f, 0.86f, 0.38f, 1f);
         tmp.alignment = TextAlignmentOptions.Midline;
         tmp.enableAutoSizing = true;
-        tmp.fontSizeMin = 22;
-        tmp.fontSizeMax = 40;
-        tmp.characterSpacing = 1.2f;
+        tmp.fontSizeMin = 24;
+        tmp.fontSizeMax = 42;
+        tmp.characterSpacing = 2.4f;
+
+        var tab = new GameObject("Activos", typeof(RectTransform), typeof(TextMeshProUGUI));
+        tab.transform.SetParent(header.transform, false);
+        var tabRt = tab.GetComponent<RectTransform>();
+        tabRt.anchorMin = new Vector2(0.5f, 0f);
+        tabRt.anchorMax = new Vector2(0.5f, 0f);
+        tabRt.pivot = new Vector2(0.5f, 0f);
+        tabRt.anchoredPosition = new Vector2(0f, 8f);
+        tabRt.sizeDelta = new Vector2(280f, 36f);
+        var tabT = tab.GetComponent<TextMeshProUGUI>();
+        tabT.text = "ACTIVOS";
+        tabT.fontSize = 20f;
+        tabT.fontStyle = FontStyles.Bold;
+        tabT.color = new Color(0.95f, 0.82f, 0.42f, 1f);
+        tabT.alignment = TextAlignmentOptions.Center;
+        tabT.characterSpacing = 4f;
 
         var scroll = holder.Find("Scroll View") as RectTransform;
         if (scroll != null)

@@ -202,6 +202,10 @@ public static class TrucoLocalization
             case Key.PhotonConnectFailed: return "No se pudo conectar a Photon.";
             case Key.EsperandoAnfitrionPhoton: return "Esperando que el anfitrión abra la sala…";
             case Key.ChampionCongrats: return "¡Felicitaciones, sos el campeón!";
+            case Key.ChampionTitle: return "¡CAMPEÓN DEL TORNEO!";
+            case Key.ChampionPrize: return "Campeón, recibiste el premio: {0} TRUCOINS";
+            case Key.EsperandoProximoRival: return "Ganaste. Esperando el próximo rival…";
+            case Key.IngresarContrasenaTorneo: return "Ingresar contraseña";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
             case Key.LangSection: return "Idioma";
@@ -329,6 +333,10 @@ public static class TrucoLocalization
             case Key.PhotonConnectFailed: return "Could not connect to Photon.";
             case Key.EsperandoAnfitrionPhoton: return "Waiting for the host to open the room…";
             case Key.ChampionCongrats: return "Congratulations, you are the champion!";
+            case Key.ChampionTitle: return "TOURNAMENT CHAMPION!";
+            case Key.ChampionPrize: return "Champion, you received the prize: {0} TRUCOINS";
+            case Key.EsperandoProximoRival: return "You won. Waiting for the next opponent…";
+            case Key.IngresarContrasenaTorneo: return "Enter password";
             case Key.LangEng: return "ENG";
             case Key.LangSpn: return "SPN";
             case Key.LangSection: return "Language";
@@ -386,6 +394,7 @@ public static class TrucoLocalization
         GanastePartida, PerdistePartida, PerdisteMano, NuevaMano, FaltaPanelCrear,
         ValidandoContrasena, ContrasenaInvalida, ContrasenaIncorrecta, EntryPrizeFormat,
         CodigoMinPlaceholder, PleaseWait, PhotonCreateFailed, PhotonSyncWarning, PhotonConnectFailed, EsperandoAnfitrionPhoton, ChampionCongrats,
+        ChampionTitle, ChampionPrize, EsperandoProximoRival, IngresarContrasenaTorneo,
         LangEng, LangSpn, LangSection,
         RegionLabel, RegionSouthAmerica, RegionAsia, RegionEurope,
         ModoJuego, ConFlor, SinFlor,

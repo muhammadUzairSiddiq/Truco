@@ -38,6 +38,9 @@ public class TrucoClientSettingsSO : ScriptableObject
     [Tooltip("Shared secret for POST /matches/:id/result and /walkover (header x-game-secret). Get value from backend; leave empty only for local stubs.")]
     public string gameSecret = "";
 
+    [Tooltip("Optional extra API key / client token. Leave empty until backend provides it.")]
+    public string apiKey = "";
+
     [Header("1v1 Photon join retry (after ENTRAR)")]
     [Tooltip("Total seconds to keep retrying JoinRoom while waiting for the host's Photon room.")]
     [Min(1f)]

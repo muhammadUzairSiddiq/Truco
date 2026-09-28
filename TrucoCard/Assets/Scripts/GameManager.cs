@@ -111,6 +111,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     private void Awake()
     {
         Instance = this;
+        TournamentGameplayVariantBridge.ApplyTournamentVariant();
         _isSpectator = SpectatorContext.IsSpectator;
         _handOutcomeCommitted = false;
         _restartScheduled = false;
@@ -785,7 +786,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     void OnDestroy()
     {
         CancelInvoke(nameof(CacheTrucoOpponentUserId));
-        if (!_isSpectator)
+        if (!_isSpectator && !_isInTournament)
             TrucoReturnFromGameplayCleanup.MarkLeavingGameplay(_1v1ResultPosted || _1v1SettlementBusy);
     }
 
@@ -812,14 +813,9 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         if (_isInTournament)
         {
-            if (!_tournamentMatchFinalized) _tournamentMatchFinalized = true;
-            MultiplayerController.LeaveTournamentMatchmaking(null);
-            if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
-            if (ApiController.GetSessionUser?.Data?.stats != null)
-                ApiController.GetSessionUser.Data.stats.losses++;
-            OneVsOneMatchSession.Clear();
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconectarFallo);
-            TrucoSceneTransition.Go("MainMenu");
+            if (!_tournamentMatchFinalized)
+                OnTournamentMatchLose();
             return;
         }
         string matchIdSnapshot = OneVsOneMatchSession.CurrentMatchId;
@@ -896,7 +892,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
 
         ToggleMenuBtns(false);
-        TournamentManager.Instance.HideTournamentWaitingRoomOverlay();
+        MultiplayerController.OnGameplayLoaded();
         Debug.Log($"[GameManager] Tournament status: {_isInTournament}");
     }
 
@@ -906,27 +902,11 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         ToggleMenuBtns(false);
         winPanel.SetActive(true);
 
-        if (IsInFinalBracket())
+        UIMANAGER.Instance.UpdateTurnText("Ganaste. Esperando el próximo rival…", 4f);
+        LeanTween.delayedCall(3.5f, () =>
         {
-            UIMANAGER.Instance.UpdateTurnText("Tournament Champion!", 5f);
-            AppManager.Instance.DisplayNotification(TrucoTextosClient.ChampionCongrats);
-            MultiplayerController.FinalizeCurrentMatch(true);
-
-            LeanTween.delayedCall(5, () =>
-            {
-                ToggleMenuBtns(true);
-            });
-        }
-        else
-        {
-            UIMANAGER.Instance.UpdateTurnText("Waiting for next round...", 4f);
-
-            LeanTween.delayedCall(5, () =>
-            {
-                SceneManager.LoadScene("TempScene");
-                MultiplayerController.PlayNextBracket();
-            });
-        }
+            MultiplayerController.PlayNextBracket();
+        });
     }
 
     private void OnTournamentMatchLose()
@@ -934,12 +914,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         _tournamentMatchFinalized = true;
         ToggleMenuBtns(false);
         losePanel.SetActive(true);
-
-        MultiplayerController.LeaveTournamentMatchmaking(() =>
-        {
-            PhotonNetwork.Disconnect();
-            ToggleMenuBtns(true);
-        });
+        MultiplayerController.SpectateAfterLoss();
+        TournamentBracketOverlay.Show(true);
     }
 
     private bool IsInFinalBracket()
@@ -953,6 +929,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void NoFlor()
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         if (_isSpectator) return;
         otherPlayerDeniedFlor = true;
     }
@@ -995,7 +972,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 CachingOption = EventCaching.AddToRoomCache
             };
             PhotonNetwork.RaiseEvent(_cardSendEvent, jsonString, options, SendOptions.SendReliable);
-            if (!PlayerHasFlor())
+            if (OneVsOneMatchSession.WithFlor && !PlayerHasFlor())
             {
                 deniedFlor = true;
                 photonView.RPC(nameof(NoFlor), RpcTarget.OthersBuffered);
@@ -1005,6 +982,11 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public void OnEvent(EventData photonEvent)
     {
+        // Tournament/room configuration is authoritative for this table.  Ignore any stale
+        // buffered Flor event before it can create audio, text, buttons, or scoring state on a
+        // "Sin Flor" table.  Normal Truco/Envido processing is untouched.
+        if (!OneVsOneMatchSession.WithFlor && IsFlorNetworkEvent(photonEvent.Code))
+            return;
         if (TrucoPunChallenges.IsChallengeEventCode(photonEvent.Code) && !IsFlorAutoAwardEcho(photonEvent))
             TrucoGameplayAudio.PlayFromPhotonEvent(photonEvent);
         if (_isSpectator) return;
@@ -1031,7 +1013,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 }
             }
             UIMANAGER.Instance?.ShowDealtHandCards();
-            if (!PlayerHasFlor())
+            if (OneVsOneMatchSession.WithFlor && !PlayerHasFlor())
             {
                 deniedFlor = true;
                 photonView.RPC(nameof(NoFlor), RpcTarget.OthersBuffered);
@@ -1304,6 +1286,12 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         && photonEvent.CustomData is byte flag
         && flag == UIMANAGER.FlorAutoAwardEchoFlag;
 
+    static bool IsFlorNetworkEvent(byte code) =>
+        code == UIMANAGER.FLOR_CHALLENGE
+        || code == UIMANAGER.CON_FLOR_QUIERO_CHALLENGE
+        || code == UIMANAGER.CONTRA_FLOR_CHALLENGE
+        || code == UIMANAGER.FLOR_CHICA_CHALLENGE;
+
     static int GetOpponentActorNumber(int actor)
     {
         foreach (var p in PhotonNetwork.PlayerList)
@@ -1478,6 +1466,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     /// </summary>
     bool SettleFlorBeforeHandCloses(int handWinnerActor, bool handConceded)
     {
+        if (!OneVsOneMatchSession.WithFlor) return false;
         var ui = UIMANAGER.Instance;
         if (ui == null) return false;
 
@@ -1567,6 +1556,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     void MarkFlorResolvedRpc(int florOwnerActor)
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         florResolvedThisHand = true;
         if (florOwnerActor > 0) florOwnerActorThisHand = florOwnerActor;
     }
@@ -1575,6 +1565,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     void AnnounceFlorCanto(int florActor)
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         if (_isSpectator || UIMANAGER.Instance == null) return;
         bool mine = PhotonNetwork.LocalPlayer != null && florActor == PhotonNetwork.LocalPlayer.ActorNumber;
         TrucoGameplayAudio.PlayFlorCanto(mine);
@@ -1677,6 +1668,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     public void GetScore(ChallengeType _type)
     {
+        if (!OneVsOneMatchSession.WithFlor && IsFlorChallenge(_type)) return;
         if (_isSpectator) return;
         switch (_type)
         {
@@ -1956,6 +1948,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void AnnounceFlorPoints(int p1, int p2)
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         if (UIMANAGER.Instance == null) return;
         if (_isSpectator)
         {
@@ -1971,6 +1964,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void ConFlorQuieroWinner(int ID, int _points)
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         if (_isSpectator) return;
         TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "ConFlorQuieroWinner queued scoring cards id=" + ID);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
@@ -2054,6 +2048,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [PunRPC]
     private void ContraFlorWinner(int ID)
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         if (_isSpectator) return;
         TrucoDebugLog.Log(TrucoDebugLog.Category.OneVsOne, "ContraFlorWinner queued scoring cards id=" + ID);
         if (ID.Equals(PhotonNetwork.LocalPlayer.ActorNumber))
@@ -2181,6 +2176,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public bool PlayerHasFlor()
     {
+        if (!OneVsOneMatchSession.WithFlor) return false;
         if (deniedFlor || LocalPlayerHasPlayedCard())
             return false;
         List<DeckCards> localHand = PhotonNetwork.IsMasterClient ? _player1Cards : _player2Cards;
@@ -2190,10 +2186,18 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public bool HasFlor(List<DeckCards> hand)
     {
+        // Variant gate only: the established Flor calculation/scoring path remains unchanged
+        // for "Con Flor" tables.  On "Sin Flor" no caller can detect, announce or score it.
+        if (!OneVsOneMatchSession.WithFlor)
+            return false;
         if (hand == null || hand.Count != 3)
             return false;
         return hand.All(card => card.suit == hand[0].suit);
     }
+
+    public static bool IsFlorChallenge(ChallengeType type) =>
+        type == ChallengeType.Flor || type == ChallengeType.FlorChica
+        || type == ChallengeType.ConFlorQuiero || type == ChallengeType.ContraFlor;
 
     bool LocalPlayerHasPlayedCard()
     {
@@ -2683,6 +2687,11 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             + " match=" + (OneVsOneMatchSession.CurrentMatchId ?? "?")
             + " inRoom=" + PhotonNetwork.InRoom);
         AppManager.Instance?.DisplayNotification(TrucoTextosClient.GanaPorAbandono);
+        if (_isInTournament || MultiplayerController.IsTournamentActive)
+        {
+            GameWon();
+            return;
+        }
         string matchId = OneVsOneMatchSession.CurrentMatchId;
         string claimerId = PhotonPlayerHelper.GetLocalTrucoPlayerUserId();
         if (!string.IsNullOrEmpty(matchId) && !string.IsNullOrEmpty(claimerId) && !_1v1ResultPosted)

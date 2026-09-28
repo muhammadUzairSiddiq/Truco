@@ -31,17 +31,26 @@ public static class ApiController
         try
         {
             bool loggedIn = await LoginAsync(loginRequest, null, onErrorAction);
+            if (!loggedIn) return;
 
-            if (loggedIn)
+            // A 200 from /auth/login is not enough to enter the application.  The
+            // rest of the client expects a live SessionUser, so never invoke the
+            // success callback when /auth/me failed or returned an invalid shape.
+            bool profileLoaded = await GetCurrentUserProfile();
+            if (!profileLoaded || GetSessionUser?.Data == null)
             {
-              await GetCurrentUserProfile();
-
-                onCompleteAction?.Invoke();
+                const string message = "No se pudo cargar el perfil del usuario. Intentá iniciar sesión de nuevo.";
+                Debug.LogError("[ApiController] - Login succeeded but profile initialization failed.");
+                ClearClientSessionState();
+                onErrorAction?.Invoke(message);
+                return;
             }
+
+            onCompleteAction?.Invoke();
         }
         catch (Exception ex)
         {
-            Debug.Log("[ApiController] - Initialization Failed: " + ex.Message);
+            Debug.LogError("[ApiController] - Initialization Failed: " + ex);
 
             onErrorAction?.Invoke(ex.Message);
         }
@@ -55,25 +64,30 @@ public static class ApiController
     {
         try
         {
+            // Do not let credentials from a previous attempt authenticate /auth/me.
+            HttpApiClient.ClearAuthSession();
             string json = JsonUtility.ToJson(loginRequestData);
 
             string resp = await HttpApiClient.PostAsync(ApiConfig.Login, json);
 
-            // Try to extract token if server sends it in JSON body
+            LoginResponse loginResp;
             try
             {
-                var loginResp = JsonUtility.FromJson<LoginResponse>(resp);
-                if (loginResp != null)
-                {
-                    string token = !string.IsNullOrEmpty(loginResp.accessToken) ? loginResp.accessToken : loginResp.token;
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        HttpApiClient.SetAuthToken(token);
-                        Debug.Log("[ApiController] - Token saved from Login Response.");
-                    }
-                }
+                loginResp = JsonUtility.FromJson<LoginResponse>(resp);
             }
-            catch (Exception) { /* Not a standard login response package or token in cookie */ }
+            catch (Exception ex)
+            {
+                throw new Exception("El servidor devolvió una respuesta de inicio de sesión inválida.", ex);
+            }
+
+            string token = !string.IsNullOrEmpty(loginResp?.accessToken)
+                ? loginResp.accessToken
+                : loginResp?.token;
+            if (string.IsNullOrWhiteSpace(token))
+                throw new Exception("El servidor no devolvió un token de sesión válido.");
+
+            HttpApiClient.SetAuthToken(token.Trim());
+            Debug.Log("[ApiController] - Token saved from Login Response.");
 
             onCompleteAction?.Invoke();
             return true;
@@ -149,7 +163,11 @@ public static class ApiController
         {
             string profileResponse = await HttpApiClient.GetAsync(ApiConfig.GetCurrentUserProfile);
             UserProfileResponse userProfile = JsonUtility.FromJson<UserProfileResponse>(profileResponse);
-            if (userProfile != null && !string.IsNullOrEmpty(userProfile.user._id))
+            User user = userProfile?.user;
+            if (user != null && string.IsNullOrEmpty(user._id) && !string.IsNullOrEmpty(user.id))
+                user._id = user.id;
+
+            if (userProfile != null && userProfile.success && user != null && !string.IsNullOrEmpty(user._id))
             {
                 if (GetSessionUser == null)
                 {
@@ -161,15 +179,15 @@ public static class ApiController
                 //userProfile._id += $"{Random.Range(1111, 9999)}";
                 //userProfile.username += $"{Random.Range(1111, 9999)}";
 
-                GetSessionUser.UpdateUserData(userProfile.user);
+                GetSessionUser.UpdateUserData(user);
                 TrucoWalletHudRefresh.Apply();
 
-                Debug.Log("[ApiController] - User Profile fetched: " + userProfile.user.username);
+                Debug.Log("[ApiController] - User Profile fetched: " + user.username);
                 return true;
             }
             else
             {
-                Debug.Log("[ApiController] - User Profile response invalid." + profileResponse);
+                Debug.LogError("[ApiController] - User Profile response invalid.");
                 return false;
             }
         }
@@ -321,7 +339,9 @@ public static class ApiController
         const int maxRetries = 3;
         int attempt = 0;
 
-        var playerIdBody = JsonUtility.ToJson(new { playerId = GetSessionUser?.Data?._id });
+        string playerId = GetSessionUser?.Data?._id;
+        if (string.IsNullOrEmpty(playerId) || string.IsNullOrEmpty(tournamentId)) return false;
+        var playerIdBody = Newtonsoft.Json.JsonConvert.SerializeObject(new { playerId });
 
         while (attempt < maxRetries)
         {
@@ -331,11 +351,11 @@ public static class ApiController
                 string response = await HttpApiClient.PostAsync(ApiConfig.EnterTournament(tournamentId), playerIdBody);
 
                 // If the API returns a response string with error details, check it first
-                if (!string.IsNullOrEmpty(response))
+                if (!string.IsNullOrEmpty(response) &&
+                    response.IndexOf("already entered", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    // If the response explicitly mentions already entered, treat as success
-                    if (response.IndexOf("Already", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        response.IndexOf("already entered", StringComparison.OrdinalIgnoreCase) >= 0)
+                    // Text alone (e.g. "already full") is not proof of this player's registration.
+                    if (await IsPlayerInTournamentAsync(tournamentId, playerId))
                     {
                         Debug.Log("[ApiController] - Already entered tournament (response).");
                         onCompleteAction?.Invoke();
@@ -388,7 +408,9 @@ public static class ApiController
                 }
 
                 // If exception indicates already entered, treat as success
-                if (!string.IsNullOrEmpty(ex.Message) && ex.Message.IndexOf("Already", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (!string.IsNullOrEmpty(ex.Message)
+                    && ex.Message.IndexOf("already entered", StringComparison.OrdinalIgnoreCase) >= 0
+                    && await IsPlayerInTournamentAsync(tournamentId, playerId))
                 {
                     Debug.Log("[ApiController] - Already entered tournament.");
                     onCompleteAction?.Invoke();
@@ -434,7 +456,8 @@ public static class ApiController
         try
         {
             TournamentRequest tournament = MultiplayerController.CurrentTournamentRequest;
-            int entryFee = tournament.EntryFee; 
+            // Entry is paid by EnterTournament once, never again for each bracket table.
+            int entryFee = 0;
 
             CreateTournamentMatchRequest requestPayload = new CreateTournamentMatchRequest
             {
@@ -475,9 +498,14 @@ public static class ApiController
 
     public static async Task<bool> FinalizeTournamentMatch(string tournamentId, string matchId, string winnerId)
     {
+        if (TournamentFinalizeGuard.AlreadyDone(tournamentId, matchId, winnerId))
+        {
+            Debug.Log("[ApiController] - Finalize match skipped (already done): " + matchId);
+            return true;
+        }
         try
         {
-            var finalizeData = new
+            var finalizeData = new FinalizeMatchRequest
             {
                 matchId = matchId,
                 winnerId = winnerId
@@ -485,7 +513,9 @@ public static class ApiController
 
             string json = JsonUtility.ToJson(finalizeData);
             string response = await HttpApiClient.PostAsync(ApiConfig.FinalizeMatch(tournamentId), json);
+            if (!TrucoServerAcknowledgement.Accepted(response)) return false;
             Debug.Log($"[ApiController] - Match finalized: {response}");
+            TournamentFinalizeGuard.MarkDone(tournamentId, matchId, winnerId);
             return true;
         }
         catch (Exception ex)
@@ -496,7 +526,11 @@ public static class ApiController
     }
     public static async Task<bool> FinalizeTournament(string tournamentId, string championIdStr)
     {
-
+        if (TournamentFinalizeGuard.AlreadyDone(tournamentId, "champion", championIdStr))
+        {
+            Debug.Log("[ApiController] - Finalize tournament skipped (already done): " + tournamentId);
+            return true;
+        }
         try
         {
             FinalizeChampionRequest body = new FinalizeChampionRequest
@@ -507,7 +541,11 @@ public static class ApiController
             string json = JsonUtility.ToJson(body);
 
             string response = await HttpApiClient.PostAsync(ApiConfig.FinalizeTournament(tournamentId), json);
+            if (!TrucoServerAcknowledgement.Accepted(response)) return false;
+            if (TrucoServerAcknowledgement.PrizePaid(response))
+                TournamentFinalizeGuard.MarkDone(tournamentId, "prize-paid", championIdStr);
             Debug.Log("[ApiController] - Finalize Tournament Response: " + response);
+            TournamentFinalizeGuard.MarkDone(tournamentId, "champion", championIdStr);
             return true;
         }
         catch (Exception ex)
@@ -604,6 +642,51 @@ public static class ApiController
             onErrorAction?.Invoke(ex.Message);
             return false;
         }
+    }
+
+    public static async Task<bool> AdminForceCloseTournament(string tournamentId, string reason = "admin-force-close")
+    {
+        if (string.IsNullOrEmpty(tournamentId)) return false;
+        try
+        {
+            var body = new AdminForceCloseTournamentRequest { tournamentId = tournamentId, reason = reason };
+            string json = JsonUtility.ToJson(body);
+            string response = await HttpApiClient.PostAsync(ApiConfig.AdminForceCloseTournament(tournamentId), json);
+            return TrucoServerAcknowledgement.Accepted(response);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[ApiController] force-close tournament: " + ex.Message);
+            return false;
+        }
+    }
+
+    public static async Task<bool> AdminCreditUserCoins(string userId, int amount, string reason)
+    {
+        if (string.IsNullOrEmpty(userId) || amount <= 0 || string.IsNullOrWhiteSpace(reason)) return false;
+        try
+        {
+            var body = new AdminCreditCoinsRequest { userId = userId, amount = amount, reason = reason ?? "" };
+            string response = await HttpApiClient.PostAsync(ApiConfig.AddUserCoins(userId), JsonUtility.ToJson(body));
+            return TrucoServerAcknowledgement.Accepted(response);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[ApiController] credit coins: " + ex.Message);
+            return false;
+        }
+    }
+
+    public static async Task<string> FetchDashboardOnlinePlayersRaw()
+    {
+        try { return await HttpApiClient.GetAsync(ApiConfig.DashboardRealtimeOnlinePlayers); }
+        catch (Exception ex) { return "Error: " + ex.Message; }
+    }
+
+    public static async Task<string> FetchReconnectAlertsRaw()
+    {
+        try { return await HttpApiClient.GetAsync(ApiConfig.DashboardRealtimeReconnectAlerts); }
+        catch (Exception ex) { return "Error: " + ex.Message; }
     }
 
     #endregion
@@ -1157,7 +1240,25 @@ public static class ApiController
         int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
             "CancelPreGameMatch1v1 match=" + matchId + " balBefore=" + balBefore + " expectRefund=" + fee);
-        bool leaveOk = await CloseLobbyMatchForRefundAsync(matchId);
+        // A missing/closed row is NOT evidence of a refund.  The normal leave helper accepts
+        // "already gone" responses for ordinary cleanup, but the recovery ledger must be
+        // stricter: only a server acknowledgement of this refund operation (and then the
+        // wallet check below) may settle the debt.
+        bool refundEndpointConfirmed = await TrySettlePreGameRefundAsync(matchId);
+        if (refundEndpointConfirmed)
+        {
+            // A successful response from the dedicated endpoint means the server's transaction
+            // and its unique ledger row have settled this exact match.  Refresh for the HUD, but
+            // do not require a client-side before/after delta: this may be a retry after a prior
+            // successful response was lost while the app was closing.
+            await GetCurrentUserProfile();
+            SettleEntryRefund(matchId);
+            return true;
+        }
+
+        // Compatibility fallback for servers that have not yet deployed the dedicated endpoint.
+        // It deliberately rejects a missing/closed row as proof of settlement.
+        bool leaveOk = await CloseLobbyMatchForRefundAsync(matchId, acceptAlreadyClosed: false);
 
         for (int i = 0; i < 3; i++)
         {
@@ -1172,9 +1273,9 @@ public static class ApiController
             // Never drop the remembered match id until the wallet actually came back
             // (or there was no stake to refund). Photon webhooks can close the row
             // without refunding; clearing early made login-reclaim impossible.
-            bool confirmed = balanceRefunded;
-            if (!confirmed && leaveOk && (balBefore < 0 || balAfter < 0))
-                confirmed = true;
+            // A balance delta can belong to an unrelated credit. Keep paid-entry recovery
+            // pending until the dedicated route supplies a receipt for this operation.
+            bool confirmed = fee == 0 && leaveOk;
             if (confirmed)
             {
                 SettleEntryRefund(matchId);
@@ -1186,7 +1287,7 @@ public static class ApiController
 
         // /leave went through and the backend no longer lists the room for this user: the row is
         // closed and re-posting /leave forever cannot recover anything else.
-        if (leaveOk && !await IsLobbyMatchStillMineAsync(matchId))
+        if (fee == 0 && leaveOk && !await IsLobbyMatchStillMineAsync(matchId))
         {
             TrucoRulesScenarioLog.Backend("CancelPreGame settled (row gone)", "match=" + matchId);
             SettleEntryRefund(matchId);
@@ -1204,6 +1305,34 @@ public static class ApiController
             TrucoActiveHostMatchStore.Clear();
         OneVsOneMatchSession.ClearSavedRoomPersistence();
         TrucoWalletHudRefresh.Apply();
+    }
+
+    /// <summary>
+    /// Calls the backend's idempotent pre-game financial settlement route.  It is intentionally
+    /// separate from <c>/leave</c>: a room janitor may have removed the active match row after an
+    /// app disconnect, while the retained backend settlement tombstone still knows whether this
+    /// exact entry fee is owed.  A HTTP success is the server's authoritative confirmation that
+    /// it was credited once (or was already credited by the same operation).
+    /// </summary>
+    static async System.Threading.Tasks.Task<bool> TrySettlePreGameRefundAsync(string matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return false;
+        try
+        {
+            string receipt = await HttpApiClient.PostAsync(ApiConfig.MatchCancelLobbyRefund(matchId), "{}");
+            if (!TrucoServerAcknowledgement.RefundConfirmed(receipt, matchId)) return false;
+            TrucoRulesScenarioLog.Backend("POST /cancel-lobby-refund OK", "match=" + matchId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Older deployments do not have this route yet.  Preserve the recovery record and
+            // use legacy /leave only while the match is still present; never convert a 404 into
+            // a successful refund.
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+                "Pre-game refund endpoint not confirmed match=" + matchId + " — " + ex.Message);
+            return false;
+        }
     }
 
     static int ResolveRememberedEntryFee(string matchId)
@@ -1241,8 +1370,10 @@ public static class ApiController
         if (pending.Count == 0) return 0;
         if (!await EnsureSessionUserLoadedAsync()) return 0;
 
-        // Only rows the backend still lists as an open lobby may be refunded: POST /leave on a match
-        // that was actually played re-deducts the winner's prize.
+        // Inspect the backend list before retrying.  A missing row is deliberately NOT treated as
+        // a settled refund: a websocket/cleanup worker can delete an abandoned lobby before its
+        // reserved entry has been returned.  Only the backend's idempotent refund operation plus
+        // a wallet confirmation can remove this local recovery record.
         var openLobbies = await FetchPlayer1v1MatchList();
         if (!LastMatchListFetchSucceeded) return 0;
 
@@ -1253,18 +1384,30 @@ public static class ApiController
             if (string.IsNullOrEmpty(matchId) || matchId == exceptMatchId) continue;
             // The room this player is actually sitting in / playing is not abandoned.
             if (matchId == OneVsOneMatchSession.CurrentMatchId
-                && (OneVsOneMatchSession.GameStarted || OneVsOneMatchLifecycle.IsWaitingInPreGameLobby()))
+                && OneVsOneMatchLifecycle.IsLivePhotonPreGameLobby())
                 continue;
 
             if (!IsListedAsOpenLobby(openLobbies, matchId))
             {
-                // The row is closed (played out, or the backend swept the abandoned room). There is no
-                // safe client-side call left, so stop carrying the debt and just resync the wallet.
-                TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
-                    "Pending entry refund dropped, row no longer an open lobby match=" + matchId);
-                TrucoPendingRefundStore.Forget(matchId);
-                if (TrucoActiveHostMatchStore.IsRememberedHost(matchId))
-                    TrucoActiveHostMatchStore.Clear();
+                // The active row may have been removed by a lobby janitor, but the server's
+                // settlement tombstone can still perform (or report) the one permitted credit.
+                // Do not fall back to /leave here: that legacy endpoint cannot distinguish a
+                // cleaned-up pre-game room from any other absent row.
+                if (await TrySettlePreGameRefundAsync(matchId))
+                {
+                    await GetCurrentUserProfile();
+                    SettleEntryRefund(matchId);
+                    refunded++;
+                }
+                else
+                {
+                    // Do not discard this record.  It is the only durable evidence on the device
+                    // that this player paid for a room that never started.  Until the backend
+                    // settlement/tombstone endpoint confirms it, retaining it is safer than
+                    // silently losing Trucoins.
+                    TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+                        "Pending entry refund retained; backend row is gone without settlement confirmation match=" + matchId);
+                }
                 continue;
             }
 
@@ -1350,14 +1493,15 @@ public static class ApiController
     }
 
     /// <summary>Pre-game: /leave refunds entry, then /end closes the row. Returns true when /leave succeeded.</summary>
-    public static async System.Threading.Tasks.Task<bool> CloseLobbyMatchForRefundAsync(string matchId)
+    public static async System.Threading.Tasks.Task<bool> CloseLobbyMatchForRefundAsync(
+        string matchId, bool acceptAlreadyClosed = true)
     {
         if (string.IsNullOrEmpty(matchId)) return false;
         bool left = false;
         const int maxAttempts = 5;
         for (int attempt = 1; attempt <= maxAttempts && !left; attempt++)
         {
-            left = await TryNotifyPlayerLeftMatch1v1(matchId);
+            left = await TryNotifyPlayerLeftMatch1v1(matchId, acceptAlreadyClosed);
             if (!left && attempt < maxAttempts)
                 await System.Threading.Tasks.Task.Delay(350 * attempt);
         }
@@ -1565,7 +1709,8 @@ public static class ApiController
     /// Notifies server this user left the match (early quit, scene unload, etc.). Requires <c>POST …/matches/:id/leave</c> on API.
     /// Fails quietly if route is missing so older servers keep working.
     /// </summary>
-    public static async System.Threading.Tasks.Task<bool> TryNotifyPlayerLeftMatch1v1(string matchId)
+    public static async System.Threading.Tasks.Task<bool> TryNotifyPlayerLeftMatch1v1(
+        string matchId, bool acceptAlreadyClosed = true)
     {
         if (string.IsNullOrEmpty(matchId)) return false;
         try
@@ -1576,7 +1721,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            if (IsBenignLeaveMatchError(ex.Message))
+            if (acceptAlreadyClosed && IsBenignLeaveMatchError(ex.Message))
             {
                 TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
                     "match leave benign (treat OK): " + matchId + " — " + ex.Message);
@@ -1643,24 +1788,8 @@ public static class ApiController
     static async System.Threading.Tasks.Task<bool> TryCloseLobbyMatchForUserAsync(Player1v1Match m, string userId)
     {
         if (m == null || string.IsNullOrEmpty(m._id) || string.IsNullOrEmpty(userId)) return false;
-        int stake = m.GetEntryStake();
-        int balBefore = GetSessionUser?.Data?.wallet?.balance ?? -1;
-        bool leaveOk = await CloseLobbyMatchForRefundAsync(m._id);
-        await GetCurrentUserProfile();
-        int balAfter = GetSessionUser?.Data?.wallet?.balance ?? -1;
-        if (leaveOk || WalletGainedAtLeast(balBefore, balAfter, stake))
-        {
-            TrucoPendingRefundStore.Forget(m._id);
-            return true;
-        }
-
-        // Never POST /end without a successful /leave — that closes the row with NO refund.
-        TrucoRulesScenarioLog.BackendFail("Purge lobby close",
-            "match=" + m._id + " leaveOk=false stake=" + stake
-            + " balBefore=" + balBefore + " balAfter=" + balAfter);
-        if (m.IsCurrentUserHostOfRoom() || OneVsOneLobbyFlowRules.MatchBelongsToUser(m, userId))
-            return await AdminForceCloseMatch1v1(m._id);
-        return false;
+        if (!m.IsCurrentUserHostOfRoom() && !OneVsOneLobbyFlowRules.MatchBelongsToUser(m, userId)) return false;
+        return await CancelPreGameMatch1v1(m._id, m.GetEntryStake());
     }
 
     /// <summary>

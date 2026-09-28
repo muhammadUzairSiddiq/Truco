@@ -65,6 +65,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
         string joinButtonOverride = null,
         string hostOnlyPrivateCode = null)
     {
+        bool changedRoom = _data?._id != m?._id;
         _data = m;
         _onJoin = onJoin;
         _cachedHostCode = hostOnlyPrivateCode;
@@ -76,8 +77,14 @@ public class OneVsOneRoomRowView : MonoBehaviour
         int cost = m.GetEntryStake();
         int prize = m.GetPrizeForDisplay();
         string typeStr = m.GetTypeLabel();
+        string flor = m.withFlor ? TrucoTextosClient.ConFlor : TrucoTextosClient.SinFlor;
+        int score = TrucoMatchRules.NormalizeTargetScore(m.targetScore);
         if (_metaText != null)
-            _metaText.text = $"{typeStr}  ·  {TrucoTextosClient.EntradaAbrev}: {cost}  ·  {TrucoTextosClient.PremioAbrev}: {prize}";
+        {
+            _metaText.text = $"{typeStr}  ·  {flor}  ·  {score} puntos\nEntrada: {cost} TRUCOINS  ·  Premio: {prize} TRUCOINS";
+            _metaText.enableWordWrapping = true;
+            _metaText.overflowMode = TextOverflowModes.Overflow;
+        }
 
         int count = m.GetTrucoPlayerCountForUi();
         if (_playersText != null)
@@ -114,7 +121,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
             bool showJ = showStrip && !host && canJoin;
             if (root != null) root.SetActive(showJ);
             _joinerCodeField.gameObject.SetActive(showJ);
-            if (showJ) _joinerCodeField.text = string.Empty;
+            if (changedRoom) _joinerCodeField.text = string.Empty;
         }
 
         if (_joinButton != null)

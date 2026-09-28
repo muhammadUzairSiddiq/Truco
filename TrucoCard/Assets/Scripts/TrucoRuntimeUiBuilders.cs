@@ -22,8 +22,8 @@ public static class TrucoRuntimeUiBuilders
         rowGo.SetActive(false);
         var rowLe = rowGo.AddComponent<LayoutElement>();
         // ~2x prior row height for large touch targets and legible type on mobile
-        rowLe.minHeight = 280f;
-        rowLe.preferredHeight = 300f;
+        rowLe.minHeight = 380f;
+        rowLe.preferredHeight = 380f;
         rowLe.flexibleHeight = 0f;
         var rowBg = rowGo.AddComponent<Image>();
         rowBg.raycastTarget = false;
@@ -59,8 +59,8 @@ public static class TrucoRuntimeUiBuilders
         colLe.flexibleWidth = 1f;
         colLe.minWidth = 80f;
 
-        const float nameSize = 54f;
-        const float subSize = 42f;
+        const float nameSize = 40f;
+        const float subSize = 30f;
         var t1 = RoomRowTextLine(col.transform, f, "Name", nameSize, FontStyles.Bold, TrucoUiTheme.RoomListRowTitle);
         var t2 = RoomRowTextLine(col.transform, f, "Meta", subSize, FontStyles.Bold, TrucoUiTheme.RoomListRowMeta);
         var t3 = RoomRowTextLine(col.transform, f, "Players", subSize, FontStyles.Bold, TrucoUiTheme.RoomListRowPlayers);
@@ -227,6 +227,24 @@ public static class TrucoRuntimeUiBuilders
         expLe.flexibleWidth = 1f;
         expGo.SetActive(false);
 
+        // Details own the full width; the password and action use a separate bottom lane.
+        hl.enabled = false;
+        var detailsRt = col.GetComponent<RectTransform>();
+        detailsRt.anchorMin = new Vector2(0f, 1f);
+        detailsRt.anchorMax = Vector2.one;
+        detailsRt.pivot = new Vector2(0.5f, 1f);
+        detailsRt.offsetMin = new Vector2(24f, -252f);
+        detailsRt.offsetMax = new Vector2(-24f, -18f);
+        var codeRt = codeStrip.GetComponent<RectTransform>();
+        codeRt.anchorMin = Vector2.zero;
+        codeRt.anchorMax = new Vector2(1f, 0f);
+        codeRt.offsetMin = new Vector2(24f, 20f);
+        codeRt.offsetMax = new Vector2(-246f, 120f);
+        var actionRt = joinCol.GetComponent<RectTransform>();
+        actionRt.anchorMin = actionRt.anchorMax = new Vector2(1f, 0f);
+        actionRt.pivot = new Vector2(1f, 0f);
+        actionRt.anchoredPosition = new Vector2(-24f, 20f);
+        actionRt.sizeDelta = new Vector2(204f, 100f);
         var view = rowGo.AddComponent<OneVsOneRoomRowView>();
         view.SetRuntimeBinding(t1, t2, t3, btn, jtmp, codeStripRoot, ccap, hostT, jInp, expTmp);
         return view;
@@ -244,15 +262,15 @@ public static class TrucoRuntimeUiBuilders
         t.alignment = TextAlignmentOptions.MidlineLeft;
         t.color = c;
         t.enableAutoSizing = false;
-        t.enableWordWrapping = false;
-        t.overflowMode = TextOverflowModes.Ellipsis;
+        t.enableWordWrapping = true;
+        t.overflowMode = TextOverflowModes.Overflow;
         t.raycastTarget = false;
         t.margin = new Vector4(0, 0, 10, 0);
         t.characterSpacing = 0.25f;
         t.lineSpacing = 0f;
         var le = go.AddComponent<LayoutElement>();
-        le.minHeight = size + 14f;
-        le.preferredHeight = size + 14f;
+        le.minHeight = name == "Players" ? size + 10f : size * 2f + 14f;
+        le.preferredHeight = le.minHeight;
         le.flexibleHeight = 0f;
         le.flexibleWidth = 1f;
         return t;

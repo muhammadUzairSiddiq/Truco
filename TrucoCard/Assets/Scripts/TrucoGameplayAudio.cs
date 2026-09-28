@@ -89,6 +89,7 @@ public class TrucoGameplayAudio : MonoBehaviour
 
     public static void PlayLocalRaise(byte eventCode)
     {
+        if (IsFlorEvent(eventCode) && !OneVsOneMatchSession.WithFlor) return;
         // Visual callout (shown regardless of audio/TTS path) so both players can read the canto.
         if (UIMANAGER.Instance != null)
             UIMANAGER.Instance.ShowChallengeCallout(TrucoCalloutPhrases.ForEventCode(eventCode), true);
@@ -116,6 +117,7 @@ public class TrucoGameplayAudio : MonoBehaviour
     /// <summary>Same as network event: other player’s raise. Skips if this client is the sender (local already used <see cref="PlayLocalRaise"/>).</summary>
     public static void PlayIncomingEvent(byte eventCode, int senderActorNumber)
     {
+        if (IsFlorEvent(eventCode) && !OneVsOneMatchSession.WithFlor) return;
         if (Photon.Pun.PhotonNetwork.LocalPlayer != null
             && senderActorNumber != 0
             && senderActorNumber == Photon.Pun.PhotonNetwork.LocalPlayer.ActorNumber)
@@ -142,9 +144,16 @@ public class TrucoGameplayAudio : MonoBehaviour
     /// <summary>Flor canto (voice + banner) raised by game logic instead of a button press.</summary>
     public static void PlayFlorCanto(bool mine)
     {
+        if (!OneVsOneMatchSession.WithFlor) return;
         if (mine) PlayLocalRaise(UIMANAGER.FLOR_CHALLENGE);
         else PlayIncomingEvent(UIMANAGER.FLOR_CHALLENGE, 0);
     }
+
+    static bool IsFlorEvent(byte eventCode) =>
+        eventCode == UIMANAGER.FLOR_CHALLENGE
+        || eventCode == UIMANAGER.FLOR_CHICA_CHALLENGE
+        || eventCode == UIMANAGER.CON_FLOR_QUIERO_CHALLENGE
+        || eventCode == UIMANAGER.CONTRA_FLOR_CHALLENGE;
 
     public static void PlayCardPlaced()
     {
@@ -156,6 +165,8 @@ public class TrucoGameplayAudio : MonoBehaviour
     public static void PlayDeclarationPhrase(string phrase, bool mine)
     {
         if (string.IsNullOrEmpty(phrase)) return;
+        if (!OneVsOneMatchSession.WithFlor && phrase.StartsWith("Flor", System.StringComparison.OrdinalIgnoreCase))
+            return;
         if (UIMANAGER.Instance != null)
             UIMANAGER.Instance.ShowDeclarationCallout(phrase, mine);
         if (Instance == null || IsMuted) return;
