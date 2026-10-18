@@ -1909,34 +1909,17 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 : rivalActor;
         }
         bool localIsFirstCaller = firstCallerActor == localActor;
-        bool localWon = winnerActor == PhotonNetwork.LocalPlayer.ActorNumber;
-        bool rivalWon = winnerActor != 0 && winnerActor != PhotonNetwork.LocalPlayer.ActorNumber;
-
-        if (localIsFirstCaller)
-        {
-            // First Envido caller always announces their points (audio + text).
-            TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {localScore}", true);
-            if (rivalWon)
-                StartCoroutine(CoDelayedDeclaration($"Tengo {rivalScore}", false, 1.15f));
-            else if (!localWon && rivalActor > 0)
-                // Tie goes to Mano (first caller) â€” rival lost; they say Son buenas after hearing us.
-                StartCoroutine(CoDelayedDeclaration("Son buenas", false, 1.15f));
-        }
-        else
-        {
-            // Second player announces only if they win; otherwise "Son buenas".
-            if (localWon)
-            {
-                TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {rivalScore}", false);
-                StartCoroutine(CoDelayedDeclaration($"Tengo {localScore}", true, 1.15f));
-            }
-            else
-            {
-                TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {rivalScore}", false);
-                StartCoroutine(CoDelayedDeclaration("Son buenas", true, 1.15f));
-            }
-        }
+        int firstScore = localIsFirstCaller ? localScore : rivalScore;
+        int secondScore = localIsFirstCaller ? rivalScore : localScore;
+        int secondActor = localIsFirstCaller ? rivalActor : localActor;
+        TrucoGameplayAudio.PlayDeclarationPhrase($"Tengo {firstScore}", localIsFirstCaller);
+        if (winnerActor > 0 && secondActor > 0)
+            StartCoroutine(CoDelayedDeclaration(EnvidoReplyPhrase(secondScore, secondActor == winnerActor),
+                !localIsFirstCaller, 1.15f));
     }
+
+    public static string EnvidoReplyPhrase(int score, bool responderWon) =>
+        responderWon ? $"Tengo {score}" : "Son buenas";
 
     IEnumerator CoDelayedDeclaration(string phrase, bool mine, float delay)
     {
@@ -2261,8 +2244,17 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     static bool AwaitingRivalFlorResponse()
         => UIMANAGER.Instance != null && UIMANAGER.Instance.IsAwaitingRivalFlorResponse;
 
+    static bool AwaitingChallengeResponse()
+        => UIMANAGER.Instance != null && UIMANAGER.Instance._isChallengepPending;
+
     public void SetCanPlayCard(bool _value)
     {
+        if (_value && AwaitingChallengeResponse())
+        {
+            // A turn update must not unlock cards or hide the rival's response buttons.
+            _canPlayCard = false;
+            return;
+        }
         if (_value && (_gameEnded || _matchEndPending || HandResolved || AwaitingRivalFlorResponse()))
         {
             _canPlayCard = false;
@@ -2277,7 +2269,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public bool CanPlayCard()
     {
         return _canPlayCard && !_gameEnded && !_matchEndPending && !HandResolved
-               && !AwaitingRivalFlorResponse();
+               && !AwaitingRivalFlorResponse() && !AwaitingChallengeResponse();
     }
 
     public bool IsMyTurn() => _myTurn;

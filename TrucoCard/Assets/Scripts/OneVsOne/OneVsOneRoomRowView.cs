@@ -70,6 +70,7 @@ public class OneVsOneRoomRowView : MonoBehaviour
         _onJoin = onJoin;
         _cachedHostCode = hostOnlyPrivateCode;
         if (m == null) return;
+        OneVsOnePhotonFlow.ApplyLiveRoomSettings(m);
 
         if (_titleText != null)
             _titleText.text = string.IsNullOrEmpty(m.name) ? m._id : m.name;

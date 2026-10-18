@@ -67,6 +67,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     /// <summary>Salas visibles en el lobby de Photon (nombre → jugadores en tiempo real).</summary>
     readonly Dictionary<string, int> _lobbyRoomPlayerCount = new Dictionary<string, int>(32, StringComparer.Ordinal);
+    readonly Dictionary<string, RoomInfo> _lobbyRooms = new Dictionary<string, RoomInfo>(32, StringComparer.Ordinal);
     bool _lobbySyncReceived;
 
     /// <summary>La lista de salas del menú debe refrescar filas cuando llega <see cref="OnRoomListUpdate"/>.</summary>
@@ -632,6 +633,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public override void OnJoinedLobby()
     {
         _lobbyRoomPlayerCount.Clear();
+        _lobbyRooms.Clear();
         _lobbySyncReceived = false;
     }
 
@@ -646,10 +648,12 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             if (ri.RemovedFromList)
             {
                 _lobbyRoomPlayerCount.Remove(ri.Name);
+                _lobbyRooms.Remove(ri.Name);
             }
             else
             {
                 _lobbyRoomPlayerCount[ri.Name] = ri.PlayerCount;
+                _lobbyRooms[ri.Name] = ri;
             }
         }
         OnLobbyRoomCountsChanged?.Invoke();
@@ -695,6 +699,35 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         count = 0;
         if (Instance == null) return false;
         return Instance.TryGetLiveLobbyPlayerCount(photonRoomName, out count);
+    }
+
+    public static void ApplyLiveRoomSettings(Player1v1Match match)
+    {
+        if (match == null) return;
+        string roomName = match.ResolvePhotonRoomName();
+        RoomInfo room = null;
+        if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.Name == roomName)
+            room = PhotonNetwork.CurrentRoom;
+        else if (PhotonNetwork.InLobby && Instance != null && !string.IsNullOrEmpty(roomName))
+            Instance._lobbyRooms.TryGetValue(roomName, out room);
+        if (room != null)
+        {
+            ApplyRoomSettings(match, room.CustomProperties);
+        }
+        else if (OneVsOneMatchSession.IsHost && OneVsOneMatchSession.CurrentMatchId == match._id)
+        {
+            match.withFlor = OneVsOneMatchSession.WithFlor;
+            match.targetScore = OneVsOneMatchSession.TargetScore;
+        }
+    }
+
+    public static void ApplyRoomSettings(Player1v1Match match, Hashtable properties)
+    {
+        if (match == null || properties == null) return;
+        if (properties.TryGetValue("withFlor", out object flor) && flor is bool enabled)
+            match.withFlor = enabled;
+        if (properties.TryGetValue("targetScore", out object score) && score is int target)
+            match.targetScore = TrucoMatchRules.NormalizeTargetScore(target);
     }
 
     public override void OnCreatedRoom()

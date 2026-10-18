@@ -451,8 +451,11 @@ public static class ApiController
         }
     }
 
+    public static string LastTournamentMatchError { get; private set; }
+
     public static async Task<match> CreateTournamentMatch(string tournamentId, List<string> playerIds)
     {
+        LastTournamentMatchError = null;
         try
         {
             TournamentRequest tournament = MultiplayerController.CurrentTournamentRequest;
@@ -478,19 +481,21 @@ public static class ApiController
 
             // Make the API call
             string response = await HttpApiClient.PostAsync(ApiConfig.CreateTournamentMatch(tournamentId), json);
-            CreateTournamentMatchResponse result = JsonUtility.FromJson<CreateTournamentMatchResponse>(response);
+            match result = TrucoServerAcknowledgement.TournamentMatch(response);
 
-            if (result != null && result.ok && result.match != null)
+            if (result != null)
             {
-                Debug.Log($"[ApiController] - Tournament match created: {result.match._id}");
-                return result.match;
+                Debug.Log($"[ApiController] - Tournament match created: {result._id}");
+                return result;
             }
 
+            LastTournamentMatchError = "El servidor no confirmó el identificador de la partida.";
             Debug.Log($"[ApiController] - Create tournament match failed: {response}");
             return null;
         }
         catch (Exception ex)
         {
+            LastTournamentMatchError = ex.Message;
             Debug.Log($"[ApiController] - Create tournament match failed: {ex.Message}");
             return null;
         }
@@ -1230,6 +1235,16 @@ public static class ApiController
     }
 
     /// <summary>Pre-game cancel: POST /leave (refund) then /end so the lobby row disappears.</summary>
+    public static async Task<bool> DeletePreGameRoom1v1(string matchId, int expectedRefund)
+    {
+        if (string.IsNullOrEmpty(matchId)) return false;
+        // Cancellation and financial settlement are separate outcomes. Keep any
+        // missing refund receipt in the recovery ledger, even after the room closes.
+        await CancelPreGameMatch1v1(matchId, expectedRefund);
+        await TryEndMatch1v1(matchId);
+        return !await IsLobbyMatchStillMineAsync(matchId);
+    }
+
     public static async System.Threading.Tasks.Task<bool> CancelPreGameMatch1v1(string matchId, int expectedRefund = 0)
     {
         if (string.IsNullOrEmpty(matchId)) return false;
@@ -1259,6 +1274,7 @@ public static class ApiController
         // Compatibility fallback for servers that have not yet deployed the dedicated endpoint.
         // It deliberately rejects a missing/closed row as proof of settlement.
         bool leaveOk = await CloseLobbyMatchForRefundAsync(matchId, acceptAlreadyClosed: false);
+        if (!TrucoPendingRefundStore.IsPending(matchId)) return true;
 
         for (int i = 0; i < 3; i++)
         {
@@ -1715,7 +1731,9 @@ public static class ApiController
         if (string.IsNullOrEmpty(matchId)) return false;
         try
         {
-            await HttpApiClient.PostAsync(ApiConfig.MatchPlayerLeave(matchId), "{}");
+            string receipt = await HttpApiClient.PostAsync(ApiConfig.MatchPlayerLeave(matchId), "{}");
+            if (TrucoServerAcknowledgement.RefundConfirmed(receipt, matchId))
+                SettleEntryRefund(matchId);
             TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "match leave notified: " + matchId);
             return true;
         }

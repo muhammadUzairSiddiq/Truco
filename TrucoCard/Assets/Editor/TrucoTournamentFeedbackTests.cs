@@ -4,6 +4,57 @@ using UnityEngine;
 
 public class TrucoTournamentFeedbackTests
 {
+    [TestCase(ChallengeType.Envido)]
+    [TestCase(ChallengeType.RealEnvido)]
+    [TestCase(ChallengeType.FaltaEnvido)]
+    public void PendingCantoBlocksCardsEvenAfterTurnRefresh(ChallengeType type)
+    {
+        var host = new GameObject("PendingCantoRegression");
+        host.SetActive(false);
+        var instance = typeof(UIMANAGER).GetProperty("Instance");
+        var previous = UIMANAGER.Instance;
+        try
+        {
+            var ui = host.AddComponent<UIMANAGER>();
+            instance.SetValue(null, ui);
+            var game = host.AddComponent<GameManager>();
+            game.lastChallengeType = type;
+            Assert.IsTrue(game.CanPlayCard());
+            ui._isChallengepPending = true;
+            Assert.IsFalse(game.CanPlayCard(), "Pending challenge must override stale card permission");
+            game.SetCanPlayCard(true);
+            Assert.IsFalse(game.CanPlayCard(), "Turn refresh must not unlock a pending challenge");
+            ui._isChallengepPending = false;
+            game.SetCanPlayCard(true);
+            Assert.IsTrue(game.CanPlayCard(), "Resolved challenge must allow play again");
+        }
+        finally
+        {
+            instance.SetValue(null, previous);
+            Object.DestroyImmediate(host);
+        }
+    }
+
+    [TestCase(29, false, "Son buenas")]
+    [TestCase(33, true, "Tengo 33")]
+    [TestCase(30, false, "Son buenas")]
+    public void EnvidoReplyUsesResolvedWinnerIncludingManoTies(int score, bool won, string expected) =>
+        Assert.AreEqual(expected, GameManager.EnvidoReplyPhrase(score, won));
+
+    [TestCase(false, 30)]
+    [TestCase(true, 15)]
+    public void LobbyUsesPublishedRoomRules(bool flor, int target)
+    {
+        var row = new Player1v1Match { withFlor = !flor, targetScore = target == 30 ? 15 : 30 };
+        OneVsOnePhotonFlow.ApplyRoomSettings(row, new ExitGames.Client.Photon.Hashtable {
+            ["withFlor"] = flor, ["targetScore"] = target });
+        Assert.AreEqual(flor, row.withFlor);
+        Assert.AreEqual(target, row.targetScore);
+        OneVsOnePhotonFlow.ApplyRoomSettings(row, new ExitGames.Client.Photon.Hashtable());
+        Assert.AreEqual(flor, row.withFlor, "Omitted properties must not reset known settings");
+        Assert.AreEqual(target, row.targetScore);
+    }
+
     [TestCase(false, 0)]
     [TestCase(true, 34)]
     public void SameSuitHandRespectsVariantWithoutChangingFlorValue(bool withFlor, int expected)

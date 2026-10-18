@@ -2,6 +2,17 @@ using NUnit.Framework;
 
 public class TrucoServerConfirmationTests
 {
+    [TestCase("{\"ok\":true,\"match\":{\"_id\":\"m1\"}}", "m1")]
+    [TestCase("{\"success\":true,\"data\":{\"match\":{\"_id\":\"m1\"}}}", "m1")]
+    [TestCase("{\"ok\":true,\"data\":{\"_id\":\"m1\"}}", "m1")]
+    [TestCase("{\"ok\":false,\"match\":{\"_id\":\"m1\"}}", null)]
+    [TestCase("{\"ok\":true,\"data\":{\"success\":false,\"_id\":\"m1\"}}", null)]
+    [TestCase("{\"ok\":true,\"match\":{}}", null)]
+    [TestCase("{\"match\":{\"_id\":\"m1\"}}", null)]
+    [TestCase("not json", null)]
+    public void TournamentCreationRequiresConfirmedMatchId(string json, string expected) =>
+        Assert.AreEqual(expected, TrucoServerAcknowledgement.TournamentMatch(json)?._id);
+
     [TestCase("{\"ok\":true}", false)]
     [TestCase("{\"ok\":false,\"refunded\":true}", false)]
     [TestCase("{\"status\":\"closed\"}", false)]

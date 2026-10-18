@@ -3,6 +3,22 @@ using Newtonsoft.Json.Linq;
 /// <summary>Conservative interpretation of financial receipts; transport success is not settlement.</summary>
 public static class TrucoServerAcknowledgement
 {
+    public static match TournamentMatch(string json)
+    {
+        var root = Parse(json);
+        if (root == null || !Accepted(json)) return null;
+        var data = root["data"] as JObject;
+        if (data != null && Rejected(data)) return null;
+        var payload = root["match"] as JObject ?? data?["match"] as JObject ?? data;
+        if (payload == null || Rejected(payload)) return null;
+        try
+        {
+            var result = payload.ToObject<match>();
+            return string.IsNullOrWhiteSpace(result?._id) ? null : result;
+        }
+        catch { return null; }
+    }
+
     public static bool Accepted(string json)
     {
         var root = Parse(json);

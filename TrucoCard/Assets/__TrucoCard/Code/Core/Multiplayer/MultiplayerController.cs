@@ -241,11 +241,18 @@ namespace MH.Multiplayer {
                     throw new InvalidOperationException("Jugadores del torneo inválidos.");
                 BracketState = new TournamentBracketState(seats.Count);
                 BracketState.Seed(_tournamentPlayers);
-                var tasks = new List<Task<match>>();
+                // Each request updates the same tournament document. Do not race
+                // sibling writes, which can cause transaction conflicts during startup.
+                var created = new match[seats.Count / 2];
                 for (int n = 0; n < seats.Count; n += 2)
-                    tasks.Add(ApiController.CreateTournamentMatch(tournamentId,
-                        new List<string> { _tournamentPlayers[n]._id, _tournamentPlayers[n + 1]._id }));
-                var created = await Task.WhenAll(tasks);
+                {
+                    created[n / 2] = await ApiController.CreateTournamentMatch(tournamentId,
+                        new List<string> { _tournamentPlayers[n]._id, _tournamentPlayers[n + 1]._id });
+                    if (generation != _generation || PhotonNetwork.CurrentRoom != room) return;
+                    if (string.IsNullOrEmpty(created[n / 2]?._id))
+                        throw new InvalidOperationException("No se pudo crear la partida " + (n / 2 + 1)
+                            + ". El torneo no inició. " + ApiController.LastTournamentMatchError);
+                }
                 if (generation != _generation || PhotonNetwork.CurrentRoom != room) return;
                 if (created.Any(m => string.IsNullOrEmpty(m?._id)))
                     throw new InvalidOperationException("No se pudieron crear todas las partidas. El torneo no inició.");

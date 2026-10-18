@@ -1595,6 +1595,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeEnvido()
     {
         if (!CanRaiseChallengeNow()) return;
+        GameManager.Instance.SetCanPlayCard(false);
         TrucoGameplayAudio.PlayLocalRaise(ENVIDO_CHALLENGE);
         MarkChallengeSentNow();
         // This checks if other player had invoked Truco Challenge and resets the Points
@@ -1633,6 +1634,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeRealEnvido()
     {
         if (!CanRaiseChallengeNow()) return;
+        GameManager.Instance.SetCanPlayCard(false);
         TrucoGameplayAudio.PlayLocalRaise(REALENVIDO_CHALLENGE);
         MarkChallengeSentNow();
         // This checks if other player had invoked Truco Challenge and resets the Points
@@ -1673,6 +1675,7 @@ public class UIMANAGER : MonoBehaviour
     public void ChallengeFaltaEnvido()
     {
         if (!CanRaiseChallengeNow()) return;
+        GameManager.Instance.SetCanPlayCard(false);
         MarkChallengeSentNow();
         _isChallengepPending = true;
         invokedChallenges.Add(ChallengeType.Envido);
