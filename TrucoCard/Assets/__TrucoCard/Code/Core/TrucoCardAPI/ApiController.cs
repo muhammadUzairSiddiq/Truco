@@ -50,7 +50,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.LogError("[ApiController] - Initialization Failed: " + ex);
+            Debug.LogError("[ApiController] - Initialization Failed: " + ex.GetType().Name);
 
             onErrorAction?.Invoke(ex.Message);
         }
@@ -95,7 +95,7 @@ public static class ApiController
         catch (Exception ex)
         {
             onErrorAction?.Invoke(ex.Message);
-            Debug.Log("[ApiController] - Login failed: " + ex.Message);
+            Debug.Log("[ApiController] - Login failed: " + ex.GetType().Name);
 
             return false;
         }
@@ -119,7 +119,7 @@ public static class ApiController
 
             RegisterResponse registerResponse = JsonUtility.FromJson<RegisterResponse>(resp);
 
-            Debug.Log($"[ApiController] - User registered successfully: {registerResponse.username}");
+            Debug.Log("[ApiController] - User registration confirmed.");
 
             onCompleteAction?.Invoke();
 
@@ -129,7 +129,7 @@ public static class ApiController
         {
             onErrorAction?.Invoke("Registration failed: " + ex.Message);
 
-            Debug.Log("[ApiController] - Registration failed: " + ex.Message);
+            Debug.Log("[ApiController] - Registration failed: " + ex.GetType().Name);
             return false;
         }
     }
@@ -137,6 +137,9 @@ public static class ApiController
     /// <summary>Local logout: clear HTTP session, destroy DDOL session holders. Call before loading the login scene.</summary>
     public static void ClearClientSessionState()
     {
+        if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
+        MH.Multiplayer.MultiplayerController.ClearLocalSession();
+        TrucoPhotonAuthentication.ClearSession();
         if (GetSessionUser != null)
         {
             GetSessionUser.Logout();
@@ -162,12 +165,7 @@ public static class ApiController
         try
         {
             string profileResponse = await HttpApiClient.GetAsync(ApiConfig.GetCurrentUserProfile);
-            UserProfileResponse userProfile = JsonUtility.FromJson<UserProfileResponse>(profileResponse);
-            User user = userProfile?.user;
-            if (user != null && string.IsNullOrEmpty(user._id) && !string.IsNullOrEmpty(user.id))
-                user._id = user.id;
-
-            if (userProfile != null && userProfile.success && user != null && !string.IsNullOrEmpty(user._id))
+            if (TrucoProfileContract.TryParse(profileResponse, out User user))
             {
                 if (GetSessionUser == null)
                 {
@@ -182,7 +180,7 @@ public static class ApiController
                 GetSessionUser.UpdateUserData(user);
                 TrucoWalletHudRefresh.Apply();
 
-                Debug.Log("[ApiController] - User Profile fetched: " + user.username);
+                Debug.Log("[ApiController] - User profile fetched.");
                 return true;
             }
             else
@@ -193,7 +191,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.Log("[ApiController] - Fetching User Profile failed: " + ex.Message);
+            Debug.Log("[ApiController] - Fetching User Profile failed: " + ex.GetType().Name);
             return false;
         }
     }
@@ -202,14 +200,14 @@ public static class ApiController
         try
         {
             string response = await HttpApiClient.GetAsync(ApiConfig.CheckAdmin);
-            Debug.Log("[ApiController] - Admin Check Response: " + response);
+            Debug.Log("[ApiController] - Admin check response received.");
 
             var result = JsonUtility.FromJson<AdminCheckResponse>(response);
             return result.ok && result.role == "admin";
         }
         catch (System.Exception ex)
         {
-            Debug.LogWarning("[ApiController] - Admin Check Failed: " + ex.Message);
+            Debug.LogWarning("[ApiController] - Admin Check Failed: " + ex.GetType().Name);
             return false;
         }
     }
@@ -234,7 +232,7 @@ public static class ApiController
         catch (Exception ex)
         {
             onErrorAction?.Invoke("Password recovery failed: " + ex.Message);
-            Debug.Log("[ApiController] - Password recovery failed: " + ex.Message);
+            Debug.Log("[ApiController] - Password recovery failed: " + ex.GetType().Name);
             return false;
         }
     }
@@ -258,7 +256,7 @@ public static class ApiController
         catch (Exception ex)
         {
             onErrorAction?.Invoke("Error Sending OTP: " + ex.Message);
-            Debug.Log("[ApiController] - Error Sending OTP: " + ex.Message);
+            Debug.Log("[ApiController] - Error Sending OTP: " + ex.GetType().Name);
             return false;
         }
 
@@ -286,7 +284,7 @@ public static class ApiController
         catch (Exception ex)
         {
             onErrorAction?.Invoke("Error Verifying OTP: " + ex.Message);
-            Debug.Log("[ApiController] - OTP Verification Failed: " + ex.Message);
+            Debug.Log("[ApiController] - OTP Verification Failed: " + ex.GetType().Name);
             return false;
         }
     }
@@ -300,11 +298,11 @@ public static class ApiController
         try
         {
             string response = await HttpApiClient.GetAsync(ApiConfig.ListTournaments);
-            Debug.Log(response);
+            Debug.Log("[ApiController] - Tournament list response received.");
 
             TournamentsListResponse tournamentsListResponse = JsonUtility.FromJson<TournamentsListResponse>(response);
 
-            if (tournamentsListResponse != null && tournamentsListResponse.tournaments.Count > 0)
+            if (tournamentsListResponse != null)
             {
                 if (GetActiveTournaments == null)
                 {
@@ -314,8 +312,9 @@ public static class ApiController
                     GetActiveTournaments = sessionObj.AddComponent<SessionTournament>();
                 }
 
-                GetActiveTournaments.UpdateTournaments(tournamentsListResponse.tournaments);
-                Debug.Log("[ApiController] - Tournament Exists: " + tournamentsListResponse.tournaments.Count);
+                var tournaments = tournamentsListResponse.tournaments ?? new System.Collections.Generic.List<Tournament>();
+                GetActiveTournaments.UpdateTournaments(tournaments);
+                Debug.Log("[ApiController] - Active tournaments: " + tournaments.Count);
 
                 return true;
             }
@@ -327,7 +326,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.Log("[ApiController] - Initialization Failed: " + ex.Message);
+            Debug.Log("[ApiController] - Initialization Failed: " + ex.GetType().Name);
 
             return false;
         }
@@ -392,7 +391,7 @@ public static class ApiController
                 // If exception message suggests a write conflict, retry a few times
                 if (!string.IsNullOrEmpty(ex.Message) && ex.Message.IndexOf("write conflict", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    Debug.LogWarning($"[ApiController] - Write conflict during EnterTournament (attempt {attempt}/{maxRetries}): {ex.Message}");
+                    Debug.LogWarning($"[ApiController] - Write conflict during EnterTournament (attempt {attempt}/{maxRetries}): {ex.GetType().Name}");
 
                     if (attempt < maxRetries)
                     {
@@ -402,7 +401,7 @@ public static class ApiController
                     else
                     {
                         onErrorAction?.Invoke("No se pudo entrar al torneo: " + ex.Message);
-                        Debug.Log("[ApiController] - Enter Tournament Failed after retries: " + ex.Message);
+                        Debug.Log("[ApiController] - Enter Tournament Failed after retries: " + ex.GetType().Name);
                         return false;
                     }
                 }
@@ -419,7 +418,7 @@ public static class ApiController
 
                 onErrorAction?.Invoke("No se pudo entrar al torneo: " + ex.Message);
 
-                Debug.Log("[ApiController] - Enter Tournament Failed: " + ex.Message);
+                Debug.Log("[ApiController] - Enter Tournament Failed: " + ex.GetType().Name);
                 return false;
             }
         }
@@ -441,12 +440,12 @@ public static class ApiController
             string response = await HttpApiClient.PostAsync(ApiConfig.ValidatePrivateTournament(tournamentId), json);
             ValidatePrivateTournamentResponse result = JsonUtility.FromJson<ValidatePrivateTournamentResponse>(response);
 
-            Debug.Log($"[ApiController] - Private tournament validated: {response}");
+            Debug.Log("[ApiController] - Private tournament validation response received.");
             return result.valid;
         }
         catch (Exception ex)
         {
-            Debug.Log($"[ApiController] - Validate private tournament failed: {ex.Message}");
+            Debug.Log($"[ApiController] - Validate private tournament failed: {ex.GetType().Name}");
             return false;
         }
     }
@@ -472,12 +471,7 @@ public static class ApiController
             // Convert to JSON
             string json = JsonUtility.ToJson(requestPayload);
 
-            // Log detailed information for debugging
-            Debug.Log("[ApiController] - Tournament match request:");
-            Debug.Log($"[ApiController] - Tournament ID: {tournamentId}");
-            Debug.Log($"[ApiController] - Player IDs: {string.Join(", ", playerIds)}");
-            Debug.Log($"[ApiController] - Entry Fee: {entryFee}");
-            Debug.Log($"[ApiController] - Full payload: {json}");
+            Debug.Log("[ApiController] - Tournament match creation requested for " + (playerIds?.Count ?? 0) + " players.");
 
             // Make the API call
             string response = await HttpApiClient.PostAsync(ApiConfig.CreateTournamentMatch(tournamentId), json);
@@ -490,13 +484,13 @@ public static class ApiController
             }
 
             LastTournamentMatchError = "El servidor no confirmó el identificador de la partida.";
-            Debug.Log($"[ApiController] - Create tournament match failed: {response}");
+            Debug.Log("[ApiController] - Create tournament match was not confirmed.");
             return null;
         }
         catch (Exception ex)
         {
             LastTournamentMatchError = ex.Message;
-            Debug.Log($"[ApiController] - Create tournament match failed: {ex.Message}");
+            Debug.Log($"[ApiController] - Create tournament match failed: {ex.GetType().Name}");
             return null;
         }
     }
@@ -519,45 +513,20 @@ public static class ApiController
             string json = JsonUtility.ToJson(finalizeData);
             string response = await HttpApiClient.PostAsync(ApiConfig.FinalizeMatch(tournamentId), json);
             if (!TrucoServerAcknowledgement.Accepted(response)) return false;
-            Debug.Log($"[ApiController] - Match finalized: {response}");
+            Debug.Log("[ApiController] - Match finalization response received.");
             TournamentFinalizeGuard.MarkDone(tournamentId, matchId, winnerId);
             return true;
         }
         catch (Exception ex)
         {
-            Debug.Log($"[ApiController] - Finalize match failed: {ex.Message}");
+            Debug.Log($"[ApiController] - Finalize match failed: {ex.GetType().Name}");
             return false;
         }
     }
     public static async Task<bool> FinalizeTournament(string tournamentId, string championIdStr)
     {
-        if (TournamentFinalizeGuard.AlreadyDone(tournamentId, "champion", championIdStr))
-        {
-            Debug.Log("[ApiController] - Finalize tournament skipped (already done): " + tournamentId);
-            return true;
-        }
-        try
-        {
-            FinalizeChampionRequest body = new FinalizeChampionRequest
-            {
-                championId = championIdStr
-            };
-
-            string json = JsonUtility.ToJson(body);
-
-            string response = await HttpApiClient.PostAsync(ApiConfig.FinalizeTournament(tournamentId), json);
-            if (!TrucoServerAcknowledgement.Accepted(response)) return false;
-            if (TrucoServerAcknowledgement.PrizePaid(response))
-                TournamentFinalizeGuard.MarkDone(tournamentId, "prize-paid", championIdStr);
-            Debug.Log("[ApiController] - Finalize Tournament Response: " + response);
-            TournamentFinalizeGuard.MarkDone(tournamentId, "champion", championIdStr);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Debug.Log("[ApiController] - Finalize Tournament Failed: " + ex.Message);
-            return false;
-        }
+        // This helper is called by the exceptional admin UIs; player finalization uses TrucoTournamentService.
+        return await TrucoAdminOperationService.SetChampion(tournamentId, championIdStr);
 
     }
 
@@ -565,14 +534,14 @@ public static class ApiController
     {
         try
         {
-            string response = await HttpApiClient.GetAsync(ApiConfig.GetTournament(tournamentId));
-            Tournament tournament = JsonUtility.FromJson<Tournament>(response);
+            var snapshot = await TrucoTournamentService.Get(tournamentId);
+            Tournament tournament = TrucoTournamentService.ToLegacyTournament(snapshot);
             Debug.Log($"[ApiController] - Tournament details fetched: {tournament.name}");
             return tournament;
         }
         catch (Exception ex)
         {
-            Debug.Log($"[ApiController] - Get tournament details failed: {ex.Message}");
+            Debug.Log($"[ApiController] - Get tournament details failed: {ex.GetType().Name}");
             return null;
         }
     }
@@ -587,7 +556,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.Log($"[ApiController] - Get tournament players failed: {ex.Message}");
+            Debug.Log($"[ApiController] - Get tournament players failed: {ex.GetType().Name}");
             return new List<User>();
         }
     }
@@ -600,7 +569,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.Log($"[ApiController] - Player validation failed: {ex.Message}");
+            Debug.Log($"[ApiController] - Player validation failed: {ex.GetType().Name}");
             return false;
         }
     }
@@ -623,7 +592,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.Log("[ApiController] - Initialization Failed: " + ex.Message);
+            Debug.Log("[ApiController] - Initialization Failed: " + ex.GetType().Name);
 
             return null;
         }
@@ -635,15 +604,15 @@ public static class ApiController
         try
         {
             string json = JsonUtility.ToJson(tournamentRequestAdmin);
-            string response = await HttpApiClient.PostAsync(ApiConfig.ListTournaments, json);
-            Debug.Log("[ApiController] - Create Tournament Response: " + response);
+            string response = await HttpApiClient.PostAsync(ApiConfig.CreateTournament, json);
+            Debug.Log("[ApiController] - Tournament creation response received.");
 
             onSuccessAction?.Invoke();
             return true;
         }
         catch (Exception ex)
         {
-            Debug.Log("[ApiController] - Create Tournament Failed: " + ex.Message);
+            Debug.Log("[ApiController] - Create Tournament Failed: " + ex.GetType().Name);
             onErrorAction?.Invoke(ex.Message);
             return false;
         }
@@ -651,35 +620,12 @@ public static class ApiController
 
     public static async Task<bool> AdminForceCloseTournament(string tournamentId, string reason = "admin-force-close")
     {
-        if (string.IsNullOrEmpty(tournamentId)) return false;
-        try
-        {
-            var body = new AdminForceCloseTournamentRequest { tournamentId = tournamentId, reason = reason };
-            string json = JsonUtility.ToJson(body);
-            string response = await HttpApiClient.PostAsync(ApiConfig.AdminForceCloseTournament(tournamentId), json);
-            return TrucoServerAcknowledgement.Accepted(response);
-        }
-        catch (Exception ex)
-        {
-            Debug.LogWarning("[ApiController] force-close tournament: " + ex.Message);
-            return false;
-        }
+        return await TrucoAdminOperationService.ForceClose(tournamentId, reason);
     }
 
     public static async Task<bool> AdminCreditUserCoins(string userId, int amount, string reason)
     {
-        if (string.IsNullOrEmpty(userId) || amount <= 0 || string.IsNullOrWhiteSpace(reason)) return false;
-        try
-        {
-            var body = new AdminCreditCoinsRequest { userId = userId, amount = amount, reason = reason ?? "" };
-            string response = await HttpApiClient.PostAsync(ApiConfig.AddUserCoins(userId), JsonUtility.ToJson(body));
-            return TrucoServerAcknowledgement.Accepted(response);
-        }
-        catch (Exception ex)
-        {
-            Debug.LogWarning("[ApiController] credit coins: " + ex.Message);
-            return false;
-        }
+        return await TrucoAdminOperationService.Credit(userId, amount, reason);
     }
 
     public static async Task<string> FetchDashboardOnlinePlayersRaw()
@@ -834,7 +780,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.Log("[ApiController] - FetchPlayer1v1MatchList: " + ex.Message);
+            Debug.Log("[ApiController] - FetchPlayer1v1MatchList: " + ex.GetType().Name);
         }
         return result;
     }
@@ -845,7 +791,7 @@ public static class ApiController
         {
             string json = JsonUtility.ToJson(body);
             string response = await HttpApiClient.PostAsync(ApiConfig.PlayerCreateMatch, json);
-            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "player-create: " + response);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "player-create response received.");
             if (string.IsNullOrEmpty(response) || !response.Contains("{"))
             {
                 onError?.Invoke(response ?? "Error al crear la sala (backend).");
@@ -863,7 +809,7 @@ public static class ApiController
         catch (Exception ex)
         {
             onError?.Invoke(ex.Message);
-            Debug.Log("[ApiController] - PlayerCreate1v1Match: " + ex);
+            Debug.Log("[ApiController] - PlayerCreate1v1Match: " + ex.GetType().Name);
             return null;
         }
     }
@@ -876,7 +822,7 @@ public static class ApiController
             var body = new RegisterPhotonRoomRequest { photonRoomName = photonRoomName, roomName = photonRoomName };
             string json = JsonUtility.ToJson(body);
             string response = await HttpApiClient.PostAsync(ApiConfig.MatchRegisterPhotonRoom(matchId), json);
-            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "photon-room: " + response);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "photon-room response received.");
             return true;
         }
         catch (Exception ex)
@@ -892,7 +838,7 @@ public static class ApiController
         {
             string body = string.IsNullOrEmpty(password) ? "{}" : JsonUtility.ToJson(new PlayerMatchJoinRequest { password = password });
             string response = await HttpApiClient.PostAsync(ApiConfig.PlayerJoinMatch(matchId), body);
-            TrucoDebugLog.Always(TrucoDebugLog.Category.Api, "POST /join response: " + response);
+            TrucoDebugLog.Always(TrucoDebugLog.Category.Api, "POST /join response received.");
             if (string.IsNullOrEmpty(response) || !response.Contains("{"))
             {
                 onError?.Invoke(response ?? "Error al unirse.");
@@ -933,7 +879,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            TrucoDebugLog.Error(TrucoDebugLog.Category.Api, "POST /join exception: " + ex.Message);
+            TrucoDebugLog.Error(TrucoDebugLog.Category.Api, "POST /join exception: " + ex.GetType().Name);
             if (OneVsOneLobbyFlowRules.IsMatchFullApiError(ex.Message))
             {
                 var verify = await GetMatch1v1(matchId);
@@ -1006,7 +952,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.LogWarning("[ApiController] - GetMatch1v1: " + ex.Message);
+            Debug.LogWarning("[ApiController] - GetMatch1v1: " + ex.GetType().Name);
         }
         return null;
     }
@@ -1155,7 +1101,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.LogWarning("[ApiController] ProbeMatchSettlement1v1: " + ex.Message);
+            Debug.LogWarning("[ApiController] ProbeMatchSettlement1v1: " + ex.GetType().Name);
         }
         return probe;
     }
@@ -1215,7 +1161,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            TrucoRulesScenarioLog.BackendFail("CancelMutualDisconnectIfUnsettled1v1 probe", ex.Message);
+            TrucoRulesScenarioLog.BackendFail("CancelMutualDisconnectIfUnsettled1v1 probe", ex.GetType().Name);
         }
 
         // Nobody settled it: both seats really dropped — same cancel+refund as before.
@@ -1473,8 +1419,8 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            TrucoRulesScenarioLog.BackendFail("CancelMutualDisconnect1v1", ex.Message);
-            Debug.LogWarning("[ApiController] CancelMutualDisconnect1v1: " + ex.Message);
+            TrucoRulesScenarioLog.BackendFail("CancelMutualDisconnect1v1", ex.GetType().Name);
+            Debug.LogWarning("[ApiController] CancelMutualDisconnect1v1: " + ex.GetType().Name);
         }
     }
 
@@ -1502,8 +1448,8 @@ public static class ApiController
         catch (Exception ex)
         {
             onError?.Invoke(ex.Message);
-            TrucoRulesScenarioLog.BackendFail("POST /walkover", ex.Message);
-            Debug.LogWarning("[ApiController] - ClaimWalkover1v1: " + ex.Message);
+            TrucoRulesScenarioLog.BackendFail("POST /walkover", ex.GetType().Name);
+            Debug.LogWarning("[ApiController] - ClaimWalkover1v1: " + ex.GetType().Name);
             return false;
         }
     }
@@ -1563,7 +1509,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.LogWarning("[ApiController] - TryStartMatchGame1v1: " + ex.Message);
+            Debug.LogWarning("[ApiController] - TryStartMatchGame1v1: " + ex.GetType().Name);
         }
     }
 
@@ -1573,11 +1519,11 @@ public static class ApiController
         try
         {
             string live = await HttpApiClient.GetAsync(ApiConfig.DashboardRealtimeActiveMatches);
-            Debug.Log("[ApiController] - dashboard active-matches: " + (live != null && live.Length > 500 ? live.Substring(0, 500) + "…" : live));
+            Debug.Log("[ApiController] - Dashboard active-match response received.");
             var fromDash = TryParsePlayerMatchListJson(live);
             if (fromDash != null) merged.AddRange(fromDash);
         }
-        catch (Exception ex) { Debug.LogWarning("[ApiController] - dashboard: " + ex.Message); }
+        catch (Exception ex) { Debug.LogWarning("[ApiController] - dashboard: " + ex.GetType().Name); }
         if (merged.Count == 0)
         {
             try
@@ -1586,7 +1532,7 @@ public static class ApiController
                 var list = TryParsePlayerMatchListJson(m);
                 if (list != null) merged = list;
             }
-            catch (Exception ex) { Debug.LogWarning("[ApiController] - GET /matches: " + ex.Message); }
+            catch (Exception ex) { Debug.LogWarning("[ApiController] - GET /matches: " + ex.GetType().Name); }
         }
         if (merged.Count == 0)
         {
@@ -1596,7 +1542,7 @@ public static class ApiController
                 var list = TryParsePlayerMatchListJson(admin);
                 if (list != null) merged = list;
             }
-            catch (Exception ex) { Debug.LogWarning("[ApiController] - admin/matches: " + ex.Message); }
+            catch (Exception ex) { Debug.LogWarning("[ApiController] - admin/matches: " + ex.GetType().Name); }
         }
         return merged;
     }
@@ -1629,14 +1575,14 @@ public static class ApiController
             {
                 string msg = "match-token response missing token field";
                 onError?.Invoke(msg);
-                TrucoRulesScenarioLog.BackendFail("POST /match-token", msg + " raw=" + TruncateForLog(response, 120));
+                TrucoRulesScenarioLog.BackendFail("POST /match-token", msg + "; response body omitted");
             }
             return token;
         }
         catch (Exception ex)
         {
             onError?.Invoke(ex.Message);
-            TrucoRulesScenarioLog.BackendFail("POST /match-token", "match=" + matchId + " err=" + ex.Message);
+            TrucoRulesScenarioLog.BackendFail("POST /match-token", "match=" + matchId + " err=" + ex.GetType().Name);
             return null;
         }
     }
@@ -1700,8 +1646,7 @@ public static class ApiController
                 + " hasToken=" + !string.IsNullOrEmpty(matchToken));
             string response = await HttpApiClient.PostAsync(url, json, requireGameSecret: true, matchToken: matchToken);
             TrucoRulesScenarioLog.Backend("POST /result OK",
-                "match=" + matchId + " winner=" + winnerUserId
-                + " response=" + TruncateForLog(response, 200));
+                "match=" + matchId + " winner=" + winnerUserId + "; response received");
             Debug.Log("[ApiController] - match result reported: " + matchId);
             return true;
         }
@@ -1710,15 +1655,9 @@ public static class ApiController
             onError?.Invoke(ex.Message);
             TrucoRulesScenarioLog.BackendFail("POST /result",
                 "match=" + matchId + " winner=" + winnerUserId + " err=" + ex.Message);
-            Debug.LogWarning("[ApiController] - SubmitMatchResult1v1: " + ex.Message);
+            Debug.LogWarning("[ApiController] - SubmitMatchResult1v1: " + ex.GetType().Name);
             return false;
         }
-    }
-
-    static string TruncateForLog(string s, int max)
-    {
-        if (string.IsNullOrEmpty(s)) return "";
-        return s.Length <= max ? s : s.Substring(0, max) + "…";
     }
 
     /// <summary>
@@ -1745,8 +1684,8 @@ public static class ApiController
                     "match leave benign (treat OK): " + matchId + " — " + ex.Message);
                 return true;
             }
-            TrucoRulesScenarioLog.BackendFail("POST /leave", "match=" + matchId + " err=" + ex.Message);
-            Debug.LogWarning("[ApiController] - TryNotifyPlayerLeftMatch1v1: " + ex.Message);
+            TrucoRulesScenarioLog.BackendFail("POST /leave", "match=" + matchId + " err=" + ex.GetType().Name);
+            Debug.LogWarning("[ApiController] - TryNotifyPlayerLeftMatch1v1: " + ex.GetType().Name);
             return false;
         }
     }
@@ -1798,7 +1737,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "TryEndMatch1v1: " + ex.Message);
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "TryEndMatch1v1: " + ex.GetType().Name);
             return false;
         }
     }
@@ -1825,7 +1764,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
-            Debug.LogWarning("[ApiController] - TryEndMatch1v1 (set MatchEnd path in TrucoApiEndpoints when backend is ready): " + ex.Message);
+            Debug.LogWarning("[ApiController] - TryEndMatch1v1 (set MatchEnd path in TrucoApiEndpoints when backend is ready): " + ex.GetType().Name);
         }
     }
 
@@ -1938,8 +1877,11 @@ public static class ApiController
         if (string.IsNullOrEmpty(matchId)) return false;
         try
         {
-            await HttpApiClient.PostAsync(ApiConfig.AdminForceCloseMatch(matchId), "{}");
-            return true;
+            if (!await CheckUserAdmin()) return false;
+            string response = await HttpApiClient.PostAsync(ApiConfig.AdminForceCloseMatch(matchId), "{}");
+            bool confirmed = TrucoServerAcknowledgement.MatchClosureConfirmed(response, matchId);
+            if (!confirmed) onError?.Invoke("El servidor no confirmó el cierre y la devolución de entradas.");
+            return confirmed;
         }
         catch (Exception ex)
         {

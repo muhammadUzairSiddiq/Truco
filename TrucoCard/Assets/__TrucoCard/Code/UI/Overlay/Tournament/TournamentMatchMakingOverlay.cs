@@ -97,7 +97,7 @@ public class TournamentMatchmakingOverlay : MonoBehaviour
     }
     public void CancelTournmentMatchmaking()
     {
-        MultiplayerController.LeaveTournamentMatchmaking(() =>
+        _ = MultiplayerController.LeaveTournamentByPlayerAsync(() =>
         {
             _contentHolder.gameObject.SetActive(false);
         });

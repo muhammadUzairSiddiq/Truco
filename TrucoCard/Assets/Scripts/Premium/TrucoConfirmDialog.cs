@@ -44,7 +44,7 @@ public static class TrucoConfirmDialog
         if (cv != null)
         {
             cv.overrideSorting = true;
-            cv.sortingOrder = 40000;
+            cv.sortingOrder = TrucoCanvasOrder.Confirm;
         }
         _root.transform.SetAsLastSibling();
     }
@@ -87,7 +87,7 @@ public static class TrucoConfirmDialog
             var cv = overlayGo.AddComponent<Canvas>();
             cv.renderMode = RenderMode.ScreenSpaceOverlay;
             cv.overrideSorting = true;
-            cv.sortingOrder = 40000;
+            cv.sortingOrder = TrucoCanvasOrder.Confirm;
             overlayGo.AddComponent<GraphicRaycaster>();
             UnityEngine.Object.DontDestroyOnLoad(overlayGo);
         }
@@ -103,7 +103,7 @@ public static class TrucoConfirmDialog
         rootRt.offsetMax = Vector2.zero;
         var rootCv = _root.AddComponent<Canvas>();
         rootCv.overrideSorting = true;
-        rootCv.sortingOrder = 40000;
+        rootCv.sortingOrder = TrucoCanvasOrder.Confirm;
         _root.AddComponent<GraphicRaycaster>();
         var scrim = _root.AddComponent<Image>();
         scrim.color = TrucoUiTheme.OverlayScrim;

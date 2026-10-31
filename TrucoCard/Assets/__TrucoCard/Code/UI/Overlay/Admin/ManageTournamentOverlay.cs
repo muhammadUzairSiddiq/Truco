@@ -38,8 +38,7 @@ public class ManageTournamentOverlay : MonoBehaviour
 
     void Build()
     {
-        if (FindObjectOfType<EventSystem>() == null)
-            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        TrucoEventSystem.Ensure();
 
         _root = new GameObject("ManageModal");
         _root.transform.SetParent(transform, false);
@@ -99,7 +98,7 @@ public class ManageTournamentOverlay : MonoBehaviour
             {
                 bool ok = await ApiController.AdminForceCloseTournament(_data._id);
                 TrucoAdminAuditLog.Record("FORCE_CLOSE_TOURNAMENT", _data._id + " ok=" + ok);
-                AppManager.Instance?.DisplayNotification(ok ? "Torneo cerrado." : "No se pudo cerrar el torneo.");
+                AppManager.Instance?.DisplayNotification(ok ? "Cierre y reintegros confirmados." : "Cierre sin confirmar. Revisá la auditoría o reintentá la misma acción.");
             });
     }
 
@@ -120,7 +119,7 @@ public class ManageTournamentOverlay : MonoBehaviour
             {
                 bool ok = await ApiController.FinalizeTournament(_data._id, uid);
                 TrucoAdminAuditLog.Record("MANUAL_CHAMPION", _data._id + " → " + uid + " ok=" + ok);
-                AppManager.Instance?.DisplayNotification(ok ? "Campeón fijado." : "No se pudo fijar el campeón.");
+                AppManager.Instance?.DisplayNotification(ok ? "Campeón confirmado por el servidor." : "Campeón sin confirmar. Revisá la auditoría o reintentá la misma acción.");
             });
     }
 
@@ -141,7 +140,7 @@ public class ManageTournamentOverlay : MonoBehaviour
             {
                 bool ok = await ApiController.AdminCreditUserCoins(uid, amt, reason);
                 TrucoAdminAuditLog.Record("MANUAL_PRIZE", uid + " +" + amt + " ok=" + ok);
-                AppManager.Instance?.DisplayNotification(ok ? "Premio acreditado." : "No se pudo acreditar.");
+                AppManager.Instance?.DisplayNotification(ok ? "Crédito confirmado por el servidor." : "Crédito sin confirmar. Revisá la auditoría o reintentá con los mismos datos.");
             });
     }
 

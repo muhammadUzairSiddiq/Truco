@@ -13,6 +13,7 @@ public static class TrucoNotificationPanelUi
     public static void Ensure(Transform notificationPanel)
     {
         if (notificationPanel == null) return;
+        TrucoMenuTheme.Background(notificationPanel);
         _panelRoot = notificationPanel;
         if (notificationPanel.Find(BuiltName) != null)
         {
@@ -28,8 +29,8 @@ public static class TrucoNotificationPanelUi
         var rt = root.GetComponent<RectTransform>();
         rt.anchorMin = Vector2.zero;
         rt.anchorMax = Vector2.one;
-        rt.offsetMin = new Vector2(0f, 100f);
-        rt.offsetMax = new Vector2(0f, -20f);
+        rt.offsetMin = new Vector2(0f, 210f);
+        rt.offsetMax = Vector2.zero;
 
         var header = new GameObject("Header", typeof(RectTransform), typeof(Image));
         header.transform.SetParent(root.transform, false);
@@ -37,19 +38,17 @@ public static class TrucoNotificationPanelUi
         hrt.anchorMin = new Vector2(0f, 1f);
         hrt.anchorMax = new Vector2(1f, 1f);
         hrt.pivot = new Vector2(0.5f, 1f);
-        hrt.sizeDelta = new Vector2(0f, 96f);
+        hrt.sizeDelta = new Vector2(0f, 180f);
         var hImg = header.GetComponent<Image>();
-        var wood = TrucoUiAssetLoader.Panel;
-        if (wood != null) { hImg.sprite = wood; hImg.type = Image.Type.Sliced; hImg.color = Color.white; }
-        else hImg.color = new Color(0.44f, 0.30f, 0.20f, 1f);
+        TrucoMenuTheme.Surface(hImg, TrucoMenuTheme.Brown, false);
         var titleGo = new GameObject("Title", typeof(RectTransform));
         titleGo.transform.SetParent(header.transform, false);
         Stretch(titleGo.GetComponent<RectTransform>());
         var title = titleGo.AddComponent<TextMeshProUGUI>();
         title.text = TrucoTextosClient.NotificacionesTitulo.ToUpperInvariant();
         title.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
-        title.fontSize = 36f;
-        title.color = Color.white;
+        title.fontSize = 44f;
+        title.color = TrucoMenuTheme.Gold;
         title.alignment = TextAlignmentOptions.Center;
 
         var scrollGo = new GameObject("Scroll", typeof(RectTransform));
@@ -57,8 +56,8 @@ public static class TrucoNotificationPanelUi
         var srt = scrollGo.GetComponent<RectTransform>();
         srt.anchorMin = Vector2.zero;
         srt.anchorMax = Vector2.one;
-        srt.offsetMin = new Vector2(16f, 12f);
-        srt.offsetMax = new Vector2(-16f, -104f);
+        srt.offsetMin = new Vector2(38f, 24f);
+        srt.offsetMax = new Vector2(-38f, -216f);
         var scroll = scrollGo.AddComponent<ScrollRect>();
         scroll.horizontal = false;
         scroll.movementType = ScrollRect.MovementType.Clamped;
@@ -68,7 +67,7 @@ public static class TrucoNotificationPanelUi
         viewport.transform.SetParent(scrollGo.transform, false);
         var vrt = viewport.GetComponent<RectTransform>();
         Stretch(vrt);
-        viewport.AddComponent<Image>().color = new Color(0.75f, 0.71f, 0.66f, 0.92f);
+        viewport.AddComponent<Image>().color = Color.clear;
         viewport.AddComponent<RectMask2D>();
 
         _content = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
@@ -79,7 +78,7 @@ public static class TrucoNotificationPanelUi
         _content.anchoredPosition = Vector2.zero;
         _content.sizeDelta = new Vector2(0f, 0f);
         var v = _content.gameObject.AddComponent<VerticalLayoutGroup>();
-        v.spacing = 12f;
+        v.spacing = 20f;
         v.padding = new RectOffset(8, 8, 8, 16);
         v.childControlHeight = true;
         v.childControlWidth = true;
@@ -96,8 +95,9 @@ public static class TrucoNotificationPanelUi
         Stretch(ert);
         _emptyLabel = emptyGo.AddComponent<TextMeshProUGUI>();
         _emptyLabel.text = TrucoTextosClient.NotificacionesVacio;
-        _emptyLabel.fontSize = 26f;
-        _emptyLabel.color = new Color(0.35f, 0.32f, 0.28f, 1f);
+        _emptyLabel.text = "ESTÁS AL DÍA\n\nTus novedades aparecerán acá.";
+        _emptyLabel.fontSize = 32f;
+        _emptyLabel.color = TrucoMenuTheme.Secondary;
         _emptyLabel.alignment = TextAlignmentOptions.Center;
         _emptyLabel.raycastTarget = false;
 
@@ -120,7 +120,7 @@ public static class TrucoNotificationPanelUi
     {
         if (_content == null) return;
         for (int i = _content.childCount - 1; i >= 0; i--)
-            Object.Destroy(_content.GetChild(i).gameObject);
+            TrucoMenuTheme.DestroyUI(_content.GetChild(i).gameObject);
 
         var entries = TrucoNotificationLog.Entries;
         if (_emptyLabel != null) _emptyLabel.gameObject.SetActive(entries.Count == 0);
@@ -128,16 +128,25 @@ public static class TrucoNotificationPanelUi
         for (int i = 0; i < entries.Count; i++)
             CreateRow(_content, entries[i], f);
     }
+#if UNITY_EDITOR
+    public static void EditorPreview(System.Collections.Generic.IReadOnlyList<TrucoNotificationLog.Entry> entries)
+    {
+        if (_content == null) return;
+        for (int i = _content.childCount - 1; i >= 0; i--) TrucoMenuTheme.DestroyUI(_content.GetChild(i).gameObject);
+        if (_emptyLabel != null) _emptyLabel.gameObject.SetActive(entries.Count == 0);
+        foreach (var entry in entries) CreateRow(_content, entry, TMP_Settings.defaultFontAsset);
+    }
+#endif
 
     static void CreateRow(Transform parent, TrucoNotificationLog.Entry e, TMP_FontAsset font)
     {
         var go = new GameObject("Row", typeof(RectTransform));
         go.transform.SetParent(parent, false);
         var le = go.AddComponent<LayoutElement>();
-        le.minHeight = 96f;
-        le.preferredHeight = 104f;
+        le.minHeight = 148f;
+        le.preferredHeight = 164f;
         var bg = go.AddComponent<Image>();
-        bg.color = new Color(0.44f, 0.30f, 0.20f, 0.95f);
+        TrucoMenuTheme.Surface(bg, TrucoMenuTheme.Card);
 
         var stripe = new GameObject("Stripe", typeof(RectTransform), typeof(Image));
         stripe.transform.SetParent(go.transform, false);
@@ -155,16 +164,16 @@ public static class TrucoNotificationPanelUi
         crt.anchorMax = new Vector2(1f, 1f);
         crt.pivot = new Vector2(1f, 1f);
         crt.anchoredPosition = new Vector2(-12f, -10f);
-        crt.sizeDelta = new Vector2(120f, 32f);
+        crt.sizeDelta = new Vector2(160f, 40f);
         chipGo.GetComponent<Image>().color = KindColor(e.kind) * new Color(1f, 1f, 1f, 0.35f);
         var chipTxtGo = new GameObject("ChipText", typeof(RectTransform));
         chipTxtGo.transform.SetParent(chipGo.transform, false);
         Stretch(chipTxtGo.GetComponent<RectTransform>());
         var chip = chipTxtGo.AddComponent<TextMeshProUGUI>();
         chip.text = KindLabel(e.kind);
-        chip.fontSize = 18f;
+        chip.fontSize = 22f;
         chip.fontStyle = FontStyles.Bold;
-        chip.color = Color.white;
+        chip.color = TrucoMenuTheme.Ink;
         chip.alignment = TextAlignmentOptions.Center;
 
         var timeGo = new GameObject("Time", typeof(RectTransform));
@@ -174,11 +183,11 @@ public static class TrucoNotificationPanelUi
         trt.anchorMax = new Vector2(0f, 1f);
         trt.pivot = new Vector2(0f, 1f);
         trt.anchoredPosition = new Vector2(18f, -10f);
-        trt.sizeDelta = new Vector2(80f, 28f);
+        trt.sizeDelta = new Vector2(120f, 36f);
         var time = timeGo.AddComponent<TextMeshProUGUI>();
         time.text = e.time;
-        time.fontSize = 20f;
-        time.color = new Color(0.9f, 0.85f, 0.7f, 1f);
+        time.fontSize = 24f;
+        time.color = TrucoMenuTheme.Secondary;
         if (font != null) time.font = font;
 
         var msgGo = new GameObject("Message", typeof(RectTransform));
@@ -186,13 +195,13 @@ public static class TrucoNotificationPanelUi
         var mrt = msgGo.GetComponent<RectTransform>();
         mrt.anchorMin = new Vector2(0f, 0f);
         mrt.anchorMax = new Vector2(1f, 1f);
-        mrt.offsetMin = new Vector2(18f, 12f);
-        mrt.offsetMax = new Vector2(-140f, -36f);
+        mrt.offsetMin = new Vector2(24f, 16f);
+        mrt.offsetMax = new Vector2(-190f, -48f);
         var msg = msgGo.AddComponent<TextMeshProUGUI>();
         msg.text = e.message;
-        msg.fontSize = 24f;
+        msg.fontSize = 28f;
         msg.fontStyle = FontStyles.Bold;
-        msg.color = Color.white;
+        msg.color = TrucoMenuTheme.Ink;
         msg.enableWordWrapping = true;
         if (font != null) msg.font = font;
     }

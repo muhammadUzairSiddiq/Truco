@@ -48,12 +48,12 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
 
     void Update()
     {
-        if (TrucoMatchPlayGate.IsLiveTable()) _hadPlayableTable = true;
+        if (TrucoMatchPlayGate.IsLiveTable() && TrucoTournamentHandReady.BothPrepared()) _hadPlayableTable = true;
         if (_opponentWatch != null) return;
         if (!IsGameplayScene() || SpectatorContext.IsSpectator) return;
         if (GameManager.Instance != null && GameManager.Instance._gameEnded) return;
         if (!PhotonNetwork.InRoom) return;
-        if (!TrucoMatchPlayGate.IsLiveTable()) return;
+        if (!TrucoMatchPlayGate.IsLiveTable() || !_hadPlayableTable) return;
         if (IsOpponentInactiveOrGone())
             TryStartOpponentWatch();
     }
@@ -239,12 +239,19 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
             if (stepAccum >= _retryStepSeconds)
             {
                 stepAccum = 0f;
-                if (PhotonNetwork.ReconnectAndRejoin())
+                string currentUser = ApiController.GetSessionUser?.Data?._id;
+                bool verifiedIdentity = !string.IsNullOrWhiteSpace(currentUser)
+                    && PhotonNetwork.AuthValues?.AuthType == CustomAuthenticationType.Custom
+                    && PhotonNetwork.AuthValues.UserId == currentUser;
+#if UNITY_EDITOR
+                verifiedIdentity |= TrucoDevelopmentSettings.IsIsolatedNetworkRoom(TrucoRoomPersistence.LastRoomName());
+#endif
+                if (verifiedIdentity && PhotonNetwork.ReconnectAndRejoin())
                 {
                     yield return new WaitForSecondsRealtime(0.5f);
                     if (PhotonNetwork.InRoom) { OnReconnectedOk(); yield break; }
                 }
-                if (!PhotonNetwork.IsConnected) PhotonNetwork.Reconnect();
+                if (verifiedIdentity && !PhotonNetwork.IsConnected) PhotonNetwork.Reconnect();
             }
             yield return null;
         }
@@ -290,10 +297,28 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         if (string.IsNullOrEmpty(room)) room = TrucoRoomPersistence.LastRoomName();
         if (string.IsNullOrEmpty(room)) yield break;
 
-        if (!PhotonNetwork.IsConnected)
+#if UNITY_EDITOR
+        if (TrucoDevelopmentSettings.IsIsolatedNetworkRoom(room))
         {
-            TrucoPhotonRegionSettings.ApplyToPhoton();
-            PhotonNetwork.ConnectUsingSettings();
+            if (!PhotonNetwork.IsConnected)
+            {
+                var staging = TrucoDevelopmentSettings.CreateStagingPhotonSettings();
+                if (staging == null || !PhotonNetwork.ConnectUsingSettings(staging)) yield break;
+            }
+        }
+        else
+#endif
+        {
+            bool tournament = MH.Multiplayer.MultiplayerController.IsTournamentActive;
+            var connection = TrucoPhotonAuthentication.ConnectUsingSettingsAsync(tournament ? "tournament" : "one_vs_one",
+                tournament ? MH.Multiplayer.MultiplayerController.CurrentTournamentRequest?.TournamentId : null,
+                tournament ? MH.Multiplayer.MultiplayerController.ActiveMatch?.matchId : OneVsOneMatchSession.CurrentMatchId, room);
+            while (!connection.IsCompleted && Time.unscaledTime < phase2EndTime)
+            {
+                _ui?.Show(TrucoTextosClient.ReconectandoOverlay, Mathf.Max(0, Mathf.CeilToInt(phase2EndTime - Time.unscaledTime)));
+                yield return null;
+            }
+            if (!connection.IsCompleted || connection.IsFaulted || connection.IsCanceled || !connection.Result) yield break;
         }
 
         while (Time.unscaledTime < phase2EndTime)

@@ -16,6 +16,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
     private Coroutine _turnTimeoutRoutine;
     private Coroutine _opponentTurnDisplayRoutine;
     private double _currentTurnStartedAt;
+    private bool _hasStartedHand;
+    private Coroutine _preparationStartRoutine;
     const float TurnTimeoutSeconds = 30f;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
@@ -62,6 +64,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
+        if (TryResumePreparedTournamentHand(newMasterClient != null && newMasterClient.Equals(PhotonNetwork.LocalPlayer))) return;
         // Never re-deal mid-hand (disconnect → master rotate). That blanks cards and desyncs the mano.
         if (GameManager.Instance != null &&
             (GameManager.Instance._gameEnded
@@ -83,6 +86,19 @@ public class TurnManager : MonoBehaviourPunCallbacks
             GameManager.Instance.SetCards();
             StartTheTurn();
         }
+    }
+
+    public static bool ShouldResumePreparedTournamentHand(bool tournament, bool localMaster, bool dealt,
+        bool turnStarted, bool outcomeLocked) => tournament && localMaster && dealt && !turnStarted && !outcomeLocked;
+
+    public bool TryResumePreparedTournamentHand(bool localMaster = true)
+    {
+        var game = GameManager.Instance;
+        if (game == null || !ShouldResumePreparedTournamentHand(MH.Multiplayer.MultiplayerController.IsTournamentActive,
+            localMaster && PhotonNetwork.IsMasterClient, game.HasHandBeenDealt(), _hasStartedHand, game.IsHandOutcomeLocked() || game.IsMatchEndPending())) return false;
+        // Dealt cards retain their actor ownership across migration. Only resume the barrier.
+        StartTheTurn();
+        return true;
     }
 
     // This function is called to start the turn of the players
@@ -113,12 +129,33 @@ public class TurnManager : MonoBehaviourPunCallbacks
             + " firstActor=" + turnNumber
             + " turnIndex=" + currentTurnIndex
             + " order=" + string.Join(",", _turnOrder));
-        StartTurn(turnNumber);
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
+        {
+            if (_preparationStartRoutine != null) StopCoroutine(_preparationStartRoutine);
+            _preparationStartRoutine = StartCoroutine(StartPreparedTournamentHand(turnNumber));
+        }
+        else StartTurn(turnNumber);
+    }
+
+    IEnumerator StartPreparedTournamentHand(string turnNumber)
+    {
+        GameManager.Instance.SetCanPlayCard(false);
+        UIMANAGER.Instance.DisableButtons();
+        while (!TrucoTournamentHandReady.BothPrepared())
+        {
+            if (!MH.Multiplayer.MultiplayerController.IsTournamentActive || !PhotonNetwork.InRoom
+                || !PhotonNetwork.IsMasterClient || GameManager.Instance == null || GameManager.Instance.IsHandOutcomeLocked()
+                || GameManager.Instance.IsMatchEndPending()) yield break;
+            yield return null;
+        }
+        if (!_hasStartedHand) StartTurn(turnNumber);
+        _preparationStartRoutine = null;
     }
     
     // This function is called to start the turn of the players over network
     private void StartTurn(string turnNumber)
     {
+        if (!PhotonNetwork.IsMasterClient || string.IsNullOrEmpty(turnNumber)) return;
         double startedAt = PhotonNetwork.Time;
         photonView.RPC(nameof(Turn), RpcTarget.All, turnNumber, startedAt);
     }
@@ -141,6 +178,9 @@ public class TurnManager : MonoBehaviourPunCallbacks
             return;
         }
         if (!TrucoMatchPlayGate.IsLiveTable()) return;
+        _hasStartedHand = true;
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
+            TrucoTournamentStatusScreen.SetPhase(TrucoTournamentPhase.Playing);
         if (_turnTimeoutRoutine != null)
         {
             StopCoroutine(_turnTimeoutRoutine);
@@ -445,18 +485,26 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
     private string GetCurrentPlayerTurn()
     {
+        if (_turnOrder.Count == 0 || currentTurnIndex < 0 || currentTurnIndex >= _turnOrder.Count) return null;
         string currentPlayerId = _turnOrder[currentTurnIndex];
         return currentPlayerId;
     }
 
     public int GetCurrentTurnActorNumber()
     {
+        if (!_hasStartedHand) return 0;
         string id = GetCurrentPlayerTurn();
-        return int.TryParse(id, out int n) ? n : PhotonNetwork.LocalPlayer.ActorNumber;
+        return int.TryParse(id, out int n) ? n : 0;
     }
 
     /// <summary>Authoritative Photon timestamp when the current turn clock started.</summary>
     public double GetTurnStartedAtPhoton() => _currentTurnStartedAt;
+
+    public void RestoreHandStartFromSync(int actor, double startedAt)
+    {
+        _hasStartedHand = actor > 0 && startedAt > 0;
+        if (_hasStartedHand) _currentTurnStartedAt = startedAt;
+    }
 
     public void ResumeTurnAfterSync(int turnActor)
     {

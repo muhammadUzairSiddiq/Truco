@@ -31,11 +31,13 @@ public class MainMenuManager : MonoBehaviour
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.PleaseWait);
 
 
-        MultiplayerController.LeaveTournamentMatchmaking(async () =>
+        async void LoadProfileAndResume()
         {
+            try
+            {
             await ApiController.GetCurrentUserProfile();
             TrucoDebugLog.Always(TrucoDebugLog.Category.MainMenu,
-                "MainMenu profile loaded user=" + (ApiController.GetSessionUser?.Data?.username ?? "?"));
+                "MainMenu profile loaded.");
             // Abandoned unused rooms: refund on next login even if the previous process was killed.
             await ApiController.DrainPendingEntryRefundsAsync();
             await OneVsOneMatchLifecycle.PurgeAllMyActiveLobbyMatchesAsync();
@@ -48,8 +50,18 @@ public class MainMenuManager : MonoBehaviour
             MainMenuViewCoordinator.EnsureBottomNavVisible();
             RegisterButtonEvents();
             TrucoClientMemory.UnloadUnusedAfterMenuReady(this);
-
-        });
+            if (MultiplayerController.IsTournamentActive) await MultiplayerController.RefreshAuthoritativeStateAsync();
+            else await MultiplayerController.TryResumeTournamentAsync();
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogWarning("Menu profile/resume pending: " + exception.GetType().Name);
+                AppManager.Instance?.DisplayNotification("No se pudo actualizar la sesión. Volvé a intentar.");
+            }
+            finally { AppManager.Instance?.HideLoadingUI(); }
+        }
+        if (MultiplayerController.IsTournamentActive) LoadProfileAndResume();
+        else MultiplayerController.LeaveTournamentMatchmaking(LoadProfileAndResume);
 
     }
 
@@ -79,10 +91,15 @@ public class MainMenuManager : MonoBehaviour
     }
 
     const string LoginSceneName = "LoginScreen";
+    bool _loggingOut;
 
     /// <summary>Logout, clear local API session, and open the login scene (used by the profile Logout button).</summary>
     public async void LogoutToLogin()
     {
+        if (_loggingOut) return;
+        _loggingOut = true;
+        try
+        {
         if (AppManager.Instance != null)
         {
             AppManager.Instance.HideLoadingUI();
@@ -101,12 +118,20 @@ public class MainMenuManager : MonoBehaviour
                 return;
             }
         }
-        //
+        if (MultiplayerController.IsTournamentActive)
+            await MultiplayerController.LeaveTournamentByPlayerAsync();
         if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
         TrucoActiveHostMatchStore.Clear();
         ApiController.ClearClientSessionState();
         MainMenuViewCoordinator.DestroyBottomNavIfPresent();
         TrucoSceneTransition.Go(LoginSceneName);
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogWarning("Logout pending: " + exception.GetType().Name);
+            AppManager.Instance?.DisplayNotification("No se pudo cerrar la sesión. Volvé a intentar.");
+        }
+        finally { _loggingOut = false; }
     }
 
     [System.Obsolete("Use LogoutToLogin — build index 0 is Init, not the login form.")]

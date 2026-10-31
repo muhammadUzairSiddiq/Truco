@@ -1,0 +1,2351 @@
+{
+  "createdAt": "2026-10-31T13:58:56.256729+00:00",
+  "sourceRoot": "D:/Truco/TrucoCard",
+  "files": [
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoClientSettings.cs",
+      "bytes": 4016,
+      "sha256": "f51ddfcada85c80a647db79656ec2e47378ca256fe432a78fcaa101702d519ea"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoClientSettings.cs.meta",
+      "bytes": 60,
+      "sha256": "6b4e7be39dd3248839e02be1019085490d0a8ee14979a0463584289982d0fb59"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoClientSettingsSO.cs",
+      "bytes": 2831,
+      "sha256": "bab0570922e2f593773a777e17142bf6a4f8f1f3cb4e12f3b11a4547959cde33"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoClientSettingsSO.cs.meta",
+      "bytes": 254,
+      "sha256": "d4705cba4b5be7171928da96931a51e4111f98ecf6228124c3530aa9033d5dcd"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoDebugLog.cs",
+      "bytes": 4206,
+      "sha256": "a4cf6994807dab251aec700e7fa0f73b1a22d9de29b441a9b6a410e97504bb71"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoDebugLog.cs.meta",
+      "bytes": 60,
+      "sha256": "5ba45710a0b4a097ff322bbb2cf1994062f0d586f610d878128eb521e1e0bd39"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoPhotonRegionSettings.cs",
+      "bytes": 4427,
+      "sha256": "b7043ea114d153ef2293fd55b1df68cc0a03bb1de010d079f525b00f802c7675"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoPhotonRegionSettings.cs.meta",
+      "bytes": 60,
+      "sha256": "f7c6ba273e8bfccaf12f5721eb24bb95c8f3768c4bec251c97abc4f738490c1d"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoPhotonRegionSettingsSO.cs",
+      "bytes": 2538,
+      "sha256": "5a23eb52e49ff4f63ceafd58ca63b1860df5739e8d627062d3b588929a12c9f0"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings/TrucoPhotonRegionSettingsSO.cs.meta",
+      "bytes": 254,
+      "sha256": "9ccba711927e5e022511ac06dc0f83c4a6382ef87f793e1f961bcfc315b1c2be"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/ClientSettings.meta",
+      "bytes": 180,
+      "sha256": "47d9bf59bc3642e33f7f5dde93032c3d2c24ea0ea5110b74da147e980904c9c5"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/MultiplayerCallbacks.cs",
+      "bytes": 4636,
+      "sha256": "e42b10c9cec42f79c647fca5581518672931938c9b4832ce56b76ca435140791"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/MultiplayerCallbacks.cs.meta",
+      "bytes": 60,
+      "sha256": "bc25cd03996c4175accaf433a0c0dc7eca3c276993f64393ba3e4a81e9ca2f30"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/MultiplayerController.cs",
+      "bytes": 29786,
+      "sha256": "b0a8e0d3f13f0f782ad8d674c4f23aff397321e16217dd62b08ccd11da9b0766"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/MultiplayerController.cs.meta",
+      "bytes": 60,
+      "sha256": "4828ef0e5a1e390ad35d04b2bd88ac60629b86e39b824244bfc32b2a78ba0ad9"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/MultiplayerRPC.cs",
+      "bytes": 2025,
+      "sha256": "bc81b435abebc3650f0ed6f9f51c05c870f8c539b05fe902912800e8b0f5cb03"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/MultiplayerRPC.cs.meta",
+      "bytes": 60,
+      "sha256": "94e20de4f226f88958f5bc4dbbf6ad3b5d747121f02cb43a4148cb7b95b3c575"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/Resources/MultiplayerRPC.prefab.meta",
+      "bytes": 161,
+      "sha256": "8d162b11d7c3bc707639e23c32ae496efdbaf4e4059ba9d63e416972c86c65a3"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/Resources.meta",
+      "bytes": 180,
+      "sha256": "52ef8f6050824d9515b5e7301700fb86d0d5ebb52a40f79f69221171360cd825"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/Utility/MultiplayerModels.cs",
+      "bytes": 1373,
+      "sha256": "b577fca20a4fbd1a7dcc803c8bad6d2aa377f83d6c03190e0db7e2066fc3c8b3"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/Utility/MultiplayerModels.cs.meta",
+      "bytes": 60,
+      "sha256": "5f804ffd5b7fa3dc08e4432a8ff75c2f0b80beb9b6ce93c59751f041a4a46eff"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer/Utility.meta",
+      "bytes": 180,
+      "sha256": "ab0d0c6caf0f2309cc0823b5ce47be4b1f09649c078f92f4b45ae21a78ea0c95"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/Multiplayer.meta",
+      "bytes": 180,
+      "sha256": "cfbbb02429cdc605eccdf50641aa8aa9852d205acf1702be6eb7fd63240b4aa5"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/ApiConfig.cs",
+      "bytes": 12679,
+      "sha256": "c3e944fbdf6f3ba5ee8f0b0cbe9c6c75afcd6a9d6b75af6498ec20080fae09a3"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/ApiConfig.cs.meta",
+      "bytes": 60,
+      "sha256": "fa21fa045fd70dae3af5dab21013ed8b4dd9b8acb6b7e2224b2c4684b85d0b36"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/ApiController.cs",
+      "bytes": 81548,
+      "sha256": "96d7ab53a27c991bd0520a85e816324797ac770c79a1cbaf17561219f11df76a"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/ApiController.cs.meta",
+      "bytes": 60,
+      "sha256": "d8a408aef61d5c88e0a5960a7605434897e1448fba6f14d4d5964b2320313d73"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Helpers/SessionTournament.cs",
+      "bytes": 818,
+      "sha256": "8debd841355e7274cf14b4be0ba64688af03da47da4002a08917619a4cc480b3"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Helpers/SessionTournament.cs.meta",
+      "bytes": 60,
+      "sha256": "0a86afbda520da07e948d733756290b4e1a616284c61cfff72d576d3c79fb673"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Helpers/SessionUser.cs",
+      "bytes": 533,
+      "sha256": "ba6dd990a5a49dd1bac803183896264773eac5f2e645c45a3252f789d746f113"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Helpers/SessionUser.cs.meta",
+      "bytes": 60,
+      "sha256": "53f9cf02a44cf09e54bd1e8b029198cb079eadbad0f50670d71da63869d7d270"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Helpers.meta",
+      "bytes": 180,
+      "sha256": "83d6f38a4ea80f464456942594f1d376def0be940c421c769fbd02249856d96a"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/TrucoApiEndpointsSO.cs",
+      "bytes": 3055,
+      "sha256": "2a97165fc6fe9e2b576d08221ab5df2b34eb6a4c25e3f59ce0a18fb540c9274b"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/TrucoApiEndpointsSO.cs.meta",
+      "bytes": 254,
+      "sha256": "71d88c40e4b948827eab8d828c1fb3b6fc7cf28db9da270596b9e1d462833e24"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Utility/ApiModels.cs",
+      "bytes": 10767,
+      "sha256": "7096a619ee40097b49689f19949a387df6d1904eb15e58e9402dc149b17123ff"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Utility/ApiModels.cs.meta",
+      "bytes": 60,
+      "sha256": "cbfe7a9ccfcaadfced2e3ba795e0a2490280e6bbea5a32c29526fe361fbcf5ae"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Utility/HttpApiClient.cs",
+      "bytes": 14589,
+      "sha256": "48d892aa261ce847ee1de7077dadb3d30564629bd129f2a83c8e1b8db8a92072"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Utility/HttpApiClient.cs.meta",
+      "bytes": 60,
+      "sha256": "73d1fc3b467c6785d4f59f708a8340121e7d74cacb1d7985e864431821d5281e"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Utility/TrucoHttpSessionState.cs",
+      "bytes": 6423,
+      "sha256": "4aac722329c9f82a6b61c14f5030cc9670ec2fe560f06d4272f4b54deed94a27"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Utility/TrucoHttpSessionState.cs.meta",
+      "bytes": 62,
+      "sha256": "8028d565cd0ed33ae09673dfa96c49a0691ba69046777cd289dd5bb9b37dcf4a"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI/Utility.meta",
+      "bytes": 180,
+      "sha256": "e9b96151cfc5d2b9b5cb5998032e50c14e9974471494ae7cc0c944b4d23632b1"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core/TrucoCardAPI.meta",
+      "bytes": 180,
+      "sha256": "2fdd45a26f4b016d82f71445abed87dfd2901114836431528a02fece4aa0f4c5"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Core.meta",
+      "bytes": 180,
+      "sha256": "79afa056ca58cfe8234b21d97442f85a8e138f6ec8499adc6f96277d3af12af2"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Manager/AppManager.cs",
+      "bytes": 1965,
+      "sha256": "c8a9f8c08d5fd0609ae8ebb11b5fb534bfdbc6e5678c3211438e8a7926229858"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Manager/AppManager.cs.meta",
+      "bytes": 60,
+      "sha256": "56bb27b6dd33faddcbfb7ad7b797b0190374d7c33d1075bb586118524bd23160"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Manager/TournamentManager.cs",
+      "bytes": 4529,
+      "sha256": "a2299d80710da73a031ac9872b0829018a91ce9c84f6e1bc4db7d74f7018bce7"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Manager/TournamentManager.cs.meta",
+      "bytes": 60,
+      "sha256": "87ee80db159c2d741ea674bf835a4ee72096ace0a7886c757fc8d984e3fc0ee3"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Manager.meta",
+      "bytes": 180,
+      "sha256": "b77f2d26e37fb743086fa7b20c0e23d65ccd666c3c74def670313509b1b6d35c"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Items/Tournament/TournamentCardAdminItem.cs",
+      "bytes": 1556,
+      "sha256": "ae74353f4367b8617f62de9e641feaa63b54b6c53db7b21d8fd32d3f1f67ecd5"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Items/Tournament/TournamentCardAdminItem.cs.meta",
+      "bytes": 60,
+      "sha256": "e110768639bd76b7af57cdbc19576b94a22f57049aa79050790389f7c1b2022a"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Items/Tournament/TournamentCardItem.cs",
+      "bytes": 17553,
+      "sha256": "1d73aa256f61fada1caf7627f6650469bf602e952c0eb9cb29b34dcfc06a4cc1"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Items/Tournament/TournamentCardItem.cs.meta",
+      "bytes": 60,
+      "sha256": "fd65d7d3ba3f1c47a5a51362244d79bebdd748d0d41484346327e06070365ea2"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Items/Tournament.meta",
+      "bytes": 180,
+      "sha256": "12a450b355592e401d7fd44949db93a20dcc72a5e2716133bfe466389c21a6e8"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Items.meta",
+      "bytes": 180,
+      "sha256": "9360f41f46fbf6bc8b28d1f8a1e38260ac70a74e1b43b048190fae2e515522f2"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/AdminLiveDashboardOverlay.cs",
+      "bytes": 15799,
+      "sha256": "0028f6efef94da8a921ff9cd5e93d4a10dc00609d07f16a92523741b77cd665d"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/AdminLiveDashboardOverlay.cs.meta",
+      "bytes": 254,
+      "sha256": "f541a261b3abeee3bf4db726b218b9d162da2dc133976af1a040b0fed7c02048"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/AllTournamentsOverlay.cs",
+      "bytes": 1157,
+      "sha256": "19a1780a6efb60740de1b4d3fa36310de2f8d21a8637df1e50247b19110026d0"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/AllTournamentsOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "88fd17828c19747b859d601a47871ae79c15cf5ef6d413b862376a62b93cd97f"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/CreateTournamentOverlay.cs",
+      "bytes": 8543,
+      "sha256": "fcb38756246fede257ce92055a4736ed57feebe2a41cb965053a899bd03dee8c"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/CreateTournamentOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "3554a30d529fd03ec86927077b4bb61490c022a5ee40583c3ce61c4b57b1e899"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/ManageTournamentOverlay.cs",
+      "bytes": 9699,
+      "sha256": "450f1c2587b1396df891cab4067d0b2b3c428c3ef9bd019e52061c21920ad2b7"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin/ManageTournamentOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "8360de72377ced9b3fc9a7bd474882e123049435497ea77799d4cebf6c1028af"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Admin.meta",
+      "bytes": 180,
+      "sha256": "29a6c77116cb0bae2835afdc57e4eafc76a88199e572cb1de5263fc3f0a8a511"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/App/LoadingOverlay.cs",
+      "bytes": 1107,
+      "sha256": "62aca0ed9fb9bce80eb27e0797adcd9f6374af8c5db1ab6deb07387942673c7c"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/App/LoadingOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "0058ec1c041ab6a10df0203d3bde1c28f336884edc881b2554f862eb91003205"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/App/NotificationOverlay.cs",
+      "bytes": 1406,
+      "sha256": "7cd472311e9dd5bacc0cd70918ea1ca36a6be72b0faa245b56486fec5707e3d0"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/App/NotificationOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "fd3e71b870ffac909fb37f58d0e22276d5ef56ef5a7a15e5907a9f8bff6919b6"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/App.meta",
+      "bytes": 180,
+      "sha256": "b47208073dc315a40f19a617f8ea63fd1a8e6df4503f65356ebc304f3d6f2d03"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentMatchMakingOverlay.cs",
+      "bytes": 3940,
+      "sha256": "a1f60d1952e570a0c2868697b927d9eea7dc004b02b6bbc4f011a699d82e4185"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentMatchMakingOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "ad865f5b3b2dfb4cda4d9a0cea80f394135d840fb1649b6aaf02e68877af7cdd"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentPasswordInputOverlay.cs",
+      "bytes": 2378,
+      "sha256": "f0412a50f4e4e5d93b87b3bd7eb8d6fcbd711ca8ba387aa86a652fc13e1023c1"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentPasswordInputOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "d85e2dab9026a454611a94e71406b67a60691fd1a1cc238da769f1290978009d"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentSelectionOverlay.cs",
+      "bytes": 7536,
+      "sha256": "d26734db31a21061277da492562afebb57aa205834911f8daa7509857d7bf86f"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentSelectionOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "ceaee9ab907485edc1c59ecda5d7a1469ecd3520746cf087244b470402a72834"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentWaitingRoomOverlay.cs",
+      "bytes": 1655,
+      "sha256": "e8d1d96d5e2fcfc3f94e9002a936bf532c8c5f2c965231d4a243d6b9f8fe0698"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentWaitingRoomOverlay.cs.meta",
+      "bytes": 60,
+      "sha256": "17bf5e1880a7e1f768499503be22f8e717dfb1c6205b11a8d2edfc3a501b73b8"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament.meta",
+      "bytes": 180,
+      "sha256": "86eb33b449f34c2dac31a17737dbe8f9563be544de9de1ad421d0f7ef05523e9"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI/Overlay.meta",
+      "bytes": 180,
+      "sha256": "f26f71f03a5f5cceaab5be1fccb03149f9b3d24838413ef13f87c9578c6d1743"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/UI.meta",
+      "bytes": 180,
+      "sha256": "a769968434eef436e32ebb0a75cfb73e34d0e023aaaefa09859bbcfd0108cc2d"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Utility/JsonHelper.cs",
+      "bytes": 390,
+      "sha256": "eae7f3613d5f0fe1f20436e9acc7b1489484d94de23b0c842ed6cb2f1144816b"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Utility/JsonHelper.cs.meta",
+      "bytes": 60,
+      "sha256": "0c981b22ce9bb444ffe9bde2415af4cfd24a760a07bf2976575c86945fcb8c18"
+    },
+    {
+      "path": "Assets/__TrucoCard/Code/Utility.meta",
+      "bytes": 180,
+      "sha256": "bdb4e81cc8aba53a8e193f7001c249ae9d04933a8a967393f0c02c7547a84af5"
+    },
+    {
+      "path": "Assets/Editor/com.unity.mobile.notifications/NotificationSettings.asset",
+      "bytes": 1284,
+      "sha256": "cfd33d7b1242c27327371a1e0f3221cb0a6efeda78bf3675d0c9e4f13f7fcfab"
+    },
+    {
+      "path": "Assets/Editor/com.unity.mobile.notifications/NotificationSettings.asset.meta",
+      "bytes": 190,
+      "sha256": "66dc8e2f093175ddd56ec9da883757924531fdec0400dbe4b379473230f7995b"
+    },
+    {
+      "path": "Assets/Editor/com.unity.mobile.notifications.meta",
+      "bytes": 180,
+      "sha256": "032cd177aa6f49ae38406931edf631160bca4a5763b7b912b6bcf8e608364c8f"
+    },
+    {
+      "path": "Assets/Editor/TrucoAdminAuditContractTests.cs",
+      "bytes": 1486,
+      "sha256": "e402c25e2cbedbe0a8cacd016072e9e44805c67efb3fa1e68517b9623d395dfc"
+    },
+    {
+      "path": "Assets/Editor/TrucoAdminAuditContractTests.cs.meta",
+      "bytes": 62,
+      "sha256": "62fb49c7a845234f1bd65b4c2230691c5f7548cd05d397d304729ff9cb83b65b"
+    },
+    {
+      "path": "Assets/Editor/TrucoAdminOperationContractTests.cs",
+      "bytes": 4727,
+      "sha256": "2bf478f51baa6bcd5ddcbc0a3834a06296d54f896023e18fc99c13b02122549d"
+    },
+    {
+      "path": "Assets/Editor/TrucoAdminOperationContractTests.cs.meta",
+      "bytes": 62,
+      "sha256": "d42ad82408b79d3317ff2a38eff8acce5fa2aa98548f52f309fe58b2020e5311"
+    },
+    {
+      "path": "Assets/Editor/TrucoAndroidGradleUriFix.cs",
+      "bytes": 2224,
+      "sha256": "c9d21f44f7fb5f41c12b56cc9fc5d7bbbe068efd5d7f2b53ded0ace9cf0596ea"
+    },
+    {
+      "path": "Assets/Editor/TrucoAndroidGradleUriFix.cs.meta",
+      "bytes": 60,
+      "sha256": "4de0af9a7ad2de789d6a53ee6821faa62448dba6fa4acf6690feef164a6cc887"
+    },
+    {
+      "path": "Assets/Editor/TrucoApiEndpointsSOEditor.cs",
+      "bytes": 7357,
+      "sha256": "34f74d8ac86fee3e1c5f5d6bf5525bef11c82d635698e2b422c4a9b9acbe24c7"
+    },
+    {
+      "path": "Assets/Editor/TrucoApiEndpointsSOEditor.cs.meta",
+      "bytes": 62,
+      "sha256": "3173572b2c7a9e1f69f400dbecf07e4084f782d8583327c06fee3c95d90cf2cf"
+    },
+    {
+      "path": "Assets/Editor/TrucoBracketPresentationTests.cs",
+      "bytes": 1520,
+      "sha256": "e0d922f7d9a5fdd69ccafbeccdf99fe19796810d6635e7d1d23fc96d7368b21b"
+    },
+    {
+      "path": "Assets/Editor/TrucoBracketPresentationTests.cs.meta",
+      "bytes": 60,
+      "sha256": "13da41f44d6ec60e1c0322f8fc3dfad2f100f5b05c93efa406c51c2fd9580378"
+    },
+    {
+      "path": "Assets/Editor/TrucoCanvasLayerTests.cs",
+      "bytes": 9095,
+      "sha256": "b62151142b88620a7e444b5db496dbf549d5dcdf21ffd340cddbaf4d86d8f046"
+    },
+    {
+      "path": "Assets/Editor/TrucoCanvasLayerTests.cs.meta",
+      "bytes": 60,
+      "sha256": "84a8bcc2e12596bdc35d4c7e1dbac609913f7843e6d93c2ee30b4ab625a6ebdb"
+    },
+    {
+      "path": "Assets/Editor/TrucoChampionPayoutPresentationTests.cs",
+      "bytes": 1176,
+      "sha256": "c4eb6d6633b022d0f1b5af8ef559004b139e1d8395c71a6ff785507a3b4ece43"
+    },
+    {
+      "path": "Assets/Editor/TrucoChampionPayoutPresentationTests.cs.meta",
+      "bytes": 62,
+      "sha256": "4198cf7405891cd283020611ec708107b0179f19f624243b8a078e22339a3f5a"
+    },
+    {
+      "path": "Assets/Editor/TrucoClientSettingsEditModeTests.cs",
+      "bytes": 2594,
+      "sha256": "e70fee80eff2377eea54da648c038775e0891b648646d43106adbe5cfefb905c"
+    },
+    {
+      "path": "Assets/Editor/TrucoClientSettingsEditModeTests.cs.meta",
+      "bytes": 60,
+      "sha256": "c922a3e0895531b07d06fcbbf5086669b8e587e151b7bb96a53bb8d0fa6d28c8"
+    },
+    {
+      "path": "Assets/Editor/TrucoClientSettingsSOEditor.cs",
+      "bytes": 916,
+      "sha256": "3305514ba2104d80e9360e721dced3dcd3b0034efec4845c7c0706f2c2da6540"
+    },
+    {
+      "path": "Assets/Editor/TrucoClientSettingsSOEditor.cs.meta",
+      "bytes": 60,
+      "sha256": "a8979c1efc4f8118523183c198c70337cd675d0c54783d60bd096a6a35fde875"
+    },
+    {
+      "path": "Assets/Editor/TrucoClubFeatureTests.cs",
+      "bytes": 2415,
+      "sha256": "0e4d62e3f792960c88304b1b0ff6dc312edc58f4f8c63dea3effe017dbbfcabe"
+    },
+    {
+      "path": "Assets/Editor/TrucoClubFeatureTests.cs.meta",
+      "bytes": 62,
+      "sha256": "e74acec6699f15d2130f7a10d673da86d5b31d38674ae6809e6b0e538ddbce2c"
+    },
+    {
+      "path": "Assets/Editor/TrucoDevelopmentSettings.asset",
+      "bytes": 549,
+      "sha256": "4644971b370fe10b956f61799b3467655ff68a2bf12235290b1b87608f0feafd"
+    },
+    {
+      "path": "Assets/Editor/TrucoDevelopmentSettings.asset.meta",
+      "bytes": 62,
+      "sha256": "ebf07331a0c9ecb3ffe0c12d49b3b3299096306a0aa846c3d0a4355dd3b71373"
+    },
+    {
+      "path": "Assets/Editor/TrucoDevelopmentTools.cs",
+      "bytes": 1411,
+      "sha256": "1396a69611f7fe3153e5469214cc59d8d278f14cdd8292485771745e33d0c33e"
+    },
+    {
+      "path": "Assets/Editor/TrucoDevelopmentTools.cs.meta",
+      "bytes": 62,
+      "sha256": "69445f9a80610b56ce4c215874a820d313f72680416a92e3fe1f12c844fc4a34"
+    },
+    {
+      "path": "Assets/Editor/TrucoEventSystemTests.cs",
+      "bytes": 5721,
+      "sha256": "dcb1b87938ea075c6602408e46ae8e7ca86aee619eabc6813ba082f99eb1b389"
+    },
+    {
+      "path": "Assets/Editor/TrucoEventSystemTests.cs.meta",
+      "bytes": 60,
+      "sha256": "c1c80c2eb58b8c5531bc1018e742b9475e834d5669486df3348080b0d1de4881"
+    },
+    {
+      "path": "Assets/Editor/TrucoGameplaySceneWiringTests.cs",
+      "bytes": 2655,
+      "sha256": "2f4f3623ffa9bc3aef362a8cca3d5e33fd52039ac7da6c7338b2bb63c4e5809c"
+    },
+    {
+      "path": "Assets/Editor/TrucoGameplaySceneWiringTests.cs.meta",
+      "bytes": 60,
+      "sha256": "79e94568f4ff73a3f7540f93da2c2433f82b7ff880334b8fa6fade16a12ea8ca"
+    },
+    {
+      "path": "Assets/Editor/TrucoHttpSessionStateTests.cs",
+      "bytes": 8705,
+      "sha256": "5b83084546338e4e7584655b66e846cba3c2bc5fc96721aaf049b96018228188"
+    },
+    {
+      "path": "Assets/Editor/TrucoHttpSessionStateTests.cs.meta",
+      "bytes": 62,
+      "sha256": "969156bfcb12683cfcc2f8c279c8f04da42b1ed0182a17badd6439df53a4916d"
+    },
+    {
+      "path": "Assets/Editor/TrucoLobbyCleanupMenu.cs",
+      "bytes": 2059,
+      "sha256": "ca4bf591af67a4eddf83b82efa63bef5f6f1eaa36ecc4c44d38015b861ffac1b"
+    },
+    {
+      "path": "Assets/Editor/TrucoLobbyCleanupMenu.cs.meta",
+      "bytes": 60,
+      "sha256": "7feb39992331f5dfa547476fdcd74f90378b0ae7a7f8be60d42d3b9da2e729ce"
+    },
+    {
+      "path": "Assets/Editor/TrucoLobbyFlowEditModeTests.cs",
+      "bytes": 12542,
+      "sha256": "3e01c63a95b6aacc96e6ffb75a39883716575236d28b2ea46a5d1300736622b9"
+    },
+    {
+      "path": "Assets/Editor/TrucoLobbyFlowEditModeTests.cs.meta",
+      "bytes": 60,
+      "sha256": "edcdf6307d9b1e0324e99885fef71321e638b87625969e8e405cc30b42b8b029"
+    },
+    {
+      "path": "Assets/Editor/TrucoMenuPresentationTests.cs",
+      "bytes": 4316,
+      "sha256": "8459b99583ee138f58c2a32bbdcda675a120e328058e3a07183dba6e0dbdabf7"
+    },
+    {
+      "path": "Assets/Editor/TrucoMenuPresentationTests.cs.meta",
+      "bytes": 62,
+      "sha256": "1acc57cb57ce66487a08bbeb4ce5ef99079380cbe0ae7c63fdf3ba9b1d542c03"
+    },
+    {
+      "path": "Assets/Editor/TrucoMenuVisualVerification.cs",
+      "bytes": 3528,
+      "sha256": "c3d0780f26c032c619ac1c7e37b4378489b921d01a3d3d2b42304d69060c6e20"
+    },
+    {
+      "path": "Assets/Editor/TrucoMenuVisualVerification.cs.meta",
+      "bytes": 62,
+      "sha256": "ae73f94b868a1835c2303db19dcc4797ef9217d2bf274514f6e2f7453840c3be"
+    },
+    {
+      "path": "Assets/Editor/TrucoPhotonAuthenticationTests.cs",
+      "bytes": 3297,
+      "sha256": "d1a809effddf02e4e1a68b2b327cc03a239e3534c2c13939f9a49732b98d96e6"
+    },
+    {
+      "path": "Assets/Editor/TrucoPhotonAuthenticationTests.cs.meta",
+      "bytes": 62,
+      "sha256": "41db7cb3d148edd09f57a6c2315a7ab6693bf696346b79c0297bc1db6166f641"
+    },
+    {
+      "path": "Assets/Editor/TrucoPhotonCloneSmokeTests.cs",
+      "bytes": 4781,
+      "sha256": "17224edc59ae3e070a0ac613e0f91ac2bb949b43ac295e70e4762a6bbdc182a1"
+    },
+    {
+      "path": "Assets/Editor/TrucoPhotonCloneSmokeTests.cs.meta",
+      "bytes": 60,
+      "sha256": "d0b3a7813189b9e77000b8870d06feca264e1750da3f99978a3a90653e664f2d"
+    },
+    {
+      "path": "Assets/Editor/TrucoPhotonRegionSettingsSOEditor.cs",
+      "bytes": 5637,
+      "sha256": "77fd54299bfcc572be5050498d34f183878fafccb023a6b8256fc4ba1dcc443e"
+    },
+    {
+      "path": "Assets/Editor/TrucoPhotonRegionSettingsSOEditor.cs.meta",
+      "bytes": 60,
+      "sha256": "1e559df9dedf993c4ecfda7f91ca8952e13febc8fbe96dfb7356ff765d4e0008"
+    },
+    {
+      "path": "Assets/Editor/TrucoPlayerScreenGallery.cs",
+      "bytes": 16098,
+      "sha256": "ce665eda1ba785163b5088e57c43a037abd99bd93a7e9ef3d6608e2dd12359ee"
+    },
+    {
+      "path": "Assets/Editor/TrucoPlayerScreenGallery.cs.meta",
+      "bytes": 62,
+      "sha256": "436a46f1c296178f9a3e04a87f2e61b1230736537bce97fbf9cfdd8d7b61c0a4"
+    },
+    {
+      "path": "Assets/Editor/TrucoPracticeTestSettingsScope.cs",
+      "bytes": 1214,
+      "sha256": "52b2b9e258792b9a45c7e55a8e1a53cc89d1046d99485e447c08bbe9a0139f3f"
+    },
+    {
+      "path": "Assets/Editor/TrucoPracticeTestSettingsScope.cs.meta",
+      "bytes": 62,
+      "sha256": "0c0f075a067285baa1f1db8ef3eeffcb3678c559a8b9bfc2b3be3b6cfa0dd5ca"
+    },
+    {
+      "path": "Assets/Editor/TrucoProfileContractTests.cs",
+      "bytes": 2703,
+      "sha256": "3d29d790d36dfd10e57d65ad879c6e23d9c05bd8f7d5097043047511c03074b7"
+    },
+    {
+      "path": "Assets/Editor/TrucoProfileContractTests.cs.meta",
+      "bytes": 62,
+      "sha256": "2e1e56ce817dc1e56721e165db3bb57b74a74c2581a5a9baee87e83214143ec4"
+    },
+    {
+      "path": "Assets/Editor/TrucoQaBuild.cs",
+      "bytes": 1391,
+      "sha256": "51ba4e30d6afe435f337629ee5c1181db9df934372e126742f34fb61537c90db"
+    },
+    {
+      "path": "Assets/Editor/TrucoQaBuild.cs.meta",
+      "bytes": 59,
+      "sha256": "7fa839a966815107656c7de3221fb739cf62d81da4ec3c77a695a9e588f8b934"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleaseAdminVisualVerification.cs",
+      "bytes": 3553,
+      "sha256": "05cae79d9d6ddcb4218d31fa6de7d90f0fdad4d608f73bc00d65da0d6d9e0aad"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleaseAdminVisualVerification.cs.meta",
+      "bytes": 62,
+      "sha256": "b5b2f48f241c63f3471c90c7e3f286822c9ded4708e069a4dcc9a6f5df4533bc"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleaseGameplayTests.cs",
+      "bytes": 13405,
+      "sha256": "594f9b2cc036f39acdd6bf4a24e08bfd0458189850c5da517257bf84051af8e8"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleaseGameplayTests.cs.meta",
+      "bytes": 62,
+      "sha256": "e8a8f1442147bf8eaeb9a63a61c0d57a8053e4988cd1800a6ab0c64f61155561"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleasePreflight.cs",
+      "bytes": 5970,
+      "sha256": "db68fa517497b95667e811031eaea16e0631527f115155d4bd97dbe6f43fd65a"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleasePreflight.cs.meta",
+      "bytes": 62,
+      "sha256": "0169ce49bfb80438e9acb2f3124f830ad0c49b3213ac53948e7835ac48c20385"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleaseTournamentTests.cs",
+      "bytes": 5475,
+      "sha256": "a1f98490b823f3922bbebe5f32b62fd813b72ed9b93d696dd078b189e904c2df"
+    },
+    {
+      "path": "Assets/Editor/TrucoReleaseTournamentTests.cs.meta",
+      "bytes": 62,
+      "sha256": "f489aad00739dd224e53f37569bf27f77e30c0eb8dc73ba8bdd178b3788e620e"
+    },
+    {
+      "path": "Assets/Editor/TrucoRemoteApiConfigurationTests.cs",
+      "bytes": 5082,
+      "sha256": "25bfd933538ebbc1ab7ef564b357f1649c1a1ed3681a50c66b2117d63d46badd"
+    },
+    {
+      "path": "Assets/Editor/TrucoRemoteApiConfigurationTests.cs.meta",
+      "bytes": 62,
+      "sha256": "7e7b4ccfcd64a6eefbb21c4c06fc3203e9d545b54e760a79dbe8a2fb083a5b17"
+    },
+    {
+      "path": "Assets/Editor/TrucoReporterInputTests.cs",
+      "bytes": 868,
+      "sha256": "8c4649005122969750bd2b16d34819f87da3ed0189243e02b8898f03760ea119"
+    },
+    {
+      "path": "Assets/Editor/TrucoReporterInputTests.cs.meta",
+      "bytes": 62,
+      "sha256": "c562b40ebbc720aefdcb51d7f0c80cc4fdabff78a4465ed47c6816aaa030e836"
+    },
+    {
+      "path": "Assets/Editor/TrucoRulesEditModeTests.cs",
+      "bytes": 9398,
+      "sha256": "fd523871688d438528fa270bacb82296e61110f6be643ad0d672b61f12020b2b"
+    },
+    {
+      "path": "Assets/Editor/TrucoRulesEditModeTests.cs.meta",
+      "bytes": 60,
+      "sha256": "680d06f62f259c662397fb8884d4eb940abfbfff093ff25e01d26b856d96f737"
+    },
+    {
+      "path": "Assets/Editor/TrucoRunAllEditModeTests.cs",
+      "bytes": 831,
+      "sha256": "0de8d0e9f1058f2aeaa08b558aaf504d4cb7bcc92e31fc36e6178326f6a2ef10"
+    },
+    {
+      "path": "Assets/Editor/TrucoRunAllEditModeTests.cs.meta",
+      "bytes": 60,
+      "sha256": "2ced032c84b23c1016dde40e91c07819269e0e543cb396ef0e8b49cb3ffb1393"
+    },
+    {
+      "path": "Assets/Editor/TrucoServerConfirmationTests.cs",
+      "bytes": 3467,
+      "sha256": "dbe47fedfc1b9107105d8e946fbd51ad4b23f65ef037807af58f7961038f174a"
+    },
+    {
+      "path": "Assets/Editor/TrucoServerConfirmationTests.cs.meta",
+      "bytes": 60,
+      "sha256": "634d62a5f466e756216692e5a29dc81e14cfae47cd0c30206c6a88bb6d49adff"
+    },
+    {
+      "path": "Assets/Editor/TrucoServerRoomJanitorWindow.cs",
+      "bytes": 9605,
+      "sha256": "09e6db06825254c2abd548dff419afa17395b5c837bef5c9bc25c6d3df59532f"
+    },
+    {
+      "path": "Assets/Editor/TrucoServerRoomJanitorWindow.cs.meta",
+      "bytes": 60,
+      "sha256": "bae347dfba6c192ba608e81a46e30e33859a62b5a0c39a275b7ba464f97501a7"
+    },
+    {
+      "path": "Assets/Editor/TrucoSettlementEditModeTests.cs",
+      "bytes": 1193,
+      "sha256": "b0a99b28986a0b0de20003102ab22ded18b497c6543c1ce493c9238a2ae55989"
+    },
+    {
+      "path": "Assets/Editor/TrucoSettlementEditModeTests.cs.meta",
+      "bytes": 60,
+      "sha256": "f4c62012bf13c36046065e00be4462fc746d8dd36abe5db039c57b9d810b2b72"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentContractTests.cs",
+      "bytes": 9525,
+      "sha256": "4df8a6ad9a8c5fc7e736246a9bd79a2ac4284a65aeb6f99ef4ae6d84539c1d64"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentContractTests.cs.meta",
+      "bytes": 62,
+      "sha256": "45ec99ff7dfcf746e6493320d3da19ff8214059c4705ab059b7c66c777ede84a"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentFeedbackTests.cs",
+      "bytes": 7025,
+      "sha256": "1db442a796a16eff877de738c82b56db9e44b5a67c320d195fff4feaffa87562"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentFeedbackTests.cs.meta",
+      "bytes": 59,
+      "sha256": "05eb2bcf5a2167a49936dab3b35588cf60b7620af2cb5dc427ab5367f4268ba7"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TournamentPracticeSettings.asset",
+      "bytes": 525,
+      "sha256": "ab4429d128074e9e5b7d5127e3a2bcc098ffd94f25c3fb48f104c939ef798142"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TournamentPracticeSettings.asset.meta",
+      "bytes": 62,
+      "sha256": "ec7cb289e6c513c204385af0fda10172413bf61e1bec60e19afe38e784b9ad46"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoEditorCardArt.cs",
+      "bytes": 2509,
+      "sha256": "a6dc21d6cd7c3232be7745c5e54cf11cdb7895fe159d264d67bf002312cbe022"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoEditorCardArt.cs.meta",
+      "bytes": 62,
+      "sha256": "dc43cd6dffd8ed9b4cadf8fdf94cc57ad51c78eed32a950ee65d3d2e6baf8b97"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoPracticeMatch.cs",
+      "bytes": 8439,
+      "sha256": "210193617c7f60d265bdb39020e6e2103e43ca0664d14f0335f4286bab45033e"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoPracticeMatch.cs.meta",
+      "bytes": 62,
+      "sha256": "958094ea03e3dc184000423857798f726608134ed23477ffce37837f241ced5c"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoPracticeTournament.cs",
+      "bytes": 1837,
+      "sha256": "1a5fb401ba80928e2dbbbb40905a6807af55a9cb0043350def0c6af70dbe13aa"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoPracticeTournament.cs.meta",
+      "bytes": 62,
+      "sha256": "30a8b91581062965e50d9fe56238701bbc01395d864e469b3455b3895b54df15"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticePlayModeTests.cs",
+      "bytes": 2539,
+      "sha256": "e630a111fbc3bb48047b78cb1b3cb194837ef7b70272d21d4d3c8d543e045cfa"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticePlayModeTests.cs.meta",
+      "bytes": 62,
+      "sha256": "9a8dec0df597645638828f363bee7cf894ae321dff59dc894c0aac439f6a01e9"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticeSettings.cs",
+      "bytes": 2898,
+      "sha256": "ab3f76b7d9b1b9d0d51166b299956740a3e59675e18a56b56d79aedd3a2a2466"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticeSettings.cs.meta",
+      "bytes": 62,
+      "sha256": "df9e8560d971cbd1b239771a51552d45cfb6dea299f704d6e28d13e18a8233d1"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticeTests.cs",
+      "bytes": 3285,
+      "sha256": "1286380003ba40cdd6f3684531798e5552ebbbf1a7a4b183347ef1742eb85c98"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticeTests.cs.meta",
+      "bytes": 62,
+      "sha256": "62ce0eb6db2f5f90d164887b8b794996b46fe4794cd86163f2acb78af08a2d64"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticeUI.cs",
+      "bytes": 16471,
+      "sha256": "79e62820b5c47ca94d70f71887afca823127dd1dc69c41d9a37d1ad5b688bccc"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice/TrucoTournamentPracticeUI.cs.meta",
+      "bytes": 62,
+      "sha256": "164ac9d12d21cf67f141c2ec99bfea496d41f92bf6067fe9a69775091403d0b0"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentPractice.meta",
+      "bytes": 172,
+      "sha256": "63da15eda8aaa7325bc335834e94d3dce86ddd410bf3390d9327fabdd12423de"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentStartupTests.cs",
+      "bytes": 3903,
+      "sha256": "0878d072cdf86a3e75d175b9b10842f455c9a4fc423c204bef2b79e46bb395b7"
+    },
+    {
+      "path": "Assets/Editor/TrucoTournamentStartupTests.cs.meta",
+      "bytes": 62,
+      "sha256": "e2775d8cc2438e01e555770956532f3fee750c8f4c91607feb08464c36048ae2"
+    },
+    {
+      "path": "Assets/Editor/TrucoUrpAssetVersionFix.cs",
+      "bytes": 7929,
+      "sha256": "d3390cedf06b66ecc482787533fbeec614fbe4cacb37880658610ddbd7aa14ec"
+    },
+    {
+      "path": "Assets/Editor/TrucoUrpAssetVersionFix.cs.meta",
+      "bytes": 60,
+      "sha256": "c15de969d351273a4e415eda5c625f98542f13cc077cb45e594177e7ab7371a4"
+    },
+    {
+      "path": "Assets/Editor/TrucoVisualVerification.cs",
+      "bytes": 3665,
+      "sha256": "f0d993bee4f070cbcfcfc03df5dbaed3d1068bde3e09f492058e045fe8a1eb3a"
+    },
+    {
+      "path": "Assets/Editor/TrucoVisualVerification.cs.meta",
+      "bytes": 62,
+      "sha256": "af99822aa5bd5624ae3d7851e3d5249f049b6b131368f3982cb17e2d891f0408"
+    },
+    {
+      "path": "Assets/Editor/TrucoWalletAdminContractTests.cs",
+      "bytes": 5402,
+      "sha256": "c5411eddd7d56e88d6d1d518b42373e206ccc16d2a24610477d1b75615206652"
+    },
+    {
+      "path": "Assets/Editor/TrucoWalletAdminContractTests.cs.meta",
+      "bytes": 62,
+      "sha256": "d7c9840ca489af4edb04d51aab1a1f2dc9fb14ef1c9928276defcb2a48f01f22"
+    },
+    {
+      "path": "Assets/Editor/TrucoWalletPayloadTests.cs",
+      "bytes": 2542,
+      "sha256": "fe9f3b1d1ee4f8ccbf6d1324fb9f49668cb0bd1568844c581b2f2e668c6e6348"
+    },
+    {
+      "path": "Assets/Editor/TrucoWalletPayloadTests.cs.meta",
+      "bytes": 62,
+      "sha256": "478ab9758efa718350c7fb0c9fb6579f623588c22daddd9a9b5aab4438c7a2e6"
+    },
+    {
+      "path": "Assets/Editor/TrucoWalletReleaseGuardTests.cs",
+      "bytes": 6891,
+      "sha256": "0080442145079ee5a08dc704603a94a78d4e664436df1199d2f71603c735d4b8"
+    },
+    {
+      "path": "Assets/Editor/TrucoWalletReleaseGuardTests.cs.meta",
+      "bytes": 62,
+      "sha256": "fdadce26389d877f7c6c98595c7a85543e902dcd31ac74c10e09457bc3ab3d1f"
+    },
+    {
+      "path": "Assets/Resources/TrucoApiEndpoints.asset",
+      "bytes": 8608,
+      "sha256": "a07e209fbb40e3f13bdf06b2dade9df4cce0e94d8a78d7296d7865686bb4f896"
+    },
+    {
+      "path": "Assets/Scenes/AdminScene.unity",
+      "bytes": 1540298,
+      "sha256": "c53af8c5e0cb4008a64e0416a856c848c828ab6ff08816679ef60a520bffbfc6"
+    },
+    {
+      "path": "Assets/Scenes/AdminScene.unity.meta",
+      "bytes": 162,
+      "sha256": "d965595b575fe786be37e725218535504baab43823c6ac411c07b553c6f9f4f2"
+    },
+    {
+      "path": "Assets/Scenes/Gameplay.unity",
+      "bytes": 250020,
+      "sha256": "0d16d6cc5c30c4bcc238448ffd2e095f2384b6efdd19fc3219f8128bf8444d78"
+    },
+    {
+      "path": "Assets/Scenes/Gameplay.unity.meta",
+      "bytes": 162,
+      "sha256": "1c93aa0c5c4a97560fab93ef84618b66a1642e1f8e928531d16511797a17ae69"
+    },
+    {
+      "path": "Assets/Scenes/LoginScreen.unity",
+      "bytes": 282046,
+      "sha256": "7dd9026ca32b613fe57ad7093625b4e07f219e526500cd5c73893cd8ee409287"
+    },
+    {
+      "path": "Assets/Scenes/LoginScreen.unity.meta",
+      "bytes": 162,
+      "sha256": "3adc6ac390aa8ae702133d383ff058ec56f78329b239a835c1b7f7db30c61348"
+    },
+    {
+      "path": "Assets/Scenes/MainMenu.unity",
+      "bytes": 258701,
+      "sha256": "d77a08af5beafc9477034775ffcbef978ce86165f54b7fe683625faaaf58d7a5"
+    },
+    {
+      "path": "Assets/Scenes/MainMenu.unity.meta",
+      "bytes": 162,
+      "sha256": "d4a30a2dd8322ca15c8c0fe5d67e72608515fbac5d5f6e3d98d6abc5dd586b09"
+    },
+    {
+      "path": "Assets/Scripts/Admin/AdminControlCenterOverlay.cs",
+      "bytes": 25404,
+      "sha256": "12cb39b993f49673190c66eba84ac337ea83688cd06173ef48786fdce210534d"
+    },
+    {
+      "path": "Assets/Scripts/Admin/AdminControlCenterOverlay.cs.meta",
+      "bytes": 59,
+      "sha256": "76a565212e59c6a50e1f2f4d43026c602b2855504dd3af89ac3adb61a8b6152d"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TournamentFinalizeGuard.cs",
+      "bytes": 774,
+      "sha256": "d71d5f5627980fcfe2f7f759d8186be5e9ff94a1775e761b10bb954353b87c95"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TournamentFinalizeGuard.cs.meta",
+      "bytes": 59,
+      "sha256": "adede1a626560454f3d41d7cb50b1a37683eb1cbdd491e9549bec7ba5ee65c80"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoAdminAuditLog.cs",
+      "bytes": 1905,
+      "sha256": "c5148ffa3981a44040cefd1d714e6cb7873a8604601a1c75587d577ba115f0a6"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoAdminAuditLog.cs.meta",
+      "bytes": 59,
+      "sha256": "a4bce9ea205e6e7d6b6dce4b9b5cdb4d378744248c64594e2354b85e93c837de"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoAdminAuditService.cs",
+      "bytes": 2796,
+      "sha256": "41ce7030490ead347881ff03838d1dda298b22cf722b45f294331dde48addbc6"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoAdminAuditService.cs.meta",
+      "bytes": 62,
+      "sha256": "3e0493ad6455169caecdff0947baea36f4339b9dce779565a97310c4858d725c"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoAdminOperationService.cs",
+      "bytes": 9691,
+      "sha256": "de242e4543e38799744233dd6b68f9cabb8ef90821d32737b733d767f6faf707"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoAdminOperationService.cs.meta",
+      "bytes": 62,
+      "sha256": "63dcf1751694c167fb589a8c060ccc40c39bbd0d1c536f6c2e12c577df3b1e29"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoMaintenanceBanner.cs",
+      "bytes": 3155,
+      "sha256": "f650fc3d6435f8ff7d82f200654b2885091be2756420c584c39a10cad9fb169c"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoMaintenanceBanner.cs.meta",
+      "bytes": 59,
+      "sha256": "968d58748514b03532670f003e3629da9d5796620b18d7622960f2f455f997b7"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoMaintenanceMode.cs",
+      "bytes": 4409,
+      "sha256": "a7aad3eced0e4d17332ec5f20213b1d19a1a48eac143d9e16c44b1c8ae7cdb10"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoMaintenanceMode.cs.meta",
+      "bytes": 59,
+      "sha256": "0449dacddf02c71c53a1e067534b9b73bf4bd161560a1f5fa4f9d21e3325aaf5"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoPlayAccess.cs",
+      "bytes": 817,
+      "sha256": "7497334fd32f8d6f104e4b485d734292d27d8787a057b0bd08fbeea19a6d556f"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoPlayAccess.cs.meta",
+      "bytes": 59,
+      "sha256": "cc0237d0b88be2c1e40281f2804b643417e6f1d82c62e1bcd307bbc0cfdf7d1a"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoWalletAdminScreen.cs",
+      "bytes": 13943,
+      "sha256": "5000f765fbdfad4a70eb0dbd8963b499ddf9b5a39a1506bc2b0a42603ae1b19f"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoWalletAdminScreen.cs.meta",
+      "bytes": 62,
+      "sha256": "bc5092060720aac7a6ff1cf07ec2013692f54af7f457224b775b943619818b52"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoWalletAdminService.cs",
+      "bytes": 9719,
+      "sha256": "c86da31e5d710bc0510b278d3f2d8ba2f3ffcc8616170ede29cf13db6dccb5ce"
+    },
+    {
+      "path": "Assets/Scripts/Admin/TrucoWalletAdminService.cs.meta",
+      "bytes": 62,
+      "sha256": "8b2ed2e5cabd8440588c79da6a745a109f02de9713323a9907833a7ff811dbc0"
+    },
+    {
+      "path": "Assets/Scripts/Admin.meta",
+      "bytes": 172,
+      "sha256": "699158e3a5f9b14451d78f8d9cbccde53ac75a482c0f456405374a5d867f1317"
+    },
+    {
+      "path": "Assets/Scripts/AdminHandler.cs",
+      "bytes": 7283,
+      "sha256": "b32c303061790386ef41fde99310d9bc1e316e2d9f2e66e4a43e8d618e111733"
+    },
+    {
+      "path": "Assets/Scripts/AdminHandler.cs.meta",
+      "bytes": 60,
+      "sha256": "f022c86f1b080094bebcaedfa26c431dcff29cff57865dc1a0223af7d94d33ce"
+    },
+    {
+      "path": "Assets/Scripts/AdminLiveDashboardRuntime.cs",
+      "bytes": 12321,
+      "sha256": "439391b2799d3cfe1590a50b4bf7845555ef951418ea24167320015147db43c8"
+    },
+    {
+      "path": "Assets/Scripts/AdminLiveDashboardRuntime.cs.meta",
+      "bytes": 60,
+      "sha256": "32c51fbe32c96d15574136b124452a72d34d213659f92ac6bc2386035c8afa5b"
+    },
+    {
+      "path": "Assets/Scripts/AvatarUiBinder.cs",
+      "bytes": 2459,
+      "sha256": "854c149855a8e8eb27378ae47cf26cd0a33d57abb1b41a77bc5f1aaec0e99b00"
+    },
+    {
+      "path": "Assets/Scripts/AvatarUiBinder.cs.meta",
+      "bytes": 60,
+      "sha256": "23275472414c08597c0433d603a83e75462d54a5980db239174a938b418d3a2a"
+    },
+    {
+      "path": "Assets/Scripts/Card.cs",
+      "bytes": 3475,
+      "sha256": "bea0476bfb7d5a77c7a474586f6cdd10f7c8acccca58bb733f20c4204347adb3"
+    },
+    {
+      "path": "Assets/Scripts/Card.cs.meta",
+      "bytes": 60,
+      "sha256": "dda9adffeffe407f127f9314d2e1285df08c99fb0d9f8fd949fcfa7b284c9629"
+    },
+    {
+      "path": "Assets/Scripts/CoinGetter.cs",
+      "bytes": 837,
+      "sha256": "3bb02858070d7abbdc4fb84f439f945857b33d5719e80b3fca9d1e236981323b"
+    },
+    {
+      "path": "Assets/Scripts/CoinGetter.cs.meta",
+      "bytes": 60,
+      "sha256": "55c89e44e11999c559710d407c92f6d001592f9011b9c9dbfadaf127bafbd5ca"
+    },
+    {
+      "path": "Assets/Scripts/DataHandler.cs",
+      "bytes": 2688,
+      "sha256": "60573f29bd191a8db07980d9948f48326cba4ce3d40cb4959877b73d5e7c086b"
+    },
+    {
+      "path": "Assets/Scripts/DataHandler.cs.meta",
+      "bytes": 60,
+      "sha256": "7b06285fdd7b8830e42434f6a296f1ea0c64bab2a58ec2d90d1d4e7d2ab4f7a4"
+    },
+    {
+      "path": "Assets/Scripts/EditPanel.cs",
+      "bytes": 1159,
+      "sha256": "0847253da4d4e9ab63d75ddc32263291a0200d1a23f9bee4d127e9cd5761c6d5"
+    },
+    {
+      "path": "Assets/Scripts/EditPanel.cs.meta",
+      "bytes": 60,
+      "sha256": "be597bd22092d16b1adfb1704fd37b161824c25bc67fb8803dd4238fed07e8c9"
+    },
+    {
+      "path": "Assets/Scripts/FirebaseDatabaseManager.cs",
+      "bytes": 3306,
+      "sha256": "3923c9ce533601795f05c3a6ce6cfb2f59fce7feb32a8ef74bd6a7648387df3e"
+    },
+    {
+      "path": "Assets/Scripts/FirebaseDatabaseManager.cs.meta",
+      "bytes": 60,
+      "sha256": "5e341c91574d1b689409cd1ff0cc3c10b930830adba186433fe1d239b0a40379"
+    },
+    {
+      "path": "Assets/Scripts/FirebaseManager.cs",
+      "bytes": 1832,
+      "sha256": "6df6d04e4a366edacea7d1b06c935c609ab13cce32afc2144cc24b698a92de79"
+    },
+    {
+      "path": "Assets/Scripts/FirebaseManager.cs.meta",
+      "bytes": 60,
+      "sha256": "5502d24128470c1211fb9534c544ccf88f61697626bff85b65fd8e98a89db0c6"
+    },
+    {
+      "path": "Assets/Scripts/GameManager.cs",
+      "bytes": 138173,
+      "sha256": "f979b75e0571bed2735468dc76c5a7b48eaa05f7c290077147dd8c744a8c1d44"
+    },
+    {
+      "path": "Assets/Scripts/GameManager.cs.meta",
+      "bytes": 255,
+      "sha256": "e246219139e1aaad1eb742f509bc2f3bdf50b422f971ab5430f832d5cc5cf24d"
+    },
+    {
+      "path": "Assets/Scripts/GameplayTrucoPlayerAvatars.cs",
+      "bytes": 2416,
+      "sha256": "ef0092193313ad127b969f5a310dfef4111d2d423f08d166fa89ca9281a64e33"
+    },
+    {
+      "path": "Assets/Scripts/GameplayTrucoPlayerAvatars.cs.meta",
+      "bytes": 60,
+      "sha256": "e2500314a9f77f3146e4f24c9b7d725c3f20e8cbc85831ca0029e2838c32560d"
+    },
+    {
+      "path": "Assets/Scripts/LoginCredentialsStore.cs",
+      "bytes": 1111,
+      "sha256": "79806004bbb1001aa53bfc563788ccece27f593acb56a135f48d406024bce554"
+    },
+    {
+      "path": "Assets/Scripts/LoginCredentialsStore.cs.meta",
+      "bytes": 60,
+      "sha256": "92358e8cb8ae49d7c24e9ef86ebd4bbaa51fb3d0e6ec4b73ca5bdc5b8dafbd44"
+    },
+    {
+      "path": "Assets/Scripts/LoginPanel.cs",
+      "bytes": 992,
+      "sha256": "d2a4f0f0274ec3ffdfbc0a9585ba5d2f6627860dcb97cfd905fe3cddd997c3ad"
+    },
+    {
+      "path": "Assets/Scripts/LoginPanel.cs.meta",
+      "bytes": 60,
+      "sha256": "2c0a7e6ca35c433f0297a6a599d9352d48f87ff498adf33500583fc2b1e4f116"
+    },
+    {
+      "path": "Assets/Scripts/MainMenuManager.cs",
+      "bytes": 6600,
+      "sha256": "230f1529998d57c2dbe79476454c465b4bd87672db5536e8b20d250364cd26bf"
+    },
+    {
+      "path": "Assets/Scripts/MainMenuManager.cs.meta",
+      "bytes": 60,
+      "sha256": "5f580f69e51fa281e3ed17bed214985e038b0a928749c227db4cf2632cd0bb38"
+    },
+    {
+      "path": "Assets/Scripts/MainMenuNavBarVisuals.cs",
+      "bytes": 873,
+      "sha256": "6d60c70e4612486fa97fd4873a04f9600d6506114587fcccfc16ae7da11fb1ae"
+    },
+    {
+      "path": "Assets/Scripts/MainMenuNavBarVisuals.cs.meta",
+      "bytes": 60,
+      "sha256": "97bc18c1dc876cfe24752565636618953d617af24a2782d105182535334f0f84"
+    },
+    {
+      "path": "Assets/Scripts/MainMenuViewCoordinator.cs",
+      "bytes": 28024,
+      "sha256": "42ebbdfc9caa20f59747aacf7e8863abb14c03677b182c5c2ad1908597b86281"
+    },
+    {
+      "path": "Assets/Scripts/MainMenuViewCoordinator.cs.meta",
+      "bytes": 60,
+      "sha256": "dc53266aaeda74ede54cb20aba16ba3e9732ff983bfdf7b57ff143733f4a44a3"
+    },
+    {
+      "path": "Assets/Scripts/MatchMakingPanel.cs",
+      "bytes": 1715,
+      "sha256": "a713a7b91d0c941c83abda35d91a97b3025937f4244ed7aab1ce5f34ef8cc06b"
+    },
+    {
+      "path": "Assets/Scripts/MatchMakingPanel.cs.meta",
+      "bytes": 60,
+      "sha256": "768012a85fc78499c95e55f8be47c59b086fb9b3bf5238bfa07fb61ce2e42be2"
+    },
+    {
+      "path": "Assets/Scripts/NetworkManager.cs",
+      "bytes": 4855,
+      "sha256": "04c4c6d65244b6bfe3744ccaf13a3e8e8b07184f5b34e8b78763c09c9158a716"
+    },
+    {
+      "path": "Assets/Scripts/NetworkManager.cs.meta",
+      "bytes": 60,
+      "sha256": "3b39acede9b13220de293c19645cad1d243899b603413a6c619bb01476f3e473"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneCreateRoomPanel.cs",
+      "bytes": 10616,
+      "sha256": "1bb89b338ca00a0c55060762c113da9205ed06a62aa9a699f2d0bf0ff298e743"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneCreateRoomPanel.cs.meta",
+      "bytes": 60,
+      "sha256": "6eacb86b90033abfd9219d03d5ed295e5f36b448f1d3d2e050b38e9b66e1e40e"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneLobbyFlowRules.cs",
+      "bytes": 8328,
+      "sha256": "4b482c605520c49607c9f9e3f64eb16451c4d1a900db1da5a25bbd5e6fbea9f2"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneLobbyFlowRules.cs.meta",
+      "bytes": 60,
+      "sha256": "60850866d545777fa0fd2cc688a012a346e63cc0e8f4673814f9842a8d96865c"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneMatchLifecycle.cs",
+      "bytes": 9401,
+      "sha256": "013067663b0277276be167a3f20a4b0a60d705c5b5308e8c63b74eeb1c8e603f"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneMatchLifecycle.cs.meta",
+      "bytes": 60,
+      "sha256": "b4335e39ce2b4b0e3700d4371f2d49924bbbcb68fd4ba30506e771b61197b64a"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneMatchSession.cs",
+      "bytes": 6281,
+      "sha256": "3139ce1eb31ddff3ce656ee815d0e48aaeccd7dd9dc863c4fd8372095688aa34"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneMatchSession.cs.meta",
+      "bytes": 60,
+      "sha256": "628a111df03b96f07578db12fab1ec9f1937417351d55adce707eb0182aacf3b"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOnePhotonFlow.cs",
+      "bytes": 42171,
+      "sha256": "60a1d675891cd5aff60bedb138ae9c317928487f5b9dfee298a921a05a6c042a"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOnePhotonFlow.cs.meta",
+      "bytes": 60,
+      "sha256": "d4bc2227835dba218cdbb4a40e71b4954cb1d5503711b919006f3927795fc5ec"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOnePhotonSessionUi.cs",
+      "bytes": 4217,
+      "sha256": "4eb44a12102f44450f0f9240215ac87f0782463c1bde339fdf1fec460c244806"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOnePhotonSessionUi.cs.meta",
+      "bytes": 60,
+      "sha256": "65c4b262c0c86fff221ef7234d47d62f3198179caa2ab6f85e079477fcaed2b6"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneRoomListController.cs",
+      "bytes": 54405,
+      "sha256": "a3853974a29e53d8d198ba559a522b0f4d91537db888bfa13f4ebaafff96eaf8"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneRoomListController.cs.meta",
+      "bytes": 60,
+      "sha256": "6e0425604e0c334f13339eb595eef6f35eda177ff016fee0e7f0140ec67aa567"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneRoomRowView.cs",
+      "bytes": 8486,
+      "sha256": "4b72d5502a33858a365771165a7d3974c3d0c6569ceb4fe7cac03ab4ec98b7c2"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/OneVsOneRoomRowView.cs.meta",
+      "bytes": 60,
+      "sha256": "3ac105b329e41d089c7ffe7cde831ca0b82205e963771b1cb67f0ed4bcd3d971"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/Player1v1MatchExtensions.cs",
+      "bytes": 10515,
+      "sha256": "f5cd9cf8480886a33c3e4cc17cfb7ef04790152cdeac1871d25ea07bc8033fab"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/Player1v1MatchExtensions.cs.meta",
+      "bytes": 60,
+      "sha256": "577f1418be9ef1a7118ff9720c9ebf7a241560c7be49eb798e609ca9c064c322"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoActiveHostMatchStore.cs",
+      "bytes": 1308,
+      "sha256": "ef7fbbb64dc0cdcb08861d8b6541c5ec8a7970e3cccc0b908cba10a30718d5e9"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoActiveHostMatchStore.cs.meta",
+      "bytes": 60,
+      "sha256": "6686e9cc0ceb6fa268d1749b7b2e536c248aad87fd27f473f6fa36310ea66882"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoHostPreGameWatchdog.cs",
+      "bytes": 4493,
+      "sha256": "29944bd536990c2d825fd1f93d1a82698a49563c8b4908ae6d8828c1606d5f9f"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoHostPreGameWatchdog.cs.meta",
+      "bytes": 60,
+      "sha256": "b9c04bcf635d7e62b1c0b60cd7f16fed7ecfdb0f21e7d314cd917d22dec200e7"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLanguageToggleUi.cs",
+      "bytes": 551,
+      "sha256": "e6bb7b52c766f90b8b6acf92d47abcf29c63cb5316132af6dc383447858e146a"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLanguageToggleUi.cs.meta",
+      "bytes": 60,
+      "sha256": "382f39a1d4e0ef95187430f349ce7bcb866411a22e92026a6616a198d179b30e"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLobbyLeaveConfirm.cs",
+      "bytes": 2482,
+      "sha256": "b7ff62a62d503cf43ae2c9ba3bdf1a9cfa3157ebefb42b027b6db45d41462f29"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLobbyLeaveConfirm.cs.meta",
+      "bytes": 60,
+      "sha256": "519ed344b1389867a7110a7130924d19ec77ff3de6f30c35de882f9777de109b"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLobbyMatchmakingUi.cs",
+      "bytes": 1362,
+      "sha256": "dbdc1dd0830f64c3aef54055f8ef14e1c77a46ae2511663e9af943a0eb5c5b34"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLobbyMatchmakingUi.cs.meta",
+      "bytes": 60,
+      "sha256": "e558abbaf88bd6b131f53de868245bfebb423ff3ee95f036e8ece15f860a9dfc"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLocalization.cs",
+      "bytes": 25077,
+      "sha256": "b8a0a3aeb1195fa72dc8890592670d0c1c0dcb61b6efccbf050bb149f7ed4c11"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLocalization.cs.meta",
+      "bytes": 60,
+      "sha256": "e748a693caaea047301f486475e962ab01a1bba01641330f3f9d6aa878cc392d"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLocalizedUiRefresh.cs",
+      "bytes": 3038,
+      "sha256": "7361c30394b7be8b061c81db01e563eb57b7db98f579074c55971c5dd7fd3255"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoLocalizedUiRefresh.cs.meta",
+      "bytes": 60,
+      "sha256": "ca83f113c635520a73ae09c6b0a28cb81eb415153691b424729935b6accab817"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoOneVsOneGameplayLaunch.cs",
+      "bytes": 990,
+      "sha256": "6ff898c9a294513ecb8a51bc64c4fab11859376a62ae7458698742353d47c878"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoOneVsOneGameplayLaunch.cs.meta",
+      "bytes": 60,
+      "sha256": "c8bc0cc88de2cca44eb74d011c63854d8898acf0da5504d0600f503c3858b56c"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoOneVsOneMainMenuFactory.cs",
+      "bytes": 23233,
+      "sha256": "7eb818a586dcf5beaa0a01ca67395d83159a5de41663d2980e3b9757c511456d"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoOneVsOneMainMenuFactory.cs.meta",
+      "bytes": 60,
+      "sha256": "84cd8cc89c53e785120760255109ed78063951f5fc4792feca223c17fb5b6bbb"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoPendingRefundStore.cs",
+      "bytes": 3961,
+      "sha256": "2050311ee71073d5e15b29d68e5e2e6c284b76979fa3833da98916188ffdc9ba"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoPendingRefundStore.cs.meta",
+      "bytes": 60,
+      "sha256": "ae46ee5424aa1f1c46a1347c148fdf3b5e8e2c33c450007e0fe367029cd2d4ff"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoProfilePrefsBarUi.cs",
+      "bytes": 16479,
+      "sha256": "bea720d32771c9d679483793b91d727af91c45c365d4e0e1e190d6360406c0cf"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoProfilePrefsBarUi.cs.meta",
+      "bytes": 60,
+      "sha256": "b6105d59e0ce9253b89e33b4cfca41f4d1c0c61372439a435a0ff94a7ce5a79c"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoReturnFromGameplayCleanup.cs",
+      "bytes": 1705,
+      "sha256": "eec0f8cedf821685c113eac6e542e295a3804e0c0045b42d75966e62a93c1478"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoReturnFromGameplayCleanup.cs.meta",
+      "bytes": 60,
+      "sha256": "1d913301a31b4d8bbefbcbd9193a1f9e22c55adee9c163c1d214de86b8cfe74d"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoRoomPersistence.cs",
+      "bytes": 3346,
+      "sha256": "d111c3709486b7be66da4a54204a8648e028e23370fa979b73eb380ce67baeab"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoRoomPersistence.cs.meta",
+      "bytes": 60,
+      "sha256": "1fc8f2a3529586ef9eeb83d0b3a2184b59fbe8d12a0d32c424da94634d3f49c0"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoTextosClient.cs",
+      "bytes": 13207,
+      "sha256": "e1c3db52daaf39194d5981bfc8868c0302860d4a3770ebd63c6c4a767a991103"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoTextosClient.cs.meta",
+      "bytes": 60,
+      "sha256": "14cabee933786896b4a8e6e082ec4c391fdf454320eae881db3aade6be7a3930"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoUserFacingErrors.cs",
+      "bytes": 6469,
+      "sha256": "125a1ac21fd25341f8e9fcba813b7a054f098858aaf39ab55014bb38a3e0715d"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne/TrucoUserFacingErrors.cs.meta",
+      "bytes": 60,
+      "sha256": "5dab08818838d2b623a145210fe7670d1a0d9e56c2dec0dc3ed94b5c243f6bb3"
+    },
+    {
+      "path": "Assets/Scripts/OneVsOne.meta",
+      "bytes": 180,
+      "sha256": "ebd26d826000451263ab5d1a0082a8513b9800a7298c47a9d3a63b700b9da181"
+    },
+    {
+      "path": "Assets/Scripts/OtpVerificationPanel.cs",
+      "bytes": 3523,
+      "sha256": "d75ddd59c1878d4846cbfd19625330504f71fcc004c335b55233b0e3536b76aa"
+    },
+    {
+      "path": "Assets/Scripts/OtpVerificationPanel.cs.meta",
+      "bytes": 60,
+      "sha256": "e91f3915c3891d431211e2a233400c84460360e3ad12ddfd97bcdbf28b9a5f80"
+    },
+    {
+      "path": "Assets/Scripts/PhotonPlayerHelper.cs",
+      "bytes": 4093,
+      "sha256": "624c38260fe61937b9b93c0491bf4fa7edca5180c985d3997e30bee53a6f943f"
+    },
+    {
+      "path": "Assets/Scripts/PhotonPlayerHelper.cs.meta",
+      "bytes": 60,
+      "sha256": "d973e799af182f271a9808690ab09449684476d0e232de17ecc1a25533b9e581"
+    },
+    {
+      "path": "Assets/Scripts/PlayerAvatarData.cs",
+      "bytes": 544,
+      "sha256": "ef83c0727adb49437902dbc3c1833346b4bf97f2c48aad7ac9c74b6b331f4845"
+    },
+    {
+      "path": "Assets/Scripts/PlayerAvatarData.cs.meta",
+      "bytes": 60,
+      "sha256": "b5786f8b9580d5143b8e4b92a28c2074c96571de7fb20be46b9a0b8e0a3de406"
+    },
+    {
+      "path": "Assets/Scripts/PlayerScoreHandler.cs",
+      "bytes": 969,
+      "sha256": "e02cd6064f8bc72f6810cb8ff7ac40706f3d71db71653e9ee3f933aded432bdb"
+    },
+    {
+      "path": "Assets/Scripts/PlayerScoreHandler.cs.meta",
+      "bytes": 60,
+      "sha256": "68014863b389213c49fc25272d2e89e952d9d444a7f4e06f52055562282dc18e"
+    },
+    {
+      "path": "Assets/Scripts/PostLoginSceneRouter.cs",
+      "bytes": 1637,
+      "sha256": "a912342fc433064dd574b55944a90c1e6edb3dfdcd405314ebacbf8f36e60016"
+    },
+    {
+      "path": "Assets/Scripts/PostLoginSceneRouter.cs.meta",
+      "bytes": 60,
+      "sha256": "7ab612c05b87f5dc98849b89c1143488014415701a60ff3590580852841ddd7f"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoButtonFeedback.cs",
+      "bytes": 2386,
+      "sha256": "da3a51dfa3d77917a2d2d5398861d2e24b72b65729c15f5e6f1be1509c7db017"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoButtonFeedback.cs.meta",
+      "bytes": 60,
+      "sha256": "4ab68a5c9d24a98363413e9fec8ac2b7d6af65ce3c1f42bc1ad7be1bf7d25abe"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoConfirmDialog.cs",
+      "bytes": 8884,
+      "sha256": "3d96215d386bc38039b37fd667a83bc909bf63f3926ff98c07ae873f945cb4f5"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoConfirmDialog.cs.meta",
+      "bytes": 60,
+      "sha256": "1d56771811b8a6b222165e9f93b0aa21155590ca73424ee0e038de90a953f8a8"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoFormUiPolish.cs",
+      "bytes": 12818,
+      "sha256": "e1507bae31a142891739f7078785f37d6621e39031384fc5f503a2c60de20fe1"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoFormUiPolish.cs.meta",
+      "bytes": 60,
+      "sha256": "8a22b25b24422abf5a5652dfce4c5e3a2d8eeecfe0e18f6c1e70f1d836671e11"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoGameplayTimerBanner.cs",
+      "bytes": 2366,
+      "sha256": "25c06b0b5aec834cc34c078f80f33b12b226626594445ffc2db7fd820f287def"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoGameplayTimerBanner.cs.meta",
+      "bytes": 60,
+      "sha256": "796c38ae272d3d27b40b5ab0cc36db3dc65c0529864a1d0c95c63ef14f2aa46c"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoMotionRunner.cs",
+      "bytes": 601,
+      "sha256": "99119d5616af000b54b2a7f73e06d8f3a4ee3951ed95316d4c6dc7987bff6672"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoMotionRunner.cs.meta",
+      "bytes": 60,
+      "sha256": "c813858093a431693ed6104d867d42e0bbd4923fa5650f63b2bd0cd94136bd2e"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoNotificationLog.cs",
+      "bytes": 2626,
+      "sha256": "72a5c16c107e8653d861783e75ba412dd8c4391d49a41fdab76ee4c793a9aa22"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoNotificationLog.cs.meta",
+      "bytes": 60,
+      "sha256": "a8f7dd62b3d888e031db34f141ecaa07c1017650ffd7bada409245d8e4658772"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoNotificationPanelUi.cs",
+      "bytes": 10399,
+      "sha256": "d93de942379472b95d8ca0130c96faec36e31075e829baa119553cdc56fe1408"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoNotificationPanelUi.cs.meta",
+      "bytes": 60,
+      "sha256": "e9375ac1cf3cf5c1fd5f25103c8bc0203fe80e232cb64a1b7f645d08a9d7a6b5"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoPremiumUiBootstrap.cs",
+      "bytes": 1619,
+      "sha256": "70a71c91a6b052e611eeb16479620aaa78f13c00290fb1ae47d173c6e5a8ef4d"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoPremiumUiBootstrap.cs.meta",
+      "bytes": 60,
+      "sha256": "e3b30f171a35a8e63a4daace1667d75f6cb383abe30a3ecff5c9f7c1b8ef00a9"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoSceneTransition.cs",
+      "bytes": 6689,
+      "sha256": "19087da1d2662bcf7812e39ad5da57bc9ff5892ef2d5aae004fe42fe55220fcc"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoSceneTransition.cs.meta",
+      "bytes": 60,
+      "sha256": "7d94782b5632adfeba365a8429d775bae2216bb3895d40c27c87289b144d4831"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoUiMotion.cs",
+      "bytes": 4545,
+      "sha256": "256d594c009c6d9f2bb9734aab60f27bcdca62f73f729218715cb7da52d677b0"
+    },
+    {
+      "path": "Assets/Scripts/Premium/TrucoUiMotion.cs.meta",
+      "bytes": 60,
+      "sha256": "210db7fdebded2ae5790af6ab05138034e40f45dbbb4a4246b410468239c3db8"
+    },
+    {
+      "path": "Assets/Scripts/Premium.meta",
+      "bytes": 180,
+      "sha256": "af5f84ac4e96cbabbb1908e5c1c35fce1460513794ffd41b00a39c3cc22577ea"
+    },
+    {
+      "path": "Assets/Scripts/ScriptableObjects/Deck.cs",
+      "bytes": 2133,
+      "sha256": "4682a9b779fa3bb296823c477195f43ab275c4f69f37f5366f29e60f8b516247"
+    },
+    {
+      "path": "Assets/Scripts/ScriptableObjects/Deck.cs.meta",
+      "bytes": 60,
+      "sha256": "0a9fa4cfde3273bd34e5b1a8362ef9622cf4baecea20eb5f5ecc9e7cc3166dc1"
+    },
+    {
+      "path": "Assets/Scripts/ScriptableObjects/DeckData.asset",
+      "bytes": 424,
+      "sha256": "61784fb1afd2464b3bdcf65840550bd72d5baa902d9062ecb5dd47d0de8d1101"
+    },
+    {
+      "path": "Assets/Scripts/ScriptableObjects/DeckData.asset.meta",
+      "bytes": 197,
+      "sha256": "d1e399832ecea7a1bf0605fe6c7a10574214e9b6ec91365fda70a51c8e379b1d"
+    },
+    {
+      "path": "Assets/Scripts/ScriptableObjects.meta",
+      "bytes": 180,
+      "sha256": "96cb7e31429435640c049d0a98745afe692f640a97f21e177c82c81569066d28"
+    },
+    {
+      "path": "Assets/Scripts/SessionUserNameLabel.cs",
+      "bytes": 886,
+      "sha256": "37c68fc622bcfdc2982bdb261f6780962ee1584c2646c0fef8bd721f5b18fa5e"
+    },
+    {
+      "path": "Assets/Scripts/SessionUserNameLabel.cs.meta",
+      "bytes": 253,
+      "sha256": "eb4db2099c96e828af31222d2c84c3891d9bb7fe1a5a0c3bf91ea311a78b4dc2"
+    },
+    {
+      "path": "Assets/Scripts/SingeltonBase.cs",
+      "bytes": 739,
+      "sha256": "beecdcbf0e215b6d65c4ec8d27348a2826ccfc4f0279e698981d4557be05e2d8"
+    },
+    {
+      "path": "Assets/Scripts/SingeltonBase.cs.meta",
+      "bytes": 60,
+      "sha256": "0b8e5d1d82ea88441e433d085de990735d686bcbc6f30543b961b5c231ff832f"
+    },
+    {
+      "path": "Assets/Scripts/SpectatorContext.cs",
+      "bytes": 664,
+      "sha256": "d8c80eebf4df0a13e11d056b7bbe58fdf4ac6b04c4e0d0b99f1d1339d4f8634f"
+    },
+    {
+      "path": "Assets/Scripts/SpectatorContext.cs.meta",
+      "bytes": 60,
+      "sha256": "771b6f702a743f072a4184343a5d793e2abe22bf29138e38bd3adfde20406f01"
+    },
+    {
+      "path": "Assets/Scripts/SpectatorOverlayRuntime.cs",
+      "bytes": 2836,
+      "sha256": "682e942d687782c39b07cb388d448c8e25bf972bcf7424d0b506df06b23485c3"
+    },
+    {
+      "path": "Assets/Scripts/SpectatorOverlayRuntime.cs.meta",
+      "bytes": 60,
+      "sha256": "f0f75fec2444aa485b87b4e6d1d46ee25fd84d9bbc014d8d9bf6904737c17a3e"
+    },
+    {
+      "path": "Assets/Scripts/TournamentBracketGraphic.cs",
+      "bytes": 9649,
+      "sha256": "6c05424afb5a37870807c16e48abbab5153a952db90434060a8b525a0533542d"
+    },
+    {
+      "path": "Assets/Scripts/TournamentBracketGraphic.cs.meta",
+      "bytes": 60,
+      "sha256": "fb88e3c9fe75e92dea2c36b7fb320830852ad5b5ecc9376cfe1e36cae36686e4"
+    },
+    {
+      "path": "Assets/Scripts/TournamentBracketOverlay.cs",
+      "bytes": 16533,
+      "sha256": "560e91c8ca7f0cb2f94996bab089df2f867841736ee94b0c5bfd790da50e6cf0"
+    },
+    {
+      "path": "Assets/Scripts/TournamentBracketOverlay.cs.meta",
+      "bytes": 59,
+      "sha256": "6b36cfebb7b0b631c6b7ca2867f42e71b121fdf055ffb3762e38e1f3f474b415"
+    },
+    {
+      "path": "Assets/Scripts/TournamentBracketState.cs",
+      "bytes": 5657,
+      "sha256": "a137d8222aec22cacc839d9335d110abdc2da5f5e8065d8d7b62734c47f7c77b"
+    },
+    {
+      "path": "Assets/Scripts/TournamentBracketState.cs.meta",
+      "bytes": 60,
+      "sha256": "1c650f0c07788ad7580a11ba7962eedbffd29f6329bacaced621578b128a69e6"
+    },
+    {
+      "path": "Assets/Scripts/TournamentChampionOverlay.cs",
+      "bytes": 8647,
+      "sha256": "12d5596391521e593e347575609b46fb7403397af00ea4428deb578d38639da3"
+    },
+    {
+      "path": "Assets/Scripts/TournamentChampionOverlay.cs.meta",
+      "bytes": 59,
+      "sha256": "c049e6817a3b7355dade81dd2ec511e2ab9a070287b6f5a5801817d4396d6c62"
+    },
+    {
+      "path": "Assets/Scripts/TournamentGameplayVariantBridge.cs",
+      "bytes": 1746,
+      "sha256": "0810494004c48244db6da805fda6d57e6f47dfdf0b3a4c70ee0efa7e62bf8c02"
+    },
+    {
+      "path": "Assets/Scripts/TournamentGameplayVariantBridge.cs.meta",
+      "bytes": 60,
+      "sha256": "b02ebd9681042d8c115ecfb7b2b3250341bbcb448d14cd925f11fb18e2636f8e"
+    },
+    {
+      "path": "Assets/Scripts/TournamentStartupValidation.cs",
+      "bytes": 7088,
+      "sha256": "698e50a3f4e824cecbfc628d37327e9bf99071776a78bfdae1b83202ca791dc1"
+    },
+    {
+      "path": "Assets/Scripts/TournamentStartupValidation.cs.meta",
+      "bytes": 62,
+      "sha256": "8125e35cf3fe854d922111fd08dd970c4c84fd5301ad883c2b3e59e163b45336"
+    },
+    {
+      "path": "Assets/Scripts/TrucoAvatarRepository.cs",
+      "bytes": 4225,
+      "sha256": "8a8701b7f685d1adf4b40018c06f2596b0bc535711d32683840a409103bea2dd"
+    },
+    {
+      "path": "Assets/Scripts/TrucoAvatarRepository.cs.meta",
+      "bytes": 60,
+      "sha256": "ac7f8ef1606d051ba0e144611f9c9ea9c092c7aad480a18c766d01def132ecf1"
+    },
+    {
+      "path": "Assets/Scripts/TrucoBottomNavLayout.cs",
+      "bytes": 2763,
+      "sha256": "4e8dee8898cc36da2c3084cf39b5db8d97e8c4750f525f3f9f099a4b190c62b7"
+    },
+    {
+      "path": "Assets/Scripts/TrucoBottomNavLayout.cs.meta",
+      "bytes": 62,
+      "sha256": "8aaaae5d7b53bb379c2515dc1471f3f187cef040f066d6aaf6fda96c991e9c50"
+    },
+    {
+      "path": "Assets/Scripts/TrucoCalloutPhrases.cs",
+      "bytes": 1148,
+      "sha256": "9934d7de6792981d58097f05bf260054a3173338f2682c84fe1608cf136765ce"
+    },
+    {
+      "path": "Assets/Scripts/TrucoCalloutPhrases.cs.meta",
+      "bytes": 60,
+      "sha256": "8a6ce340ff9638543b4475e03986ee4e1413228c38cc53e8a46dae20eb742465"
+    },
+    {
+      "path": "Assets/Scripts/TrucoCanvasOrder.cs",
+      "bytes": 642,
+      "sha256": "098efa6d5356994783920f3662b53c573e1bc2461f6984b64c6e7787fce566f5"
+    },
+    {
+      "path": "Assets/Scripts/TrucoCanvasOrder.cs.meta",
+      "bytes": 62,
+      "sha256": "4c865afff55c89dfa3b5afa11cd9897b2a75489229933208604e039c302c1586"
+    },
+    {
+      "path": "Assets/Scripts/TrucoCardRules.cs",
+      "bytes": 1099,
+      "sha256": "170491d6cb31f6dbb78ccbe609d95ec0221d4c7f3b7ba41b1029e2f126eaaa4f"
+    },
+    {
+      "path": "Assets/Scripts/TrucoCardRules.cs.meta",
+      "bytes": 60,
+      "sha256": "95dcc4d25877e31b076673f9f3ea9b7cc54a4d0176361faf0d0419d209bb57b2"
+    },
+    {
+      "path": "Assets/Scripts/TrucoClientMemory.cs",
+      "bytes": 1011,
+      "sha256": "6976a17d629e07c4328a7d98219d3920e229697db736c7c8f1b0ffb576a7e98d"
+    },
+    {
+      "path": "Assets/Scripts/TrucoClientMemory.cs.meta",
+      "bytes": 59,
+      "sha256": "dd0f369eefa396c839f2aab5ff0d7668731a2c7cd9bb5b8ad6770ad1331451ce"
+    },
+    {
+      "path": "Assets/Scripts/TrucoClubUI.cs",
+      "bytes": 5258,
+      "sha256": "1a8819998bb985ecc43ca06f03d1f34b610b5ddc35aeed58cd2024be8e02d4f3"
+    },
+    {
+      "path": "Assets/Scripts/TrucoClubUI.cs.meta",
+      "bytes": 62,
+      "sha256": "09aa920169292cfeea0870b92e04fabe29bf399db7d0e0932a51c9ec994bc0d4"
+    },
+    {
+      "path": "Assets/Scripts/TrucoDevelopmentBot.cs",
+      "bytes": 5430,
+      "sha256": "0b511b190578f4cc2ede09b884a7a6015f7170b65bbb97a539c14fc4e48f7aed"
+    },
+    {
+      "path": "Assets/Scripts/TrucoDevelopmentBot.cs.meta",
+      "bytes": 62,
+      "sha256": "1f514d3a98f029c7b7852cb869814e4a96d132ee629fb21d683e063416bb3e37"
+    },
+    {
+      "path": "Assets/Scripts/TrucoDevelopmentSettings.cs",
+      "bytes": 2744,
+      "sha256": "58311fd3b4a1097f5e230a0dd139518eae57267088c0264aa708f9144b2405a3"
+    },
+    {
+      "path": "Assets/Scripts/TrucoDevelopmentSettings.cs.meta",
+      "bytes": 62,
+      "sha256": "d35053b5a38d42af1542c6efb3ad2882de322b9d43907a8d5b69aff3efae6455"
+    },
+    {
+      "path": "Assets/Scripts/TrucoEditorTournamentHooks.cs",
+      "bytes": 417,
+      "sha256": "c576f0e1a4e3b42ee014f6ca86bf99da3f5a62becfd7cef084c2fbde9d665b1b"
+    },
+    {
+      "path": "Assets/Scripts/TrucoEditorTournamentHooks.cs.meta",
+      "bytes": 62,
+      "sha256": "6cf59840f23bd7d0dbefc5e859a2700cdcce1ef89b82cd932db4dd257fe6d0f0"
+    },
+    {
+      "path": "Assets/Scripts/TrucoEventSystem.cs",
+      "bytes": 1854,
+      "sha256": "181431530a73aac3f43be498cdcaa3bd0fb691a2b3eccec117d0e1d4ac036748"
+    },
+    {
+      "path": "Assets/Scripts/TrucoEventSystem.cs.meta",
+      "bytes": 60,
+      "sha256": "0086fe5c02fcbc820b2644af103a90afebf0306035d1f9882c32228a9794ac8d"
+    },
+    {
+      "path": "Assets/Scripts/TrucoFlorScore.cs",
+      "bytes": 931,
+      "sha256": "016bb768fe98a7bfee2f45b17405f3d59c671b88ac554415dc5d358492daac02"
+    },
+    {
+      "path": "Assets/Scripts/TrucoFlorScore.cs.meta",
+      "bytes": 60,
+      "sha256": "90b995a0d867372eae8a6df147d2ac492c0cf78aa35ae1a870ae2801b7c73e3f"
+    },
+    {
+      "path": "Assets/Scripts/TrucoGameplayAudio.cs",
+      "bytes": 12371,
+      "sha256": "cb26595534d65e1f41e61a7d6cfa579ca1e9401c47a8c27af85ea035f811cff6"
+    },
+    {
+      "path": "Assets/Scripts/TrucoGameplayAudio.cs.meta",
+      "bytes": 60,
+      "sha256": "f65573657223cec0dbb5d45010de900208c97f499cf9b6e25226b2dcaed75a0d"
+    },
+    {
+      "path": "Assets/Scripts/TrucoGameplayUiSprites.cs",
+      "bytes": 4195,
+      "sha256": "6fae2858afb02cdc7d9d36e306fbc15b136872a7450e7e9f46d72db3b937766b"
+    },
+    {
+      "path": "Assets/Scripts/TrucoGameplayUiSprites.cs.meta",
+      "bytes": 59,
+      "sha256": "93a7f241e43352b313cc887a0f67a3ef28cb381f9d1b96cf6478e0984149857a"
+    },
+    {
+      "path": "Assets/Scripts/TrucoHandWinner.cs",
+      "bytes": 3283,
+      "sha256": "125b8113a95cc67dc56a8c8b7f0d378e4f53c1d3c57c8568f95b62a57870e8d8"
+    },
+    {
+      "path": "Assets/Scripts/TrucoHandWinner.cs.meta",
+      "bytes": 60,
+      "sha256": "667b267cd673cb94aef5ea0d7b106facaac65c73ea89824ffaf3f15e5b4446e9"
+    },
+    {
+      "path": "Assets/Scripts/TrucoLoginScreenUiPolish.cs",
+      "bytes": 12503,
+      "sha256": "5c8f28650f86de98f7c6f40283f721b2a2dfdbde41ea60cfe3bd51eddfdf0c08"
+    },
+    {
+      "path": "Assets/Scripts/TrucoLoginScreenUiPolish.cs.meta",
+      "bytes": 60,
+      "sha256": "37bda40c53e8acbc73bf2bc1f79a8fa706c41206633b5de02fe2fa5883fcb70d"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchEndUiPolish.cs",
+      "bytes": 5962,
+      "sha256": "a27c556ba0b7e18090b3216ea6e4036ce948395c1300f1d3867ca367ccb694b4"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchEndUiPolish.cs.meta",
+      "bytes": 60,
+      "sha256": "546d8b6cd5423c38e986f9ae19c57f2e8db184355784858a1d7776122e822f03"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchPlayGate.cs",
+      "bytes": 1435,
+      "sha256": "efa5d2c374840774bcbae63fcebd7b7f886d13800d0d07e3de93fc45170b1fc2"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchPlayGate.cs.meta",
+      "bytes": 59,
+      "sha256": "1b03af3cc284a14128cbd6893143b7a4c6e7a86af194e60b44352decca3a3423"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchProgress.cs",
+      "bytes": 1307,
+      "sha256": "090a0ae8937e54ee863a597fbd57d8716d84194a0f6491fcf7c25ef4c3e9a040"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchProgress.cs.meta",
+      "bytes": 60,
+      "sha256": "7ca0f32bc33d8c965f0fe2c3c9f3fb8b733bc664bba3aa983d663c8d8c859031"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchRules.cs",
+      "bytes": 1061,
+      "sha256": "4faa3be6c8f8647e2ad0fed9cf5b821134a34eb557dd3e56003312facbfd95a4"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMatchRules.cs.meta",
+      "bytes": 62,
+      "sha256": "c92a574cb4f7640527e8d4d0ea72ebe4b26bab66db6e078bebc3761679166f92"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMenuTheme.cs",
+      "bytes": 4252,
+      "sha256": "1aa24762a89df86250c33c281ce26890138da354116ece92c9862602758372da"
+    },
+    {
+      "path": "Assets/Scripts/TrucoMenuTheme.cs.meta",
+      "bytes": 62,
+      "sha256": "5ebdc0cdffefbba6269703e0fdf0e86697ca058f1b47ff6f43998d3b563a8282"
+    },
+    {
+      "path": "Assets/Scripts/TrucoNavigationTab.cs",
+      "bytes": 4078,
+      "sha256": "014f43747aa20e302f649ecbba2ce5ce67de9dfbacb4ba06aa904f57c1836aa1"
+    },
+    {
+      "path": "Assets/Scripts/TrucoNavigationTab.cs.meta",
+      "bytes": 62,
+      "sha256": "2668aa198e9e5701a8d37af48a5d437c7d581ab6d61a4611f7eb0b059b1607c1"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPhotonAuthentication.cs",
+      "bytes": 10721,
+      "sha256": "97bde1e192d4311757fc1411adacf76c845cfafce9ac813721356452c2db71d2"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPhotonAuthentication.cs.meta",
+      "bytes": 62,
+      "sha256": "931c6331f2189177d7983b2655a79ab94e2b4d0b7f0fc644deec86faf4836740"
+    },
+    {
+      "path": "Assets/Scripts/TrucoProfileContract.cs",
+      "bytes": 1824,
+      "sha256": "096c2a1d6ec91e881067d81a88c612db159b6a0f3399ed0c930e7734add19a46"
+    },
+    {
+      "path": "Assets/Scripts/TrucoProfileContract.cs.meta",
+      "bytes": 62,
+      "sha256": "346e4415f9310bef4d2a3cf0b299634953a8f52eb050b61058b44563e0a62fa2"
+    },
+    {
+      "path": "Assets/Scripts/TrucoProfilePresentation.cs",
+      "bytes": 4165,
+      "sha256": "b60eab0ffac6a1cf1fe1fc664ba85c47b6e7210ab8d32574def470f01378bd80"
+    },
+    {
+      "path": "Assets/Scripts/TrucoProfilePresentation.cs.meta",
+      "bytes": 62,
+      "sha256": "d6453701e73845a5031bb4278a1d149b9be4aa7ba7b1ef945a79240579275296"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPunChallenges.cs",
+      "bytes": 1527,
+      "sha256": "45e39b50e0a44dbfa0a1ff89335b6bcd8f643128c2e6ed6fa77d9951de204fcf"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPunChallenges.cs.meta",
+      "bytes": 60,
+      "sha256": "15c781b870dbf44bb5bea7e5d5874246a41e4eaf8548c5103785358bdeff01fc"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPunPlayerAvatarUtil.cs",
+      "bytes": 645,
+      "sha256": "355138ec57c522718852d4d8faf6788444d3f0450339cecd8f98bda15f1e435c"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPunPlayerAvatarUtil.cs.meta",
+      "bytes": 60,
+      "sha256": "32d4f886fde12fc631b2bc8e93fabb9a86104443739c7ff452484acf36951a41"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPunReconnectionManager.cs",
+      "bytes": 15047,
+      "sha256": "82b8ed1d7a27c74dbfee7c85023498054611cb9e7a366b8c0c23a6e567f55455"
+    },
+    {
+      "path": "Assets/Scripts/TrucoPunReconnectionManager.cs.meta",
+      "bytes": 60,
+      "sha256": "833ef88ebd85534183fc4b8e371d2a2901eb9ed14696245b0ab86a5cd7e2ec05"
+    },
+    {
+      "path": "Assets/Scripts/TrucoReconnectionUi.cs",
+      "bytes": 3735,
+      "sha256": "df88e8ee6cc1e1079d2b053e3722ecdae08b7380b5638203d3a55b5041b2907c"
+    },
+    {
+      "path": "Assets/Scripts/TrucoReconnectionUi.cs.meta",
+      "bytes": 60,
+      "sha256": "bcd5e153bcaf330aa4b336b975906d40de858deb17782b357e2ead3243114e3d"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRemoteApiConfiguration.cs",
+      "bytes": 8087,
+      "sha256": "6b05bdef0238f36fa3e2f2c5028efe735877cc6ba1baa783a343f87beaaf26a4"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRemoteApiConfiguration.cs.meta",
+      "bytes": 62,
+      "sha256": "698f0b3d54ec4cd0cfc93a4bdf72147a7fe184e99c57a4d44f2738c5a39fe64a"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRulePoints.cs",
+      "bytes": 4073,
+      "sha256": "24f3f7f1828f0caa3b151a3c9a8938631ed92381ca280c96d238cda167f67892"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRulePoints.cs.meta",
+      "bytes": 60,
+      "sha256": "446e7bcaef9b910ae9a909012cb9504973ea3b84f223c700d5577c6a450b4f4e"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRulesScenarioLog.cs",
+      "bytes": 2916,
+      "sha256": "19baa5ab7287963493c33a14284ac45a1dd5a16182478a4ddcd01a44223da8af"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRulesScenarioLog.cs.meta",
+      "bytes": 60,
+      "sha256": "2fbdc00183b1f7fbe0eaf51384ebfed41c67a0586f02e771f93efae0fc127cb1"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRuntimeUiBuilders.cs",
+      "bytes": 57149,
+      "sha256": "ef34761342b13e3c13c03864c4e29c377e628756ac4038ff4475e017a81d2feb"
+    },
+    {
+      "path": "Assets/Scripts/TrucoRuntimeUiBuilders.cs.meta",
+      "bytes": 60,
+      "sha256": "5fe052ce63b01745f0b576e6ce7cfbe892a55364cd305a2d6af2102f61293e94"
+    },
+    {
+      "path": "Assets/Scripts/TrucoSafeArea.cs",
+      "bytes": 710,
+      "sha256": "18901ee30a3c4fa0dca4c0e9692a24ea17246392a1ceac8f7b0fad65782fd92c"
+    },
+    {
+      "path": "Assets/Scripts/TrucoSafeArea.cs.meta",
+      "bytes": 62,
+      "sha256": "1709dae3366b116e3359222f7f99c29a3b7c125a134a772b3fc15ec586f1d79b"
+    },
+    {
+      "path": "Assets/Scripts/TrucoServerAcknowledgement.cs",
+      "bytes": 2906,
+      "sha256": "fc8f41981401045c1304a23c8f446a407ca1d4f0034aa6de08fcc4768d2bc248"
+    },
+    {
+      "path": "Assets/Scripts/TrucoServerAcknowledgement.cs.meta",
+      "bytes": 60,
+      "sha256": "5643eff94acb1d8768b82af151f89a7598fcc54e805a6fc7767afba4c5180fd2"
+    },
+    {
+      "path": "Assets/Scripts/TrucoThemeRuntime.cs",
+      "bytes": 4524,
+      "sha256": "1acff31dc8bcbadc5859e13be40452dff507eded081a54d008708fe8e3c21d90"
+    },
+    {
+      "path": "Assets/Scripts/TrucoThemeRuntime.cs.meta",
+      "bytes": 60,
+      "sha256": "3324adb430b622ac8c07d603f2d9ee2670463c14b01533a0f9da0da9fa5c3d02"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentHandReady.cs",
+      "bytes": 1763,
+      "sha256": "fa39d90b1edb29baca88791ebcd8581afe22bd3f1efa738ec4372cb997643e2d"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentHandReady.cs.meta",
+      "bytes": 62,
+      "sha256": "835b33a0cce0dfcb3431966ce63165b5bdbd33fea41e7dc192b07d3959b40b99"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentService.cs",
+      "bytes": 22847,
+      "sha256": "3cfcfcad2ba8539bd1671c71d5d8f84ba75bc5d16eb41782aa95718c249aa1b3"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentService.cs.meta",
+      "bytes": 62,
+      "sha256": "eb2735a5f5992316d64073ce377f18b9bf842082ced0dadd1e16eed960b0bfde"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentSessionPoller.cs",
+      "bytes": 1677,
+      "sha256": "1a387f448e29645622964351070ec2271a55d8f9c23b845cade9e820befbf0d3"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentSessionPoller.cs.meta",
+      "bytes": 62,
+      "sha256": "7b88c103dfaae83e2167f429e0748f90880dae0f3efbfc1fbce7635281f0913a"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentStatusScreen.cs",
+      "bytes": 4895,
+      "sha256": "5b53db38349d0341c2c1df048a6b6c26c8c759d17c9d24d624e5f009620a6b07"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTournamentStatusScreen.cs.meta",
+      "bytes": 62,
+      "sha256": "a1b71eb2f3e2b62071bd4b64ac08168ddf1eb48978eaad275e4dda996fd3ac13"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTtsService.cs",
+      "bytes": 9664,
+      "sha256": "085761c86f6fe382ad4fe5e61cc12dfa40333779d9d3dfcaa53e1ba3fc777c91"
+    },
+    {
+      "path": "Assets/Scripts/TrucoTtsService.cs.meta",
+      "bytes": 60,
+      "sha256": "004615d4d96490312e43caef9d54dbcf7ef92e8d89001ca1b55fa9f9855c913a"
+    },
+    {
+      "path": "Assets/Scripts/TrucoUiAssetLoader.cs",
+      "bytes": 2916,
+      "sha256": "38dab29f5a8ce1d142a03de15e2ab2ca3209512b5560bd349b22c5a808e10aad"
+    },
+    {
+      "path": "Assets/Scripts/TrucoUiAssetLoader.cs.meta",
+      "bytes": 60,
+      "sha256": "82210e6d6e2b91d0a30cf99bbc91669a8508baa0cd5ea8eb5409c3b2400f2e3e"
+    },
+    {
+      "path": "Assets/Scripts/TrucoUiTheme.cs",
+      "bytes": 4683,
+      "sha256": "bd0923b00ff854d71fc4cb58baa7301fa71ce84b8c93e9613d2299fd2693309f"
+    },
+    {
+      "path": "Assets/Scripts/TrucoUiTheme.cs.meta",
+      "bytes": 60,
+      "sha256": "b238b26380369fc0108a873bb0e45a018c7062276565ed828eb83c3f2d7ac584"
+    },
+    {
+      "path": "Assets/Scripts/TrucoWalletHudRefresh.cs",
+      "bytes": 780,
+      "sha256": "4170e4ea6e7816826cf73010f808e78cc9928f2d8a50489b2f54f48ccd52fdc4"
+    },
+    {
+      "path": "Assets/Scripts/TrucoWalletHudRefresh.cs.meta",
+      "bytes": 60,
+      "sha256": "1f64c8451c28b3cec24b212867973531893a842ed09a9dd02dce081f2440baef"
+    },
+    {
+      "path": "Assets/Scripts/TrucoWalletScreen.cs",
+      "bytes": 14231,
+      "sha256": "80284c58ec3878c2cc00e3b3e59caf9b58f10f3a3d239a11a8b6ed168fc085cf"
+    },
+    {
+      "path": "Assets/Scripts/TrucoWalletScreen.cs.meta",
+      "bytes": 62,
+      "sha256": "c024d969b8f54dec1201494bebc47ce4af90dcfca17e2cdbc6ffc4459101443e"
+    },
+    {
+      "path": "Assets/Scripts/TrucoWalletService.cs",
+      "bytes": 8670,
+      "sha256": "37708456531978954b34ed7bda455a2327d471d470181787ab9c47d510c44e7e"
+    },
+    {
+      "path": "Assets/Scripts/TrucoWalletService.cs.meta",
+      "bytes": 62,
+      "sha256": "de515c9128038cc41d22a9f21c67cc5ecbbf00ed69537d5b7acc76f2d1dfe428"
+    },
+    {
+      "path": "Assets/Scripts/TurnManager.cs",
+      "bytes": 24660,
+      "sha256": "d89fd1fd822f7b759308063dc75989ee5f392b913fde22213efc663ab5e52d1b"
+    },
+    {
+      "path": "Assets/Scripts/TurnManager.cs.meta",
+      "bytes": 256,
+      "sha256": "5fe45b1340c3dc67609ec64a0fd818659efd423e7dfb276d46fe4c0b5c1460a8"
+    },
+    {
+      "path": "Assets/Scripts/UIMANAGER.cs",
+      "bytes": 115298,
+      "sha256": "5938bdc972c93499a785a1c8d9a67bcf72dda296edd11bf4a481654a34101eb7"
+    },
+    {
+      "path": "Assets/Scripts/UIMANAGER.cs.meta",
+      "bytes": 60,
+      "sha256": "59bd14a344a95b75a8685e9aa13e48c640c865c922b96673b88d4740e929f22a"
+    },
+    {
+      "path": "Assets/Scripts/Userbar.cs",
+      "bytes": 479,
+      "sha256": "0de56fd090636617cfbd4cc82bb0fd36308f311111dfa1d85ad6ce3a7ec048d7"
+    },
+    {
+      "path": "Assets/Scripts/Userbar.cs.meta",
+      "bytes": 60,
+      "sha256": "37d2c2b1f0c72fd6f1a8084ec10c3efe9c2f8a53b5beb92e1f76c2c377c6a504"
+    },
+    {
+      "path": "Assets/Scripts/UsernameMainMenuBinder.cs",
+      "bytes": 917,
+      "sha256": "95163ef553c0fe0c2c7161e8e67e7618b80406ea08816d1a85b7800e5b1f29c1"
+    },
+    {
+      "path": "Assets/Scripts/UsernameMainMenuBinder.cs.meta",
+      "bytes": 60,
+      "sha256": "4e10c2c7fe259c9c38350d5691e58f0cd9eadbf7a70c5d909040cad99e85db72"
+    },
+    {
+      "path": "Assets/Scripts/UsersPanel.cs",
+      "bytes": 937,
+      "sha256": "d0826741781a2a417df553601d44a08b4a96e566b74cbc84245bc618a2e3ad27"
+    },
+    {
+      "path": "Assets/Scripts/UsersPanel.cs.meta",
+      "bytes": 60,
+      "sha256": "c188fa96afe4f550a064e8c8ab0416d08d4c8b96b3d877ea40538a9f6ed60fc4"
+    },
+    {
+      "path": "Assets/StreamingAssets/build_info",
+      "bytes": 51,
+      "sha256": "700c7b4b3fa3140fd8a51cec71223c5eb2b2403481e188548c375e3c4d93477c"
+    },
+    {
+      "path": "Assets/Unity-Logs-Viewer/Reporter/Reporter.cs",
+      "bytes": 68061,
+      "sha256": "982036ff6b309b40397c72078c785f9dbbc465f6b18b549f4a3536f62a9d626a"
+    },
+    {
+      "path": "ProjectSettings/EditorBuildSettings.asset",
+      "bytes": 1427,
+      "sha256": "758eabea29c2af13b6f11017ff4b6fe8c14c5764ce635312f3f75e5b9f8a7ca5"
+    },
+    {
+      "path": "ProjectSettings/ProjectSettings.asset",
+      "bytes": 27320,
+      "sha256": "24336c8164903996609f8b7cfe9e27e69af9a69bbb8e79fbd350d092cbce53d0"
+    }
+  ]
+}

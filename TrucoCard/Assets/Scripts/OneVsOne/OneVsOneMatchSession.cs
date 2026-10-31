@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>Estado mínimo de la partida 1v1 frente a backend y Photon (para panel admin / correlación id).</summary>
@@ -13,6 +15,16 @@ public static class OneVsOneMatchSession
     public static int TargetScore { get; private set; } = TrucoMatchRules.DefaultTargetScore;
     /// <summary>Opponent’s backend user id (from Photon custom properties), cached while in-room for forfeit on reconnect failure.</summary>
     public static string CachedOpponentUserId { get; private set; }
+    static string[] _authenticatedParticipants = Array.Empty<string>();
+    public static IReadOnlyList<string> AuthenticatedParticipants => _authenticatedParticipants;
+    public static bool SetAuthenticatedParticipants(string matchId, IEnumerable<string> participants)
+    {
+        var ids = participants?.ToArray();
+        if (string.IsNullOrWhiteSpace(matchId) || matchId != CurrentMatchId || ids == null || ids.Length != 2
+            || ids.Any(string.IsNullOrWhiteSpace) || ids.Distinct(StringComparer.Ordinal).Count() != 2) return false;
+        _authenticatedParticipants = ids;
+        return true;
+    }
     /// <summary>True after POST /start-game (cards dealt). Lobby cancel must not refund after this.</summary>
     public static bool GameStarted { get; private set; }
     /// <summary>
@@ -27,6 +39,7 @@ public static class OneVsOneMatchSession
     public static void SetHostContext(string matchId, string photonName, int entryFee, bool withFlor = true,
         int targetScore = TrucoMatchRules.DefaultTargetScore)
     {
+        if (matchId != CurrentMatchId) _authenticatedParticipants = Array.Empty<string>();
         CurrentMatchId = matchId;
         PhotonRoomName = photonName;
         IsHost = true;
@@ -40,6 +53,7 @@ public static class OneVsOneMatchSession
     public static void SetGuestContext(string matchId, string photonName, int entryFee, bool withFlor = true,
         int targetScore = TrucoMatchRules.DefaultTargetScore)
     {
+        if (matchId != CurrentMatchId) _authenticatedParticipants = Array.Empty<string>();
         CurrentMatchId = matchId;
         PhotonRoomName = photonName;
         IsHost = false;
@@ -74,6 +88,7 @@ public static class OneVsOneMatchSession
         GameStarted = false;
         WalletBalanceAtGameStart = -1;
         CachedOpponentUserId = null;
+        _authenticatedParticipants = Array.Empty<string>();
     }
 
     public static void ClearSavedRoomPersistence() => TrucoRoomPersistence.Clear();
@@ -85,7 +100,7 @@ public static class OneVsOneMatchSession
 
     public static string BuildDefaultPhotonRoomName(string matchId)
     {
-        if (string.IsNullOrEmpty(matchId)) return "truco1v1_" + Random.Range(10000, 99999);
+        if (string.IsNullOrEmpty(matchId)) return "truco1v1_" + UnityEngine.Random.Range(10000, 99999);
         return "tr1_" + matchId;
     }
 }

@@ -40,11 +40,11 @@ public static class TrucoUiTheme
     public static readonly Color CreateFormLabel = new Color(0.32f, 0.22f, 0.14f, 1f);
     public static readonly Color CreateFormSubLabelCream = new Color(0.18f, 0.12f, 0.08f, 1f);
     public static readonly Color InputBg = new Color(1f, 0.99f, 0.97f, 1f);
-    public static readonly Color NavSelected = new Color(0.95f, 0.86f, 0.7f, 1f);
-    public static readonly Color NavUnselected = new Color(0.5f, 0.45f, 0.4f, 0.4f);
+    public static readonly Color NavSelected = new Color32(239, 215, 164, 255);
+    public static readonly Color NavUnselected = new Color(0.24f, 0.13f, 0.06f, 0.28f);
     /// <summary>Child &quot;Icon&quot; Image tint when its tab is active (Button ColorBlock tints the background, not the icon).</summary>
     public static readonly Color NavIconOnTab = Color.white;
-    public static readonly Color NavIconOffTab = new Color(0.55f, 0.5f, 0.45f, 0.8f);
+    public static readonly Color NavIconOffTab = new Color(0.86f, 0.81f, 0.71f, 0.9f);
 
     public static readonly Color TournamentListScreenBg = new Color(0.97f, 0.95f, 0.92f, 1f);
     public static readonly Color TournamentHeaderWoodTint = new Color(0.55f, 0.42f, 0.3f, 1f);

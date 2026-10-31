@@ -41,23 +41,18 @@ public class TournamentCardItem : MonoBehaviour
         if (le == null) le = gameObject.AddComponent<LayoutElement>();
         le.minWidth = 0f;
         le.flexibleWidth = 1f;
-        le.minHeight = 340f;
-        le.preferredHeight = 360f;
+        le.minHeight = 394f;
+        le.preferredHeight = 410f;
 
         var self = GetComponent<Image>();
         if (self == null) self = gameObject.AddComponent<Image>();
-        if (TrucoGameplayUiSprites.PanelGreen != null)
-        {
-            self.sprite = TrucoGameplayUiSprites.PanelGreen;
-            self.type = Image.Type.Sliced;
-            self.color = Color.white;
-        }
-        else self.color = new Color(0.14f, 0.32f, 0.18f, 0.96f);
+        TrucoMenuTheme.Surface(self, TrucoMenuTheme.Brown);
+        self.raycastTarget = false;
 
         var vlg = GetComponent<VerticalLayoutGroup>();
         if (vlg == null) vlg = gameObject.AddComponent<VerticalLayoutGroup>();
-        vlg.padding = new RectOffset(28, 28, 22, 22);
-        vlg.spacing = 8f;
+        vlg.padding = new RectOffset(30, 30, 26, 26);
+        vlg.spacing = 12f;
         vlg.childAlignment = TextAnchor.UpperCenter;
         vlg.childControlWidth = true;
         vlg.childControlHeight = true;
@@ -67,10 +62,12 @@ public class TournamentCardItem : MonoBehaviour
         _visualRoot = transform;
 
         var header = Row("Header");
-        _titleText = MakeTmp(header, "Name", 34f, FontStyles.Bold, new Color(1f, 0.93f, 0.72f, 1f));
+        header.GetComponent<LayoutElement>().minHeight = 58f;
+        header.GetComponent<LayoutElement>().preferredHeight = 60f;
+        _titleText = MakeTmp(header, "Name", 36f, FontStyles.Bold, TrucoMenuTheme.Gold);
         _titleText.alignment = TextAlignmentOptions.MidlineLeft;
         _titleText.enableAutoSizing = true;
-        _titleText.fontSizeMin = 22f;
+        _titleText.fontSizeMin = 26f;
         _titleText.fontSizeMax = 36f;
         _titleText.overflowMode = TextOverflowModes.Ellipsis;
         _titleText.enableWordWrapping = false;
@@ -78,18 +75,13 @@ public class TournamentCardItem : MonoBehaviour
         var badge = new GameObject("Badge", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
         badge.transform.SetParent(header, false);
         var ble = badge.GetComponent<LayoutElement>();
-        ble.minWidth = 170f;
-        ble.preferredWidth = 190f;
+        ble.minWidth = 172f;
+        ble.preferredWidth = 192f;
         ble.flexibleWidth = 0f;
         ble.minHeight = 48f;
         var bImg = badge.GetComponent<Image>();
-        if (TrucoGameplayUiSprites.ButtonGold != null)
-        {
-            bImg.sprite = TrucoGameplayUiSprites.ButtonGold;
-            bImg.color = Color.white;
-            bImg.type = Image.Type.Sliced;
-        }
-        else bImg.color = new Color(0.22f, 0.48f, 0.24f, 1f);
+        TrucoMenuTheme.Surface(bImg, TrucoMenuTheme.DeepBrown);
+        bImg.raycastTarget = false;
         var bh = badge.GetComponent<HorizontalLayoutGroup>();
         bh.padding = new RectOffset(10, 12, 4, 4);
         bh.spacing = 6f;
@@ -97,7 +89,7 @@ public class TournamentCardItem : MonoBehaviour
         bh.childControlWidth = true;
         bh.childControlHeight = true;
         Icon(badge.transform, "LockI", TrucoGameplayUiSprites.IconLock, 32f);
-        MakeTmp(badge.transform, "BadgeT", 20f, FontStyles.Bold, Color.white).alignment = TextAlignmentOptions.Center;
+        MakeTmp(badge.transform, "BadgeT", 23f, FontStyles.Bold, TrucoMenuTheme.Gold).alignment = TextAlignmentOptions.Center;
 
         IconRow("Meta1");
         IconRow("Meta2");
@@ -106,26 +98,23 @@ public class TournamentCardItem : MonoBehaviour
         var passRow = Row("PasswordRow");
         Icon(passRow, "Lock", TrucoGameplayUiSprites.IconLock, 36f);
         _passwordField = MakeInput(passRow, "Ingresar contraseña");
-        var enterMini = MakeButton(passRow, "EnterMini", "ENTRAR", 160f, 56f, false);
+        passRow.GetComponent<LayoutElement>().minHeight = 82f;
+        passRow.GetComponent<LayoutElement>().preferredHeight = 82f;
+        var enterMini = MakeButton(passRow, "EnterMini", "ENTRAR", 190f, 82f, false);
         enterMini.onClick.AddListener(JoinTournamentBtn_fn);
 
         if (_joinTournamentBtn == null)
-            _joinTournamentBtn = MakeButton(transform, "Join", "INSCRIBIRSE", 0f, 72f, true);
+            _joinTournamentBtn = MakeButton(transform, "Join", "INSCRIBIRSE", 0f, 82f, true);
         else
         {
             _joinTournamentBtn.transform.SetParent(transform, false);
             _joinTournamentBtn.transform.SetAsLastSibling();
             var jle = _joinTournamentBtn.GetComponent<LayoutElement>();
             if (jle == null) jle = _joinTournamentBtn.gameObject.AddComponent<LayoutElement>();
-            jle.minHeight = 72f;
-            jle.preferredHeight = 76f;
-            var jImg = _joinTournamentBtn.GetComponent<Image>();
-            if (jImg != null && TrucoGameplayUiSprites.ButtonGreenLong != null)
-            {
-                jImg.sprite = TrucoGameplayUiSprites.ButtonGreenLong;
-                jImg.color = Color.white;
-                jImg.type = Image.Type.Sliced;
-            }
+            jle.minHeight = 82f;
+            jle.preferredHeight = 82f;
+            _joinTournamentBtn.transform.localScale = Vector3.one;
+            TrucoMenuTheme.StyleButton(_joinTournamentBtn);
             var cap = _joinTournamentBtn.GetComponentInChildren<TextMeshProUGUI>(true);
             if (cap != null)
             {
@@ -142,12 +131,7 @@ public class TournamentCardItem : MonoBehaviour
         if (_iTournamentData == null) return;
         bool priv = _iTournamentData.IsPrivateTournament();
         var background = GetComponent<Image>();
-        var panelSprite = priv ? TrucoGameplayUiSprites.PanelBrown : TrucoGameplayUiSprites.PanelGreen;
-        if (background != null && panelSprite != null)
-        {
-            background.sprite = panelSprite;
-            background.color = Color.white;
-        }
+        if (background != null) TrucoMenuTheme.Surface(background, TrucoMenuTheme.Brown);
         bool registered = _iTournamentData.IsCurrentUserRegistered();
         int n = _iTournamentData.participants != null ? _iTournamentData.participants.Count : 0;
         int max = Mathf.Max(1, _iTournamentData.maxPlayers);
@@ -191,15 +175,18 @@ public class TournamentCardItem : MonoBehaviour
     {
         var row = transform.Find(rowName);
         if (row == null) return;
-        for (int i = row.childCount - 1; i >= 0; i--) Destroy(row.GetChild(i).gameObject);
-        if (a != null) { Icon(row, "A", a, 34f); Chip(row, at); }
-        if (b != null) { Icon(row, "B", b, 34f); Chip(row, bt); }
-        if (c != null) { Icon(row, "C", c, 34f); Chip(row, ct); }
+        for (int i = row.childCount - 1; i >= 0; i--) TrucoMenuTheme.DestroyUI(row.GetChild(i).gameObject);
+        if (a != null) Icon(row, "A", a, 34f);
+        if (!string.IsNullOrEmpty(at)) Chip(row, at);
+        if (b != null) Icon(row, "B", b, 34f);
+        if (!string.IsNullOrEmpty(bt)) Chip(row, bt);
+        if (c != null) Icon(row, "C", c, 34f);
+        if (!string.IsNullOrEmpty(ct)) Chip(row, ct);
     }
 
     void Chip(Transform parent, string text)
     {
-        var t = MakeTmp(parent, "T", 22f, FontStyles.Bold, new Color(0.96f, 0.92f, 0.8f, 1f));
+        var t = MakeTmp(parent, "T", 25f, FontStyles.Normal, TrucoClubUI.Cream);
         t.text = text ?? "";
         t.alignment = TextAlignmentOptions.MidlineLeft;
         t.enableWordWrapping = false;
@@ -221,8 +208,8 @@ public class TournamentCardItem : MonoBehaviour
         h.childControlHeight = true;
         h.childForceExpandWidth = false;
         h.childForceExpandHeight = false;
-        go.GetComponent<LayoutElement>().minHeight = 42f;
-        go.GetComponent<LayoutElement>().preferredHeight = 46f;
+        go.GetComponent<LayoutElement>().minHeight = 48f;
+        go.GetComponent<LayoutElement>().preferredHeight = 48f;
         return go.transform;
     }
 
@@ -266,9 +253,9 @@ public class TournamentCardItem : MonoBehaviour
         var go = new GameObject("Input", typeof(RectTransform), typeof(Image), typeof(TMP_InputField), typeof(LayoutElement));
         go.transform.SetParent(parent, false);
         go.GetComponent<LayoutElement>().flexibleWidth = 1f;
-        go.GetComponent<LayoutElement>().minHeight = 52f;
+        go.GetComponent<LayoutElement>().minHeight = 82f;
         var img = go.GetComponent<Image>();
-        img.color = new Color(0.08f, 0.05f, 0.03f, 0.55f);
+        TrucoMenuTheme.Surface(img, TrucoMenuTheme.Paper);
         var input = go.GetComponent<TMP_InputField>();
         var textGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         textGo.transform.SetParent(go.transform, false);
@@ -276,8 +263,8 @@ public class TournamentCardItem : MonoBehaviour
         tr.anchorMin = Vector2.zero; tr.anchorMax = Vector2.one;
         tr.offsetMin = new Vector2(10, 4); tr.offsetMax = new Vector2(-10, -4);
         var tmp = textGo.GetComponent<TextMeshProUGUI>();
-        tmp.fontSize = 22f;
-        tmp.color = new Color(0.95f, 0.9f, 0.78f, 1f);
+        tmp.fontSize = 27f;
+        tmp.color = TrucoMenuTheme.Ink;
         var phGo = new GameObject("Ph", typeof(RectTransform), typeof(TextMeshProUGUI));
         phGo.transform.SetParent(go.transform, false);
         var pr = phGo.GetComponent<RectTransform>();
@@ -285,9 +272,9 @@ public class TournamentCardItem : MonoBehaviour
         pr.offsetMin = new Vector2(10, 4); pr.offsetMax = new Vector2(-10, -4);
         var pht = phGo.GetComponent<TextMeshProUGUI>();
         pht.text = placeholder;
-        pht.fontSize = 20f;
-        pht.fontStyle = FontStyles.Italic;
-        pht.color = new Color(0.75f, 0.68f, 0.55f, 0.8f);
+        pht.fontSize = 25f;
+        pht.fontStyle = FontStyles.Normal;
+        pht.color = TrucoMenuTheme.Secondary;
         input.textViewport = tr;
         input.textComponent = tmp;
         input.placeholder = pht;
@@ -310,13 +297,7 @@ public class TournamentCardItem : MonoBehaviour
         if (flex) le.flexibleWidth = 1f;
         else { le.minWidth = width; le.preferredWidth = width; le.flexibleWidth = 0f; }
         var img = go.GetComponent<Image>();
-        if (TrucoGameplayUiSprites.ButtonGreen != null)
-        {
-            img.sprite = TrucoGameplayUiSprites.ButtonGreen;
-            img.color = Color.white;
-            img.type = Image.Type.Sliced;
-        }
-        else img.color = new Color(0.18f, 0.58f, 0.3f, 1f);
+        TrucoMenuTheme.Surface(img, TrucoClubUI.Green);
         var btn = go.GetComponent<Button>();
         btn.targetGraphic = img;
         var cap = MakeTmp(go.transform, "Cap", 24f, FontStyles.Bold, Color.white);
@@ -326,6 +307,7 @@ public class TournamentCardItem : MonoBehaviour
         var crt = cap.GetComponent<RectTransform>();
         crt.anchorMin = Vector2.zero; crt.anchorMax = Vector2.one;
         crt.offsetMin = crt.offsetMax = Vector2.zero;
+        TrucoMenuTheme.StyleButton(btn);
         return btn;
     }
 
@@ -351,14 +333,14 @@ public class TournamentCardItem : MonoBehaviour
             string pw = _passwordField != null ? _passwordField.text : string.Empty;
             if (string.IsNullOrWhiteSpace(pw))
             {
-                TournamentManager.Instance.DisplayTournamentPasswordInputOverlay(_iTournamentData._id, DoMatchMaking);
+                TournamentManager.Instance.DisplayTournamentPasswordInputOverlay(_iTournamentData._id, ConfirmRegistration);
                 return;
             }
             ValidateThenJoin(pw);
             return;
         }
 
-        DoMatchMaking();
+        ConfirmRegistration();
     }
 
     async void ValidateThenJoin(string password)
@@ -368,10 +350,19 @@ public class TournamentCardItem : MonoBehaviour
         try { ok = await ApiController.ValidatePrivateTournament(_iTournamentData._id, password); }
         catch (System.Exception) { }
         AppManager.Instance.HideLoadingUI();
-        if (ok) DoMatchMaking();
+        if (ok) ConfirmRegistration();
         else AppManager.Instance.DisplayNotification(TrucoTextosClient.ContrasenaIncorrecta);
     }
 
+    void ConfirmRegistration()
+    {
+        if (_iTournamentData.IsCurrentUserRegistered()) { DoMatchMaking(); return; }
+        TrucoConfirmDialog.Show("INSCRIBIRSE AL TORNEO", _iTournamentData.name + "\n"
+            + _iTournamentData.maxPlayers + " jugadores · " + _iTournamentData.targetScore + " puntos\n"
+            + (_iTournamentData.withFlor ? "Con Flor" : "Sin Flor") + "\nEntrada: " + _iTournamentData.entryFee
+            + " Trucoins · Premio previsto: " + _iTournamentData.prizePool + " Trucoins",
+            "VOLVER", "INSCRIBIRME", DoMatchMaking);
+    }
     private void DoMatchMaking()
     {
         TournamentRequest request = new TournamentRequest

@@ -39,7 +39,7 @@ public class TrucoMaintenanceBanner : MonoBehaviour
         var canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
-        canvas.sortingOrder = 45000;
+        canvas.sortingOrder = TrucoCanvasOrder.Maintenance;
         gameObject.AddComponent<GraphicRaycaster>();
         var scaler = gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;

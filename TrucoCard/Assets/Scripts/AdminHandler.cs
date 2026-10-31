@@ -179,17 +179,8 @@ public class AdminHandler : MonoBehaviour
 
         if (!_isAdminVerified)
         {
-            var email = ApiController.GetSessionUser?.Data?.email;
-            if (PostLoginSceneRouter.IsBuiltInAdminSessionEmail(email))
-            {
-                _isAdminVerified = true;
-                AppManager.Instance.DisplayNotification("Admin access (built-in test account) verified");
-            }
-            else
-            {
-                AppManager.Instance.DisplayNotification("Non-Admin Access Detected, Admin functions will be disabled.");
-                DisableAdminUI();
-            }
+            AppManager.Instance.DisplayNotification("El servidor no confirmó permisos de administrador. Funciones deshabilitadas.");
+            DisableAdminUI();
         }
         else
         {

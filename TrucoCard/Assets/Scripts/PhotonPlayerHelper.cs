@@ -29,22 +29,34 @@ public static class PhotonPlayerHelper
 
     public static string TryGetBackendUserId(Player p)
     {
-        if (p?.CustomProperties == null) return null;
-        if (!p.CustomProperties.TryGetValue("userId", out object o) || o == null) return null;
-        var s = o.ToString();
-        return string.IsNullOrEmpty(s) ? null : s;
+        // Published UserId comes from Photon authentication. Custom properties are
+        // writable by peers and must never identify a participant or a payout recipient.
+        return string.IsNullOrWhiteSpace(p?.UserId) ? null : p.UserId;
     }
 
-    /// <summary>Local Truco player's backend _id (Photon custom prop, else session user).</summary>
+    public static bool HasMatchingAuthenticatedPair(IEnumerable<Player> players, IEnumerable<string> expectedUserIds,
+        string localUserId)
+    {
+        if (players == null || expectedUserIds == null || string.IsNullOrWhiteSpace(localUserId)) return false;
+        var seats = players.Where(p => p != null && !IsSpectatorPlayer(p)).ToArray();
+        var expected = expectedUserIds.ToArray();
+        if (seats.Length != 2 || expected.Length != 2 || expected.Any(string.IsNullOrWhiteSpace)
+            || expected.Distinct(System.StringComparer.Ordinal).Count() != 2) return false;
+        var actual = seats.Select(TryGetBackendUserId).ToArray();
+        return actual.All(id => !string.IsNullOrWhiteSpace(id))
+            && actual.Distinct(System.StringComparer.Ordinal).Count() == 2
+            && new HashSet<string>(expected, System.StringComparer.Ordinal).SetEquals(actual)
+            && seats.Any(p => p.IsLocal && TryGetBackendUserId(p) == localUserId);
+    }
+
+    /// <summary>Local authenticated Photon backend id. Session state cannot substitute for an unverified network peer.</summary>
     public static string GetLocalTrucoPlayerUserId()
     {
         var local = Photon.Pun.PhotonNetwork.LocalPlayer;
-        var fromPhoton = TryGetBackendUserId(local);
-        if (!string.IsNullOrEmpty(fromPhoton)) return fromPhoton;
-        return ApiController.GetSessionUser?.Data?._id;
+        return TryGetBackendUserId(local);
     }
 
-    /// <summary>Other Truco (non-spectator) player’s backend _id, if they set custom property userId.</summary>
+    /// <summary>Other seated player's immutable, published authenticated backend id.</summary>
     public static string GetOtherTrucoPlayerUserId()
     {
         foreach (var p in GetTrucoPlayers())

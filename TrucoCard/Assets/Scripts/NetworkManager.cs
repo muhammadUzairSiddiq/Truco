@@ -17,6 +17,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     
     private int _maximumPlayers = 2;
     private bool _clicked = false;
+    bool _authConnecting;
+    bool _matchSearchStarted;
 
     void Awake()
     {
@@ -45,6 +47,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         DataHandler.Instance.points = 0;
         DataHandler.Instance.roundNumber = 0;
         _clicked = true;
+        _matchSearchStarted = false;
         PhotonNetwork.AutomaticallySyncScene = true;
         if (PhotonNetwork.IsConnected)
         {
@@ -52,8 +55,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            TrucoPhotonRegionSettings.ApplyToPhoton();
-            PhotonNetwork.ConnectUsingSettings();
+            ConnectAuthenticated();
         }
     }
     
@@ -64,18 +66,35 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
     public override void OnDisconnected(DisconnectCause cause)
     {
-        if (_clicked)
+        if (_clicked && !_authConnecting && !TrucoPhotonAuthentication.IsAuthenticating) ConnectAuthenticated();
+    }
+
+    async void ConnectAuthenticated()
+    {
+        if (_authConnecting) return;
+        _authConnecting = true;
+        bool ready;
+        try { ready = await TrucoPhotonAuthentication.ConnectAndWaitUntilReadyAsync("one_vs_one"); }
+        finally { _authConnecting = false; }
+        if (this == null || !_clicked) return;
+        if (!ready)
         {
-            TrucoPhotonRegionSettings.ApplyToPhoton();
-            PhotonNetwork.ConnectUsingSettings();
+            _clicked = false;
+            AppManager.Instance?.HideLoadingUI();
+            AppManager.Instance?.DisplayNotification(TrucoPhotonAuthentication.LastError ?? TrucoTextosClient.PhotonConnectFailed);
+            return;
         }
+        OnConnectedToMaster();
     }
     
     public override void OnConnectedToMaster()
     {
+        if (_authConnecting || TrucoPhotonAuthentication.IsAuthenticating
+            || PhotonNetwork.AuthValues?.AuthType != CustomAuthenticationType.Custom) return;
         TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
-        if (_clicked)
+        if (_clicked && !_matchSearchStarted)
         {
+            _matchSearchStarted = true;
             StartCoroutine(TryToFindMatch());
         }
     }
@@ -110,7 +129,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
                 IsVisible = true,
                 IsOpen = true,
                 PlayerTtl = 60000,
-                EmptyRoomTtl = 120000
+                EmptyRoomTtl = 120000,
+                PublishUserId = true
             };
 
             PhotonNetwork.CreateRoom(null, roomOptions);

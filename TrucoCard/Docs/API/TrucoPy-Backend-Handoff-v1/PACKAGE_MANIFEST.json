@@ -1,0 +1,62 @@
+[
+  {
+    "path": "BACKEND_HANDOFF_V1.md",
+    "bytes": 15824
+  },
+  {
+    "path": "BACKEND_IMPLEMENTATION_STATUS.md",
+    "bytes": 7483
+  },
+  {
+    "path": "client-config.example.json",
+    "bytes": 12270
+  },
+  {
+    "path": "endpoint-catalog.json",
+    "bytes": 10224
+  },
+  {
+    "path": "ENDPOINTS.md",
+    "bytes": 6662
+  },
+  {
+    "path": "README_BACKEND_DEVELOPER.md",
+    "bytes": 2762
+  },
+  {
+    "path": "TOURNAMENT_AND_PHOTON_V1.md",
+    "bytes": 11105
+  },
+  {
+    "path": "trucopy-v1.openapi.json",
+    "bytes": 325721
+  },
+  {
+    "path": "WALLET_AND_ADMIN_V1.md",
+    "bytes": 12171
+  },
+  {
+    "path": "QA\\player-ai-exclusion.json",
+    "bytes": 791
+  },
+  {
+    "path": "QA\\preflight.json",
+    "bytes": 5563
+  },
+  {
+    "path": "QA\\README.md",
+    "bytes": 8334
+  },
+  {
+    "path": "QA\\requirements.md",
+    "bytes": 14825
+  },
+  {
+    "path": "QA\\verification.json",
+    "bytes": 607
+  },
+  {
+    "path": "Unity\\TrucoApiEndpoints.asset",
+    "bytes": 8608
+  }
+]

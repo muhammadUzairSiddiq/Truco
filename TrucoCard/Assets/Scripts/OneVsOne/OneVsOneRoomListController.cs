@@ -676,6 +676,7 @@ public class OneVsOneRoomListController : MonoBehaviour
         if (_buttonCreate != null) _buttonCreate.interactable = false;
         try
         {
+            if (!await PreflightAuthenticatedPhotonAsync()) return;
             // Fresh wallet before stake check — stops stale cached Trucoins on a second device.
             await ApiController.GetCurrentUserProfile();
             await OneVsOneMatchLifecycle.PurgeAllMyActiveLobbyMatchesAsync();
@@ -971,6 +972,7 @@ public class OneVsOneRoomListController : MonoBehaviour
             AppManager.Instance.DisplayNotification(TrucoTextosClient.SaldoInsuficiente);
             return;
         }
+        if (!await PreflightAuthenticatedPhotonAsync()) return;
         AppManager.Instance.DisplayLoadingUI(TrucoTextosClient.Conectando);
         Player1v1Match result = null;
         string joinApiMessage = null;
@@ -1014,6 +1016,23 @@ public class OneVsOneRoomListController : MonoBehaviour
             if (row != null && m != null)
                 row.SetJoinInteractable(m.CanClickJoinOnRoom());
         }
+    }
+
+    static async System.Threading.Tasks.Task<bool> PreflightAuthenticatedPhotonAsync()
+    {
+        AppManager.Instance?.DisplayLoadingUI("Verificando conexión segura…");
+        bool ready;
+        try
+        {
+            // No room assignment is requested before the fee API. The provider must
+            // first confirm this account's identity on the Photon Master server.
+            ready = await TrucoPhotonAuthentication.ConnectAndWaitUntilReadyAsync("one_vs_one");
+        }
+        finally { AppManager.Instance?.HideLoadingUI(); }
+        if (!ready)
+            AppManager.Instance?.DisplayNotification(TrucoPhotonAuthentication.LastError
+                ?? "No se pudo verificar la conexión multijugador. No se creó una nueva entrada.");
+        return ready;
     }
 
     async System.Threading.Tasks.Task LaunchGuestPhotonAsync(Player1v1Match result, string matchIdFallback = null, Player1v1Match feeHint = null)

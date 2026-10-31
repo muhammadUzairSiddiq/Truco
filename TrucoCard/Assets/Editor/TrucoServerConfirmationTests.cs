@@ -2,6 +2,14 @@ using NUnit.Framework;
 
 public class TrucoServerConfirmationTests
 {
+    [TestCase("{\"success\":true,\"data\":{\"matchId\":\"m1\",\"status\":\"closed\",\"refundsApplied\":true}}", true)]
+    [TestCase("{\"success\":true}", false)]
+    [TestCase("{\"success\":true,\"data\":{\"matchId\":\"other\",\"status\":\"closed\",\"refundsApplied\":true}}", false)]
+    [TestCase("{\"success\":true,\"data\":{\"matchId\":\"m1\",\"status\":\"closed\",\"refundsApplied\":false}}", false)]
+    [TestCase("{\"success\":false,\"data\":{\"matchId\":\"m1\",\"status\":\"closed\",\"refundsApplied\":true}}", false)]
+    public void AdminMatchClosureRequiresMatchingConfirmedCancellation(string json, bool expected) =>
+        Assert.AreEqual(expected, TrucoServerAcknowledgement.MatchClosureConfirmed(json, "m1"));
+
     [TestCase("{\"ok\":true,\"match\":{\"_id\":\"m1\"}}", "m1")]
     [TestCase("{\"success\":true,\"data\":{\"match\":{\"_id\":\"m1\"}}}", "m1")]
     [TestCase("{\"ok\":true,\"data\":{\"_id\":\"m1\"}}", "m1")]
@@ -16,6 +24,8 @@ public class TrucoServerConfirmationTests
     [TestCase("{\"ok\":true}", false)]
     [TestCase("{\"ok\":false,\"refunded\":true}", false)]
     [TestCase("{\"status\":\"closed\"}", false)]
+    [TestCase("{\"success\":true,\"data\":{\"refunded\":true}}", false)]
+    [TestCase("{\"success\":true,\"data\":{\"status\":\"refunded\",\"matchId\":123}}", false)]
     [TestCase("{\"refunded\":true,\"matchId\":\"other\"}", false)]
     [TestCase("{\"ok\":true,\"data\":{\"refunded\":true,\"matchId\":\"m1\"}}", true)]
     [TestCase("{\"alreadyRefunded\":true,\"matchId\":\"m1\"}", true)]
@@ -44,6 +54,7 @@ public class TrucoServerConfirmationTests
 
     [TestCase("{}")]
     [TestCase("{\"ok\":false,\"active\":false}")]
+    [TestCase("{\"success\":false,\"data\":{\"maintenance\":{\"active\":false}}}")]
     [TestCase("{\"error\":\"Unauthorized\"}")]
     [TestCase("not json")]
     public void InvalidMaintenanceResponseDoesNotReplaceKnownState(string json) =>

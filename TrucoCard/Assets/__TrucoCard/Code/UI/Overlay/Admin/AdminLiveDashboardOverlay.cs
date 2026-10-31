@@ -48,8 +48,7 @@ public class AdminLiveDashboardOverlay : MonoBehaviour
     void EnsureLayout()
     {
         if (_root != null) return;
-        if (FindObjectOfType<EventSystem>() == null)
-            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        TrucoEventSystem.Ensure();
 
         _root = new GameObject("AdminLiveDashboardModal");
         _root.transform.SetParent(transform, false);
@@ -238,10 +237,12 @@ public class AdminLiveDashboardOverlay : MonoBehaviour
         if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom();
         float wait = 0f;
         while (PhotonNetwork.InRoom && wait < 3f) { wait += Time.deltaTime; yield return null; }
-        if (!PhotonNetwork.IsConnected)
+        var authentication = TrucoPhotonAuthentication.ConnectUsingSettingsAsync("spectator", matchId: m._id, roomName: room);
+        while (!authentication.IsCompleted) yield return null;
+        if (authentication.IsCanceled || authentication.IsFaulted || !authentication.Result)
         {
-            TrucoPhotonRegionSettings.ApplyToPhoton();
-            PhotonNetwork.ConnectUsingSettings();
+            if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("No se pudo autorizar el acceso al partido.");
+            SpectatorContext.Clear(); _connectRoutine = null; yield break;
         }
         float t = 0f;
         while (!PhotonNetwork.IsConnectedAndReady && t < 15f) { t += Time.deltaTime; yield return null; }
@@ -271,7 +272,14 @@ public class AdminLiveDashboardOverlay : MonoBehaviour
         _connectRoutine = null;
     }
 
-    async void ForceClose(Player1v1Match m)
+    void ForceClose(Player1v1Match m)
+    {
+        if (m == null || string.IsNullOrEmpty(m._id)) return;
+        TrucoConfirmDialog.Show("Cerrar partido", "¿Cerrar este partido? El servidor debe confirmar el cierre y las devoluciones.",
+            "VOLVER", "CERRAR", () => ForceCloseConfirmed(m));
+    }
+
+    async void ForceCloseConfirmed(Player1v1Match m)
     {
         if (m == null || string.IsNullOrEmpty(m._id)) return;
         if (AppManager.Instance != null) AppManager.Instance.DisplayLoadingUI("Cerrando partida…");

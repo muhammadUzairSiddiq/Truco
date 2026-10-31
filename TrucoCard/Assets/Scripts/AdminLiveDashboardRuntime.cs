@@ -21,8 +21,7 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
 
     void Awake()
     {
-        if (Object.FindObjectOfType<EventSystem>() == null)
-            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        TrucoEventSystem.Ensure();
         var canvas = FindObjectOfType<Canvas>();
         if (canvas == null)
         {
@@ -52,7 +51,7 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
         titleRt.anchoredPosition = new Vector2(0, -8);
         titleRt.sizeDelta = new Vector2(0, 36);
 
-        var refresh = MkButton("Refresh", root.transform, "Refresh list", new Vector2(0, 1), new Vector2(0, 1), new Vector2(10, -50), new Vector2(150, 32), () => RequestRefresh());
+        var refresh = MkButton("Refresh", root.transform, "Actualizar lista", new Vector2(0, 1), new Vector2(0, 1), new Vector2(10, -50), new Vector2(150, 32), () => RequestRefresh());
         var fraudBtn = MkButton("Fraud", root.transform, TrucoTextosClient.LiveDashboardFraud, new Vector2(0, 1), new Vector2(0, 1), new Vector2(170, -50), new Vector2(200, 32), OnFraud);
         _fraudText = MkText("FraudText", root.transform, "—", 11, TextAnchor.UpperLeft);
         var fr = _fraudText.GetComponent<RectTransform>();
@@ -104,7 +103,7 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
 
     async void RequestRefresh()
     {
-        if (AppManager.Instance != null) AppManager.Instance.DisplayLoadingUI("Loading matches…");
+        if (AppManager.Instance != null) AppManager.Instance.DisplayLoadingUI("Cargando partidos…");
         var list = await ApiController.FetchLiveActiveMatchesForDashboard();
         if (AppManager.Instance != null) AppManager.Instance.HideLoadingUI();
         foreach (var g in _rows) if (g) Destroy(g);
@@ -129,7 +128,7 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
         h.padding = new RectOffset(4, 4, 2, 2);
 
         string n = (m.name != null && m.name.Length > 0) ? m.name : m._id;
-        var info = MkText("info", row.transform, $"{n}\nFee:{m.entryFee} Pub:{(m.isPublic ? "Y" : "N")} St:{m.status}\nP:{m.ResolvePhotonRoomName()}", 11, TextAnchor.MiddleLeft);
+        var info = MkText("info", row.transform, $"{n}\nEntrada: {m.entryFee} · {(m.isPublic ? "Pública" : "Privada")} · {m.status}\nP:{m.ResolvePhotonRoomName()}", 11, TextAnchor.MiddleLeft);
         var irt = info.GetComponent<RectTransform>();
         irt.sizeDelta = new Vector2(180, 100);
         var flex = info.gameObject.AddComponent<LayoutElement>();
@@ -137,7 +136,7 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
         flex.minWidth = 100f;
 
         var b1 = MkButton("Sp", row.transform, TrucoTextosClient.Spectate, null, null, new Vector2(0, 0), new Vector2(90, 28), () => StartSpectate(m));
-        var b2 = MkButton("Fc", row.transform, "Close", null, null, new Vector2(0, 0), new Vector2(70, 28), () => ForceClose(m));
+        var b2 = MkButton("Fc", row.transform, "Cerrar", null, null, new Vector2(0, 0), new Vector2(70, 28), () => ForceClose(m));
         return row;
     }
 
@@ -153,33 +152,42 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
         if (string.IsNullOrEmpty(room)) room = OneVsOneMatchSession.BuildDefaultPhotonRoomName(m._id);
         SpectatorContext.BeginSpectateSession(room, m._id);
         if (string.IsNullOrEmpty(room)) yield break;
-        if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("Joining as spectator…");
+        if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("Entrando como espectador…");
         var props = new Hashtable { [PhotonPlayerHelper.SpectatorKey] = true };
         var u = ApiController.GetSessionUser?.Data;
         if (u != null) { props["userId"] = u._id; props["username"] = "sp_" + u.username; }
-        PhotonNetwork.NickName = u != null ? "Spectator(" + u.username + ")" : "Spectator";
+        PhotonNetwork.NickName = u != null ? "Espectador(" + u.username + ")" : "Spectator";
         PhotonNetwork.AutomaticallySyncScene = true;
         if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom();
         float wait = 0f;
         while (PhotonNetwork.InRoom && wait < 3f) { wait += Time.deltaTime; yield return null; }
-        if (!PhotonNetwork.IsConnected)
+        var authentication = TrucoPhotonAuthentication.ConnectUsingSettingsAsync("spectator", matchId: m._id, roomName: room);
+        while (!authentication.IsCompleted) yield return null;
+        if (authentication.IsCanceled || authentication.IsFaulted || !authentication.Result)
         {
-            TrucoPhotonRegionSettings.ApplyToPhoton();
-            PhotonNetwork.ConnectUsingSettings();
+            if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("No se pudo autorizar el acceso al partido.");
+            SpectatorContext.Clear(); _connectRoutine = null; yield break;
         }
         float t = 0f;
         while (!PhotonNetwork.IsConnectedAndReady && t < 15f) { t += Time.deltaTime; yield return null; }
-        if (!PhotonNetwork.IsConnectedAndReady) { if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("Could not connect to Photon"); SpectatorContext.Clear(); _connectRoutine = null; yield break; }
+        if (!PhotonNetwork.IsConnectedAndReady) { if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("No se pudo conectar al partido"); SpectatorContext.Clear(); _connectRoutine = null; yield break; }
         PhotonNetwork.LocalPlayer.SetCustomProperties(props);
         bool ok = PhotonNetwork.JoinRoom(room);
-        if (!ok) { if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("Join room failed (name / capacity)"); SpectatorContext.Clear(); }
+        if (!ok) { if (AppManager.Instance != null) AppManager.Instance.DisplayNotification("No se pudo entrar a la sala"); SpectatorContext.Clear(); }
         _connectRoutine = null;
     }
 
-    async void ForceClose(Player1v1Match m)
+    void ForceClose(Player1v1Match m)
     {
         if (m == null || string.IsNullOrEmpty(m._id)) return;
-        if (AppManager.Instance != null) AppManager.Instance.DisplayLoadingUI("Closing match…");
+        TrucoConfirmDialog.Show("Cerrar partido", "¿Cerrar este partido? El servidor debe confirmar el cierre y las devoluciones.",
+            "VOLVER", "CERRAR", () => ForceCloseConfirmed(m));
+    }
+
+    async void ForceCloseConfirmed(Player1v1Match m)
+    {
+        if (m == null || string.IsNullOrEmpty(m._id)) return;
+        if (AppManager.Instance != null) AppManager.Instance.DisplayLoadingUI("Cerrando partido…");
         bool ok = await ApiController.AdminForceCloseMatch1v1(m._id, err => { if (AppManager.Instance != null) AppManager.Instance.DisplayNotification(err); });
         if (AppManager.Instance != null) AppManager.Instance.HideLoadingUI();
         if (ok) RequestRefresh();
@@ -191,7 +199,7 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
         go.transform.SetParent(parent, false);
         var tx = go.GetComponent<Text>();
         tx.text = str;
-        tx.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        tx.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         tx.fontSize = size;
         tx.alignment = a;
         tx.color = Color.white;
@@ -216,7 +224,7 @@ public class AdminLiveDashboardRuntime : MonoBehaviour
         lab.transform.SetParent(bgo.transform, false);
         var t = lab.AddComponent<Text>();
         t.text = label;
-        t.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         t.fontSize = 12;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = Color.white;

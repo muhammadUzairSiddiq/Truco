@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>Last successful login email/password in <see cref="PlayerPrefs"/> for field autofill. Stored as plain text on device — same tradeoff as browser "remember me".</summary>
+/// <summary>Remember the login email only. Passwords are never persisted in PlayerPrefs.</summary>
 public static class LoginCredentialsStore
 {
     const string KeyEmail = "truco_auth_saved_email";
@@ -10,14 +10,15 @@ public static class LoginCredentialsStore
     {
         if (string.IsNullOrEmpty(email)) return;
         PlayerPrefs.SetString(KeyEmail, email.Trim());
-        PlayerPrefs.SetString(KeyPassword, password ?? string.Empty);
+        PlayerPrefs.DeleteKey(KeyPassword);
         PlayerPrefs.Save();
     }
 
     public static void Load(out string email, out string password)
     {
         email = PlayerPrefs.GetString(KeyEmail, string.Empty);
-        password = PlayerPrefs.GetString(KeyPassword, string.Empty);
+        password = string.Empty;
+        if (PlayerPrefs.HasKey(KeyPassword)) { PlayerPrefs.DeleteKey(KeyPassword); PlayerPrefs.Save(); }
     }
 
     public static bool HasEmailSaved() => !string.IsNullOrEmpty(PlayerPrefs.GetString(KeyEmail, string.Empty));

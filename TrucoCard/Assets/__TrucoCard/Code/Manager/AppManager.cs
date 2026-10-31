@@ -66,8 +66,12 @@ public class AppManager : SingeltonBase<AppManager>
 
     #endregion
 
-    private void Init()
+    private async void Init()
     {
+        await TrucoRemoteApiConfiguration.EnsureLoadedAsync();
+        if (this == null) return;
+        if (TrucoRemoteApiConfiguration.RequiresClientUpdate)
+        { DisplayNotification("Necesitás actualizar la aplicación para continuar."); return; }
         //DisplayLodaingUI("Validating Server");
         SceneManager.LoadScene("LoginScreen");
     }

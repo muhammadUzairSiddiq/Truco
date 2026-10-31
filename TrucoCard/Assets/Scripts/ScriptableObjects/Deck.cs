@@ -60,6 +60,9 @@ public class Deck : ScriptableObject
 [System.Serializable]
 public class DeckCardsWrapper
 {
+    // Ownership travels with cached deals and reconnect snapshots; master authority may rotate.
+    public int actorNumber;
+    public int handRound;
     public List<DeckCards> cards;
 }
 

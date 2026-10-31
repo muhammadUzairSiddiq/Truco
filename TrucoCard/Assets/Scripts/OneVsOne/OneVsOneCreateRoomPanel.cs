@@ -51,7 +51,7 @@ public class OneVsOneCreateRoomPanel : MonoBehaviour
         if (_passwordField != null && _passwordField.placeholder is TMP_Text pph)
             pph.text = TrucoLocalization.T(TrucoLocalization.Key.CodigoMinPlaceholder);
         if (_prizePreview != null)
-            _prizePreview.color = Color.white;
+            _prizePreview.color = TrucoUiTheme.EntryPrizeAccent;
     }
 
     static int ParseFeeFromToggle(Toggle t)

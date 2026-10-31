@@ -11,11 +11,17 @@ public static class TrucoMatchPlayGate
     {
         if (!PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom == null) return false;
         if (PhotonNetwork.CurrentRoom.PlayerCount < 2) return false;
-        if (!MultiplayerController.IsTournamentActive) return true;
-        var match = MultiplayerController.ActiveMatch;
-        if (match == null || string.IsNullOrEmpty(match.roomName) || string.IsNullOrEmpty(match.matchId)) return false;
-        return PhotonNetwork.CurrentRoom.Name == match.roomName
-               && PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue("isTournamentMatch", out object value)
-               && value is bool active && active;
+#if UNITY_EDITOR
+        if (TrucoDevelopmentSettings.IsIsolatedNetworkRoom(PhotonNetwork.CurrentRoom.Name)) return true;
+#endif
+        if (!MultiplayerController.IsTournamentActive)
+            return PhotonNetwork.CurrentRoom.Name == OneVsOneMatchSession.PhotonRoomName
+                && TrucoPhotonAuthentication.IsAuthorizedForRoom("one_vs_one", null,
+                    OneVsOneMatchSession.CurrentMatchId, OneVsOneMatchSession.PhotonRoomName)
+                && PhotonPlayerHelper.HasMatchingAuthenticatedPair(PhotonNetwork.PlayerList,
+                    OneVsOneMatchSession.AuthenticatedParticipants, ApiController.GetSessionUser?.Data?._id);
+        return TournamentStartupValidation.HasMatchingTableIdentity(MultiplayerController.ActiveMatch,
+            MultiplayerController.CurrentTournamentRequest.TournamentId,
+            PhotonNetwork.CurrentRoom.Name, PhotonNetwork.CurrentRoom.CustomProperties);
     }
 }

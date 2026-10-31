@@ -11,6 +11,26 @@ using Random = UnityEngine.Random;
 
 public class UIMANAGER : MonoBehaviour
 {
+#if UNITY_EDITOR
+    public bool TryDevelopmentAction(System.Random random)
+    {
+        if (!TrucoDevelopmentSettings.CanDriveRoom(PhotonNetwork.CurrentRoom?.Name)) return false;
+        bool Press(GameObject control)
+        {
+            if (control == null || !control.activeInHierarchy) return false;
+            var button = control.GetComponent<UnityEngine.UI.Button>();
+            if (button == null || !button.IsInteractable()) return false;
+            button.onClick.Invoke(); return true;
+        }
+        if (_iOweChallengeResponse)
+            return random.Next(5) == 0 ? Press(noQueiro) || Press(queiro) : Press(queiro) || Press(noQueiro) || Press(conFlorQuiero);
+        if (_isChallengepPending || GameManager.Instance == null || !GameManager.Instance.IsMyTurn()) return false;
+        if (OneVsOneMatchSession.WithFlor && Press(flor)) return true;
+        if (random.Next(4) != 0) return false;
+        var choices = new[] { envido, realEnvido, truco, retruco, vale4 };
+        return Press(choices[random.Next(choices.Length)]);
+    }
+#endif
     // Event Names to Call on Network
     public static byte TRUCO_CHALLENGE = 10;
     public static byte RETRUCO_CHALLENGE = 11;

@@ -1,0 +1,28 @@
+{
+  "audit": "2026-10-31",
+  "runtimeCSharpCompileExit": 0,
+  "androidDefinedCSharpCompileExit": 0,
+  "apkBuilt": false,
+  "liveBackendSettlementVerified": false,
+  "openapi": {
+    "validator": "openapi-spec-validator",
+    "validatorVersion": "0.7.2",
+    "passed": true,
+    "logicalKeys": 92,
+    "paths": 85,
+    "operations": 88,
+    "schemas": 89
+  },
+  "unity": {
+    "total": "337",
+    "passed": "334",
+    "failed": "0",
+    "skipped": "3",
+    "duration": "43.4039467"
+  },
+  "preflight": {
+    "passed": true,
+    "checks": 25
+  },
+  "sourceMatchesTestedQa": true
+}

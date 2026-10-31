@@ -1,0 +1,1017 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="144" result="Passed" total="144" passed="144" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-31 08:57:40Z" end-time="2026-10-31 08:58:10Z" duration="30.3169932">
+  <test-suite type="TestSuite" id="1000" name="Truco-QA-ClientA" fullname="Truco-QA-ClientA" runstate="Runnable" testcasecount="144" result="Passed" start-time="2026-10-31 08:57:40Z" end-time="2026-10-31 08:58:10Z" duration="30.316993" total="144" passed="144" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1177" name="Assembly-CSharp-Editor.dll" fullname="D:/TrucoQA/20260923-ClientA/Library/ScriptAssemblies/Assembly-CSharp-Editor.dll" runstate="Runnable" testcasecount="144" result="Passed" start-time="2026-10-31 08:57:40Z" end-time="2026-10-31 08:58:10Z" duration="30.308170" total="144" passed="144" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="10660" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1001" name="TrucoBracketPresentationTests" fullname="TrucoBracketPresentationTests" classname="TrucoBracketPresentationTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-10-31 08:57:40Z" end-time="2026-10-31 08:57:41Z" duration="1.738272" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="ParameterizedMethod" id="1004" name="ConnectedTreeContainsEveryMatchWithoutChangingResults" fullname="TrucoBracketPresentationTests.ConnectedTreeContainsEveryMatchWithoutChangingResults" classname="TrucoBracketPresentationTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 08:57:40Z" end-time="2026-10-31 08:57:41Z" duration="1.729740" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1002" name="ConnectedTreeContainsEveryMatchWithoutChangingResults(4)" fullname="TrucoBracketPresentationTests.ConnectedTreeContainsEveryMatchWithoutChangingResults(4)" methodname="ConnectedTreeContainsEveryMatchWithoutChangingResults" classname="TrucoBracketPresentationTests" runstate="Runnable" seed="936368277" result="Passed" start-time="2026-10-31 08:57:40Z" end-time="2026-10-31 08:57:41Z" duration="1.707216" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1003" name="ConnectedTreeContainsEveryMatchWithoutChangingResults(8)" fullname="TrucoBracketPresentationTests.ConnectedTreeContainsEveryMatchWithoutChangingResults(8)" methodname="ConnectedTreeContainsEveryMatchWithoutChangingResults" classname="TrucoBracketPresentationTests" runstate="Runnable" seed="981390561" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.012014" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1008" name="ParentIsCenteredBetweenItsChildren" fullname="TrucoBracketPresentationTests.ParentIsCenteredBetweenItsChildren" classname="TrucoBracketPresentationTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.004189" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1005" name="ParentIsCenteredBetweenItsChildren(0,0)" fullname="TrucoBracketPresentationTests.ParentIsCenteredBetweenItsChildren(0,0)" methodname="ParentIsCenteredBetweenItsChildren" classname="TrucoBracketPresentationTests" runstate="Runnable" seed="1963158876" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000902" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1006" name="ParentIsCenteredBetweenItsChildren(0,1)" fullname="TrucoBracketPresentationTests.ParentIsCenteredBetweenItsChildren(0,1)" methodname="ParentIsCenteredBetweenItsChildren" classname="TrucoBracketPresentationTests" runstate="Runnable" seed="1065626894" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000089" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1007" name="ParentIsCenteredBetweenItsChildren(1,0)" fullname="TrucoBracketPresentationTests.ParentIsCenteredBetweenItsChildren(1,0)" methodname="ParentIsCenteredBetweenItsChildren" classname="TrucoBracketPresentationTests" runstate="Runnable" seed="1773053554" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000076" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1009" name="TrucoClientSettingsEditModeTests" fullname="TrucoClientSettingsEditModeTests" classname="TrucoClientSettingsEditModeTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.009285" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1012" name="PhotonJoinMaxAttempts_EightSecondsTotal" fullname="TrucoClientSettingsEditModeTests.PhotonJoinMaxAttempts_EightSecondsTotal" methodname="PhotonJoinMaxAttempts_EightSecondsTotal" classname="TrucoClientSettingsEditModeTests" runstate="Runnable" seed="909892388" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.003218" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[TrucoClientSettings] Applied from inspector/test.
+]]></output>
+        </test-case>
+        <test-case id="1014" name="ResolveLanguage_BothEnabled_KeepsPlayerChoice_NotSoDefault" fullname="TrucoClientSettingsEditModeTests.ResolveLanguage_BothEnabled_KeepsPlayerChoice_NotSoDefault" methodname="ResolveLanguage_BothEnabled_KeepsPlayerChoice_NotSoDefault" classname="TrucoClientSettingsEditModeTests" runstate="Runnable" seed="938917141" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.001612" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[TrucoClientSettings] Applied from inspector/test.
+]]></output>
+        </test-case>
+        <test-case id="1011" name="ResolveLanguage_OnlyEnglish" fullname="TrucoClientSettingsEditModeTests.ResolveLanguage_OnlyEnglish" methodname="ResolveLanguage_OnlyEnglish" classname="TrucoClientSettingsEditModeTests" runstate="Runnable" seed="535095712" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000667" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[TrucoClientSettings] Applied from inspector/test.
+]]></output>
+        </test-case>
+        <test-case id="1010" name="ResolveLanguage_OnlySpanish" fullname="TrucoClientSettingsEditModeTests.ResolveLanguage_OnlySpanish" methodname="ResolveLanguage_OnlySpanish" classname="TrucoClientSettingsEditModeTests" runstate="Runnable" seed="817508500" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000666" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[TrucoClientSettings] Applied from inspector/test.
+]]></output>
+        </test-case>
+        <test-case id="1013" name="ShowLanguageToggle_RequiresBothEnabled" fullname="TrucoClientSettingsEditModeTests.ShowLanguageToggle_RequiresBothEnabled" methodname="ShowLanguageToggle_RequiresBothEnabled" classname="TrucoClientSettingsEditModeTests" runstate="Runnable" seed="139843606" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.001549" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[TrucoClientSettings] Applied from inspector/test.
+[TrucoClientSettings] Applied from inspector/test.
+]]></output>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1015" name="TrucoClubFeatureTests" fullname="TrucoClubFeatureTests" classname="TrucoClubFeatureTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.004047" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="ParameterizedMethod" id="1021" name="BuyHonorsServerLimits" fullname="TrucoClubFeatureTests.BuyHonorsServerLimits" classname="TrucoClubFeatureTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.001762" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1016" name="BuyHonorsServerLimits(0,False)" fullname="TrucoClubFeatureTests.BuyHonorsServerLimits(0,False)" methodname="BuyHonorsServerLimits" classname="TrucoClubFeatureTests" runstate="Runnable" seed="1022958194" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.001052" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1017" name="BuyHonorsServerLimits(4,False)" fullname="TrucoClubFeatureTests.BuyHonorsServerLimits(4,False)" methodname="BuyHonorsServerLimits" classname="TrucoClubFeatureTests" runstate="Runnable" seed="2015569876" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000070" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1018" name="BuyHonorsServerLimits(5,True)" fullname="TrucoClubFeatureTests.BuyHonorsServerLimits(5,True)" methodname="BuyHonorsServerLimits" classname="TrucoClubFeatureTests" runstate="Runnable" seed="2095849890" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000054" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1019" name="BuyHonorsServerLimits(5000,True)" fullname="TrucoClubFeatureTests.BuyHonorsServerLimits(5000,True)" methodname="BuyHonorsServerLimits" classname="TrucoClubFeatureTests" runstate="Runnable" seed="113087061" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000051" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1020" name="BuyHonorsServerLimits(5001,False)" fullname="TrucoClubFeatureTests.BuyHonorsServerLimits(5001,False)" methodname="BuyHonorsServerLimits" classname="TrucoClubFeatureTests" runstate="Runnable" seed="675097272" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000054" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1024" name="ProductionRoomCannotBeDrivenByDevelopmentBot" fullname="TrucoClubFeatureTests.ProductionRoomCannotBeDrivenByDevelopmentBot" methodname="ProductionRoomCannotBeDrivenByDevelopmentBot" classname="TrucoClubFeatureTests" runstate="Runnable" seed="459994124" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000682" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1022" name="SaleRequiresAvailableBalanceAndCompletePayoutFields" fullname="TrucoClubFeatureTests.SaleRequiresAvailableBalanceAndCompletePayoutFields" methodname="SaleRequiresAvailableBalanceAndCompletePayoutFields" classname="TrucoClubFeatureTests" runstate="Runnable" seed="98366951" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000264" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1023" name="UnknownWalletStatusNeverClaimsSuccess" fullname="TrucoClubFeatureTests.UnknownWalletStatusNeverClaimsSuccess" methodname="UnknownWalletStatusNeverClaimsSuccess" classname="TrucoClubFeatureTests" runstate="Runnable" seed="418344951" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000362" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1025" name="TrucoGameplaySceneWiringTests" fullname="TrucoGameplaySceneWiringTests" classname="TrucoGameplaySceneWiringTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:44Z" duration="2.661085" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1027" name="RequiredSceneTransitionsAreIncludedInPlayerBuild" fullname="TrucoGameplaySceneWiringTests.RequiredSceneTransitionsAreIncludedInPlayerBuild" methodname="RequiredSceneTransitionsAreIncludedInPlayerBuild" classname="TrucoGameplaySceneWiringTests" runstate="Runnable" seed="2055784752" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.001109" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1028" name="TournamentSpriteSheetHasTimerAndCardAssets" fullname="TrucoGameplaySceneWiringTests.TournamentSpriteSheetHasTimerAndCardAssets" methodname="TournamentSpriteSheetHasTimerAndCardAssets" classname="TrucoGameplaySceneWiringTests" runstate="Runnable" seed="1781057601" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:41Z" duration="0.000401" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1026" name="TournamentUsesExistingGameplaySceneWithBothThreeCardHands" fullname="TrucoGameplaySceneWiringTests.TournamentUsesExistingGameplaySceneWithBothThreeCardHands" methodname="TournamentUsesExistingGameplaySceneWithBothThreeCardHands" classname="TrucoGameplaySceneWiringTests" runstate="Runnable" seed="744444601" result="Passed" start-time="2026-10-31 08:57:41Z" end-time="2026-10-31 08:57:44Z" duration="2.658747" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[Upgrading font asset [Arial Bold] to version 1.1.0.
+]]></output>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1029" name="TrucoLobbyFlowEditModeTests" fullname="TrucoLobbyFlowEditModeTests" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" testcasecount="25" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.094954" total="25" passed="25" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1047" name="ForCreateRoom_MapsConnectionAndSessionErrors" fullname="TrucoLobbyFlowEditModeTests.ForCreateRoom_MapsConnectionAndSessionErrors" methodname="ForCreateRoom_MapsConnectionAndSessionErrors" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1058401788" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.019975" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[TrucoClientSettings] Loaded. ES=True EN=True debug=True photonRetry=8x1s gameSecretConfigured=True
+]]></output>
+        </test-case>
+        <test-case id="1045" name="ForCreateRoom_NeverShowsWrongPassword" fullname="TrucoLobbyFlowEditModeTests.ForCreateRoom_NeverShowsWrongPassword" methodname="ForCreateRoom_NeverShowsWrongPassword" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="401749046" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.001067" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1048" name="ForJoinRoom_ShowsWrongPasswordOnlyForPasswordErrors" fullname="TrucoLobbyFlowEditModeTests.ForJoinRoom_ShowsWrongPasswordOnlyForPasswordErrors" methodname="ForJoinRoom_ShowsWrongPasswordOnlyForPasswordErrors" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="579201451" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.001505" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1053" name="GetAllHostedMatchIds_ReturnsEveryHostedRow" fullname="TrucoLobbyFlowEditModeTests.GetAllHostedMatchIds_ReturnsEveryHostedRow" methodname="GetAllHostedMatchIds_ReturnsEveryHostedRow" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="678951843" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.002690" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1039" name="GetExtraHostedMatchIds_CancelsDuplicates_KeepsSessionMatch" fullname="TrucoLobbyFlowEditModeTests.GetExtraHostedMatchIds_CancelsDuplicates_KeepsSessionMatch" methodname="GetExtraHostedMatchIds_CancelsDuplicates_KeepsSessionMatch" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1376159370" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.001200" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1040" name="GetExtraHostedMatchIds_NoExtrasWhenSingleRoom" fullname="TrucoLobbyFlowEditModeTests.GetExtraHostedMatchIds_NoExtrasWhenSingleRoom" methodname="GetExtraHostedMatchIds_NoExtrasWhenSingleRoom" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="450467736" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000671" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1037" name="IsHostWaitingForGuest_OnlyWhenHostWithMatchId" fullname="TrucoLobbyFlowEditModeTests.IsHostWaitingForGuest_OnlyWhenHostWithMatchId" methodname="IsHostWaitingForGuest_OnlyWhenHostWithMatchId" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="564160950" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.027574" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:57:44.512][4.59s][Truco/OneVsOne] Host context: match=507f1f77bcf86cd799439011 room=tr1_507f1f77bcf86cd799439011 fee=5 flor=True
+]]></output>
+        </test-case>
+        <test-case id="1051" name="IsMatchFullApiError_DetectsEnglishAndSpanish" fullname="TrucoLobbyFlowEditModeTests.IsMatchFullApiError_DetectsEnglishAndSpanish" methodname="IsMatchFullApiError_DetectsEnglishAndSpanish" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="419196232" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000714" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1042" name="IsReadyToLaunchGameplay_RequiresTwoPlayers" fullname="TrucoLobbyFlowEditModeTests.IsReadyToLaunchGameplay_RequiresTwoPlayers" methodname="IsReadyToLaunchGameplay_RequiresTwoPlayers" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1096899246" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000622" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1046" name="IsRoomAlreadyExistsApiError_DistinctFromActiveRoom" fullname="TrucoLobbyFlowEditModeTests.IsRoomAlreadyExistsApiError_DistinctFromActiveRoom" methodname="IsRoomAlreadyExistsApiError_DistinctFromActiveRoom" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="779189050" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000613" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1044" name="IsWrongPasswordApiError_DetectsPasswordFailures" fullname="TrucoLobbyFlowEditModeTests.IsWrongPasswordApiError_DetectsPasswordFailures" methodname="IsWrongPasswordApiError_DetectsPasswordFailures" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1081547272" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.001160" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1033" name="JoinParseHintWithoutPhotonName_GetsTr1Default" fullname="TrucoLobbyFlowEditModeTests.JoinParseHintWithoutPhotonName_GetsTr1Default" methodname="JoinParseHintWithoutPhotonName_GetsTr1Default" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="2139264035" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.002256" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1054" name="MatchBelongsToUser_IncludesCreatorWithoutPlayersArray" fullname="TrucoLobbyFlowEditModeTests.MatchBelongsToUser_IncludesCreatorWithoutPlayersArray" methodname="MatchBelongsToUser_IncludesCreatorWithoutPlayersArray" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1396879845" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000719" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1035" name="Reconcile_PreservesGuestSession_WhenJoiningPhoton" fullname="TrucoLobbyFlowEditModeTests.Reconcile_PreservesGuestSession_WhenJoiningPhoton" methodname="Reconcile_PreservesGuestSession_WhenJoiningPhoton" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1522996579" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.002496" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:57:44.546][4.59s][Truco/OneVsOne] Guest context: match=507f1f77bcf86cd799439011 room=tr1_507f1f77bcf86cd799439011 flor=True
+]]></output>
+        </test-case>
+        <test-case id="1034" name="Reconcile_PreservesSession_WhenPreGameMatchActive_EvenIfListEmpty" fullname="TrucoLobbyFlowEditModeTests.Reconcile_PreservesSession_WhenPreGameMatchActive_EvenIfListEmpty" methodname="Reconcile_PreservesSession_WhenPreGameMatchActive_EvenIfListEmpty" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1078901850" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.001882" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:57:44.549][4.59s][Truco/OneVsOne] Host context: match=507f1f77bcf86cd799439011 room=tr1_507f1f77bcf86cd799439011 fee=10 flor=True
+]]></output>
+        </test-case>
+        <test-case id="1050" name="ResolvePhotonRoomName_IgnoresRoomNameField" fullname="TrucoLobbyFlowEditModeTests.ResolvePhotonRoomName_IgnoresRoomNameField" methodname="ResolvePhotonRoomName_IgnoresRoomNameField" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1518174863" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000605" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1030" name="ResolvePhotonRoomName_NeverUsesDisplayName" fullname="TrucoLobbyFlowEditModeTests.ResolvePhotonRoomName_NeverUsesDisplayName" methodname="ResolvePhotonRoomName_NeverUsesDisplayName" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="999862617" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000521" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1031" name="ResolvePhotonRoomName_PrefersApiPhotonRoomName" fullname="TrucoLobbyFlowEditModeTests.ResolvePhotonRoomName_PrefersApiPhotonRoomName" methodname="ResolvePhotonRoomName_PrefersApiPhotonRoomName" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1947137331" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000518" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1032" name="ResolvePhotonRoomNameOrDefault_FallsBackToMatchId" fullname="TrucoLobbyFlowEditModeTests.ResolvePhotonRoomNameOrDefault_FallsBackToMatchId" methodname="ResolvePhotonRoomNameOrDefault_FallsBackToMatchId" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="2012883010" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000446" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1038" name="ShouldConfirmDeleteRoom_OnlyForHostWaiting" fullname="TrucoLobbyFlowEditModeTests.ShouldConfirmDeleteRoom_OnlyForHostWaiting" methodname="ShouldConfirmDeleteRoom_OnlyForHostWaiting" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="455805435" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.002967" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:57:44.553][4.59s][Truco/OneVsOne] Host context: match=507f1f77bcf86cd799439011 room=tr1_507f1f77bcf86cd799439011 fee=5 flor=True
+[13:57:44.554][4.59s][Truco/OneVsOne] Guest context: match=507f1f77bcf86cd799439011 room=tr1_507f1f77bcf86cd799439011 flor=True
+]]></output>
+        </test-case>
+        <test-case id="1036" name="ShouldPreserveActivePreGameSession_TrueOnlyBeforeGameStart" fullname="TrucoLobbyFlowEditModeTests.ShouldPreserveActivePreGameSession_TrueOnlyBeforeGameStart" methodname="ShouldPreserveActivePreGameSession_TrueOnlyBeforeGameStart" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1698506706" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000585" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1041" name="ShouldRetryPhotonJoin_WhenGameDoesNotExist" fullname="TrucoLobbyFlowEditModeTests.ShouldRetryPhotonJoin_WhenGameDoesNotExist" methodname="ShouldRetryPhotonJoin_WhenGameDoesNotExist" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1999440346" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000589" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1043" name="ShouldShowInLobbyList_HidesFullRoom" fullname="TrucoLobbyFlowEditModeTests.ShouldShowInLobbyList_HidesFullRoom" methodname="ShouldShowInLobbyList_HidesFullRoom" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1976546329" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000943" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1049" name="ShouldShowResumeInLobbyList_GuestParticipantNotInPhoton" fullname="TrucoLobbyFlowEditModeTests.ShouldShowResumeInLobbyList_GuestParticipantNotInPhoton" methodname="ShouldShowResumeInLobbyList_GuestParticipantNotInPhoton" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1747077356" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.000515" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1052" name="TryParseSingleMatchJson_ParsesSuccessMatchWrapper" fullname="TrucoLobbyFlowEditModeTests.TryParseSingleMatchJson_ParsesSuccessMatchWrapper" methodname="TryParseSingleMatchJson_ParsesSuccessMatchWrapper" classname="TrucoLobbyFlowEditModeTests" runstate="Runnable" seed="1586758270" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:44Z" duration="0.001112" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1055" name="TrucoPhotonCloneSmokeTests" fullname="TrucoPhotonCloneSmokeTests" classname="TrucoPhotonCloneSmokeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:58:10Z" duration="25.704459" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1058" name="EightIndependentClients" fullname="TrucoPhotonCloneSmokeTests.EightIndependentClients" methodname="EightIndependentClients" classname="TrucoPhotonCloneSmokeTests" runstate="Runnable" seed="1240948724" result="Passed" start-time="2026-10-31 08:57:44Z" end-time="2026-10-31 08:57:54Z" duration="9.546575" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1057" name="FourIndependentClients" fullname="TrucoPhotonCloneSmokeTests.FourIndependentClients" methodname="FourIndependentClients" classname="TrucoPhotonCloneSmokeTests" runstate="Runnable" seed="1737712289" result="Passed" start-time="2026-10-31 08:57:54Z" end-time="2026-10-31 08:58:02Z" duration="8.100005" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1056" name="TwoIndependentClients" fullname="TrucoPhotonCloneSmokeTests.TwoIndependentClients" methodname="TwoIndependentClients" classname="TrucoPhotonCloneSmokeTests" runstate="Runnable" seed="424970910" result="Passed" start-time="2026-10-31 08:58:02Z" end-time="2026-10-31 08:58:10Z" duration="8.056765" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1059" name="TrucoRulesEditModeTests" fullname="TrucoRulesEditModeTests" classname="TrucoRulesEditModeTests" runstate="Runnable" testcasecount="27" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.026810" total="27" passed="27" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1066" name="CardRank_SwordsAceBeatsAll" fullname="TrucoRulesEditModeTests.CardRank_SwordsAceBeatsAll" methodname="CardRank_SwordsAceBeatsAll" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1319398601" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.003723" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1088" name="DefaultTargetRemainsFifteen" fullname="TrucoRulesEditModeTests.DefaultTargetRemainsFifteen" methodname="DefaultTargetRemainsFifteen" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1465107447" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000243" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1069" name="EnvidoNoQuiero_AcceptanceSequences" fullname="TrucoRulesEditModeTests.EnvidoNoQuiero_AcceptanceSequences" methodname="EnvidoNoQuiero_AcceptanceSequences" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="494602442" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000382" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1085" name="EnvidoTie_ManoWins_NotFoot" fullname="TrucoRulesEditModeTests.EnvidoTie_ManoWins_NotFoot" methodname="EnvidoTie_ManoWins_NotFoot" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="318473529" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000192" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1067" name="EnvidoValue_FaceCardsAreZero" fullname="TrucoRulesEditModeTests.EnvidoValue_FaceCardsAreZero" methodname="EnvidoValue_FaceCardsAreZero" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="558919043" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000197" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1087" name="FlorThenMazo_PendingTrucoAwardsOnePoint" fullname="TrucoRulesEditModeTests.FlorThenMazo_PendingTrucoAwardsOnePoint" methodname="FlorThenMazo_PendingTrucoAwardsOnePoint" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1872822369" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000176" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1061" name="HandWinner_FirstTrickParda_SecondTrickDecides" fullname="TrucoRulesEditModeTests.HandWinner_FirstTrickParda_SecondTrickDecides" methodname="HandWinner_FirstTrickParda_SecondTrickDecides" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1553966482" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.006060" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:58:10.274][4.59s][Truco/Rules] ✓ TrickHandWinner → P2 (t1 parda, t2 win) | score me=0 opp=0 round=0 last=? challengePts=0 mazoPts=0 myTurn=False handResolved=False gameEnded=False actor=-1 master=False
+[13:58:10.276][4.59s][Truco/Rules] ✓ TrickHandWinner → P1 (t1 parda, t2 win) | score me=0 opp=0 round=0 last=? challengePts=0 mazoPts=0 myTurn=False handResolved=False gameEnded=False actor=-1 master=False
+]]></output>
+        </test-case>
+        <test-case id="1064" name="HandWinner_NeedsThirdTrick_WhenSplit" fullname="TrucoRulesEditModeTests.HandWinner_NeedsThirdTrick_WhenSplit" methodname="HandWinner_NeedsThirdTrick_WhenSplit" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="337037295" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.003574" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:58:10.278][4.59s][Truco/Rules] ✓ TrickHandWinner need 3rd trick | t1=1 t2=2 | score me=0 opp=0 round=0 last=? challengePts=0 mazoPts=0 myTurn=False handResolved=False gameEnded=False actor=-1 master=False
+[13:58:10.279][4.59s][Truco/Rules] ✓ TrickHandWinner → P1 (2 tricks) | mano=1 | score me=0 opp=0 round=0 last=? challengePts=0 mazoPts=0 myTurn=False handResolved=False gameEnded=False actor=-1 master=False
+]]></output>
+        </test-case>
+        <test-case id="1063" name="HandWinner_TripleParda_ManoWins" fullname="TrucoRulesEditModeTests.HandWinner_TripleParda_ManoWins" methodname="HandWinner_TripleParda_ManoWins" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1582128160" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000567" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1060" name="HandWinner_TwoTricksWonByPlayer1" fullname="TrucoRulesEditModeTests.HandWinner_TwoTricksWonByPlayer1" methodname="HandWinner_TwoTricksWonByPlayer1" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1008566865" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001586" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:58:10.282][4.59s][Truco/Rules] ✓ TrickHandWinner → P1 (2 tricks) | mano=1 | score me=0 opp=0 round=0 last=? challengePts=0 mazoPts=0 myTurn=False handResolved=False gameEnded=False actor=-1 master=False
+]]></output>
+        </test-case>
+        <test-case id="1062" name="HandWinner_WinTrick1_TieTrick2_HandEnds" fullname="TrucoRulesEditModeTests.HandWinner_WinTrick1_TieTrick2_HandEnds" methodname="HandWinner_WinTrick1_TieTrick2_HandEnds" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="157762006" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.002881" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[13:58:10.283][4.59s][Truco/Rules] ✓ TrickHandWinner → P1 (t1 win + t2 win/parda) | score me=0 opp=0 round=0 last=? challengePts=0 mazoPts=0 myTurn=False handResolved=False gameEnded=False actor=-1 master=False
+[13:58:10.285][4.59s][Truco/Rules] ✓ TrickHandWinner → P2 (t1 win + t2 win/parda) | score me=0 opp=0 round=0 last=? challengePts=0 mazoPts=0 myTurn=False handResolved=False gameEnded=False actor=-1 master=False
+]]></output>
+        </test-case>
+        <test-case id="1065" name="ManoAlternatesEachRound" fullname="TrucoRulesEditModeTests.ManoAlternatesEachRound" methodname="ManoAlternatesEachRound" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1111929096" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000269" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1079" name="MatchEnd_Default15_AndSelectable30" fullname="TrucoRulesEditModeTests.MatchEnd_Default15_AndSelectable30" methodname="MatchEnd_Default15_AndSelectable30" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1343587091" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000198" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1084" name="MatchScore_ClampsToSelectedTarget" fullname="TrucoRulesEditModeTests.MatchScore_ClampsToSelectedTarget" classname="TrucoRulesEditModeTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001472" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1080" name="MatchScore_ClampsToSelectedTarget(16,15,15)" fullname="TrucoRulesEditModeTests.MatchScore_ClampsToSelectedTarget(16,15,15)" methodname="MatchScore_ClampsToSelectedTarget" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="786046081" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000350" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1081" name="MatchScore_ClampsToSelectedTarget(16,30,16)" fullname="TrucoRulesEditModeTests.MatchScore_ClampsToSelectedTarget(16,30,16)" methodname="MatchScore_ClampsToSelectedTarget" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="62476174" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000070" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1082" name="MatchScore_ClampsToSelectedTarget(35,30,30)" fullname="TrucoRulesEditModeTests.MatchScore_ClampsToSelectedTarget(35,30,30)" methodname="MatchScore_ClampsToSelectedTarget" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="539608604" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000060" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1083" name="MatchScore_ClampsToSelectedTarget(-1,15,0)" fullname="TrucoRulesEditModeTests.MatchScore_ClampsToSelectedTarget(-1,15,0)" methodname="MatchScore_ClampsToSelectedTarget" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1175142355" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000064" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1078" name="MatchTarget_NormalizesToSupportedModes" fullname="TrucoRulesEditModeTests.MatchTarget_NormalizesToSupportedModes" classname="TrucoRulesEditModeTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000835" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1074" name="MatchTarget_NormalizesToSupportedModes(0,15)" fullname="TrucoRulesEditModeTests.MatchTarget_NormalizesToSupportedModes(0,15)" methodname="MatchTarget_NormalizesToSupportedModes" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="192246209" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000143" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1075" name="MatchTarget_NormalizesToSupportedModes(15,15)" fullname="TrucoRulesEditModeTests.MatchTarget_NormalizesToSupportedModes(15,15)" methodname="MatchTarget_NormalizesToSupportedModes" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="768474835" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000062" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1076" name="MatchTarget_NormalizesToSupportedModes(29,15)" fullname="TrucoRulesEditModeTests.MatchTarget_NormalizesToSupportedModes(29,15)" methodname="MatchTarget_NormalizesToSupportedModes" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="51769611" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000057" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1077" name="MatchTarget_NormalizesToSupportedModes(30,30)" fullname="TrucoRulesEditModeTests.MatchTarget_NormalizesToSupportedModes(30,30)" methodname="MatchTarget_NormalizesToSupportedModes" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1045541427" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000056" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1071" name="MazoAfterAcceptedTruco_AwardsChallengeValue" fullname="TrucoRulesEditModeTests.MazoAfterAcceptedTruco_AwardsChallengeValue" methodname="MazoAfterAcceptedTruco_AwardsChallengeValue" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="2120714698" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000400" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1070" name="MazoAfterEnvido_MustNotReuseEnvidoStake" fullname="TrucoRulesEditModeTests.MazoAfterEnvido_MustNotReuseEnvidoStake" methodname="MazoAfterEnvido_MustNotReuseEnvidoStake" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1797789623" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000183" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1072" name="MazoOnFirstTrick_SplitsEnvidoAndTrucoParts" fullname="TrucoRulesEditModeTests.MazoOnFirstTrick_SplitsEnvidoAndTrucoParts" methodname="MazoOnFirstTrick_SplitsEnvidoAndTrucoParts" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1810014766" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000325" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1073" name="NoQuieroEndsHand_OnlyTrucoChain" fullname="TrucoRulesEditModeTests.NoQuieroEndsHand_OnlyTrucoChain" methodname="NoQuieroEndsHand_OnlyTrucoChain" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1873300045" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000187" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1068" name="NoQuieroPoints_MatchOfficialRules" fullname="TrucoRulesEditModeTests.NoQuieroPoints_MatchOfficialRules" methodname="NoQuieroPoints_MatchOfficialRules" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="2002435224" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000211" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1086" name="ScoringCards_StayHiddenUntilHandEndOrMazo" fullname="TrucoRulesEditModeTests.ScoringCards_StayHiddenUntilHandEndOrMazo" methodname="ScoringCards_StayHiddenUntilHandEndOrMazo" classname="TrucoRulesEditModeTests" runstate="Runnable" seed="1170447450" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000135" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1089" name="TrucoServerConfirmationTests" fullname="TrucoServerConfirmationTests" classname="TrucoServerConfirmationTests" runstate="Runnable" testcasecount="27" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.040829" total="27" passed="27" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="ParameterizedMethod" id="1121" name="InvalidMaintenanceResponseDoesNotReplaceKnownState" fullname="TrucoServerConfirmationTests.InvalidMaintenanceResponseDoesNotReplaceKnownState" classname="TrucoServerConfirmationTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.011928" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1117" name="InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;{}&quot;)" fullname="TrucoServerConfirmationTests.InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;{}&quot;)" methodname="InvalidMaintenanceResponseDoesNotReplaceKnownState" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="206588333" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.005187" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1118" name="InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;{\&quot;ok\&quot;:false,\&quot;active\&quot;:false}&quot;)" fullname="TrucoServerConfirmationTests.InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;{\&quot;ok\&quot;:false,\&quot;active\&quot;:false}&quot;)" methodname="InvalidMaintenanceResponseDoesNotReplaceKnownState" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1262465157" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.003980" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1119" name="InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;{\&quot;error\&quot;:\&quot;Unauthorized\&quot;}&quot;)" fullname="TrucoServerConfirmationTests.InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;{\&quot;error\&quot;:\&quot;Unauthorized\&quot;}&quot;)" methodname="InvalidMaintenanceResponseDoesNotReplaceKnownState" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="423594595" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001050" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1120" name="InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;not json&quot;)" fullname="TrucoServerConfirmationTests.InvalidMaintenanceResponseDoesNotReplaceKnownState(&quot;not json&quot;)" methodname="InvalidMaintenanceResponseDoesNotReplaceKnownState" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1438075190" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000999" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1111" name="PrizeRequiresPaymentReceipt" fullname="TrucoServerConfirmationTests.PrizeRequiresPaymentReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001932" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1108" name="PrizeRequiresPaymentReceipt(&quot;{\&quot;ok\&quot;:true}&quot;,False)" fullname="TrucoServerConfirmationTests.PrizeRequiresPaymentReceipt(&quot;{\&quot;ok\&quot;:true}&quot;,False)" methodname="PrizeRequiresPaymentReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1030170467" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001154" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1109" name="PrizeRequiresPaymentReceipt(&quot;{\&quot;ok\&quot;:false,\&quot;paid\&quot;:true}&quot;,False)" fullname="TrucoServerConfirmationTests.PrizeRequiresPaymentReceipt(&quot;{\&quot;ok\&quot;:false,\&quot;paid\&quot;:true}&quot;,False)" methodname="PrizeRequiresPaymentReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1899919389" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000114" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1110" name="PrizeRequiresPaymentReceipt(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;prizePaid\&quot;:true}}&quot;,True)" fullname="TrucoServerConfirmationTests.PrizeRequiresPaymentReceipt(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;prizePaid\&quot;:true}}&quot;,True)" methodname="PrizeRequiresPaymentReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1073223555" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000110" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1107" name="RefundRequiresSettlementReceipt" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.002776" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1099" name="RefundRequiresSettlementReceipt(&quot;{\&quot;ok\&quot;:true}&quot;,False)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;{\&quot;ok\&quot;:true}&quot;,False)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="2013798078" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000848" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1100" name="RefundRequiresSettlementReceipt(&quot;{\&quot;ok\&quot;:false,\&quot;refunded\&quot;:true}&quot;,False)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;{\&quot;ok\&quot;:false,\&quot;refunded\&quot;:true}&quot;,False)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1536465332" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000138" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1101" name="RefundRequiresSettlementReceipt(&quot;{\&quot;status\&quot;:\&quot;closed\&quot;}&quot;,False)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;{\&quot;status\&quot;:\&quot;closed\&quot;}&quot;,False)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="998145256" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000105" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1102" name="RefundRequiresSettlementReceipt(&quot;{\&quot;refunded\&quot;:true,\&quot;matchId\&quot;:\&quot;other\&quot;}&quot;,False)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;{\&quot;refunded\&quot;:true,\&quot;matchId\&quot;:\&quot;other\&quot;}&quot;,False)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1245596212" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000094" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1103" name="RefundRequiresSettlementReceipt(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;refunded\&quot;:true,\&quot;matchId\&quot;:\&quot;m1\&quot;}}&quot;,True)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;refunded\&quot;:true,\&quot;matchId\&quot;:\&quot;m1\&quot;}}&quot;,True)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="746780516" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000098" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1104" name="RefundRequiresSettlementReceipt(&quot;{\&quot;alreadyRefunded\&quot;:true,\&quot;matchId\&quot;:\&quot;m1\&quot;}&quot;,True)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;{\&quot;alreadyRefunded\&quot;:true,\&quot;matchId\&quot;:\&quot;m1\&quot;}&quot;,True)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="823853048" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000100" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1105" name="RefundRequiresSettlementReceipt(&quot;&quot;,False)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;&quot;,False)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1157447626" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000087" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1106" name="RefundRequiresSettlementReceipt(&quot;&lt;html&gt;proxy error&lt;/html&gt;&quot;,False)" fullname="TrucoServerConfirmationTests.RefundRequiresSettlementReceipt(&quot;&lt;html&gt;proxy error&lt;/html&gt;&quot;,False)" methodname="RefundRequiresSettlementReceipt" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1826949427" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000114" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1098" name="TournamentCreationRequiresConfirmedMatchId" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.016791" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1090" name="TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,&quot;m1&quot;)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,&quot;m1&quot;)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1850815329" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.014984" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1091" name="TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;success\&quot;:true,\&quot;data\&quot;:{\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}}&quot;,&quot;m1&quot;)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;success\&quot;:true,\&quot;data\&quot;:{\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}}&quot;,&quot;m1&quot;)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1281461872" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000175" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1092" name="TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,&quot;m1&quot;)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,&quot;m1&quot;)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="830261427" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000124" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1093" name="TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:false,\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,null)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:false,\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,null)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1730897943" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000099" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1094" name="TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;success\&quot;:false,\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,null)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;data\&quot;:{\&quot;success\&quot;:false,\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,null)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1695382046" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000123" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1095" name="TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;match\&quot;:{}}&quot;,null)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;ok\&quot;:true,\&quot;match\&quot;:{}}&quot;,null)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1285723153" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000093" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1096" name="TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,null)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;{\&quot;match\&quot;:{\&quot;_id\&quot;:\&quot;m1\&quot;}}&quot;,null)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="968693480" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000085" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1097" name="TournamentCreationRequiresConfirmedMatchId(&quot;not json&quot;,null)" fullname="TrucoServerConfirmationTests.TournamentCreationRequiresConfirmedMatchId(&quot;not json&quot;,null)" methodname="TournamentCreationRequiresConfirmedMatchId" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1245552122" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000089" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1116" name="WrappedMaintenanceCannotAccidentallyDisableBlocking" fullname="TrucoServerConfirmationTests.WrappedMaintenanceCannotAccidentallyDisableBlocking" classname="TrucoServerConfirmationTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.006493" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1112" name="WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;maintenance\&quot;:{\&quot;active\&quot;:true}}&quot;)" fullname="TrucoServerConfirmationTests.WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;maintenance\&quot;:{\&quot;active\&quot;:true}}&quot;)" methodname="WrappedMaintenanceCannotAccidentallyDisableBlocking" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="522233347" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.005535" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1113" name="WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;data\&quot;:{\&quot;active\&quot;:true}}&quot;)" fullname="TrucoServerConfirmationTests.WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;data\&quot;:{\&quot;active\&quot;:true}}&quot;)" methodname="WrappedMaintenanceCannotAccidentallyDisableBlocking" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1431547902" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000129" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1114" name="WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;data\&quot;:{\&quot;maintenance\&quot;:{\&quot;active\&quot;:true}}}&quot;)" fullname="TrucoServerConfirmationTests.WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;data\&quot;:{\&quot;maintenance\&quot;:{\&quot;active\&quot;:true}}}&quot;)" methodname="WrappedMaintenanceCannotAccidentallyDisableBlocking" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1092282145" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000105" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1115" name="WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;active\&quot;:true}&quot;)" fullname="TrucoServerConfirmationTests.WrappedMaintenanceCannotAccidentallyDisableBlocking(&quot;{\&quot;active\&quot;:true}&quot;)" methodname="WrappedMaintenanceCannotAccidentallyDisableBlocking" classname="TrucoServerConfirmationTests" runstate="Runnable" seed="1456501466" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000083" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1122" name="TrucoSettlementEditModeTests" fullname="TrucoSettlementEditModeTests" classname="TrucoSettlementEditModeTests" runstate="Runnable" testcasecount="11" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.002758" total="11" passed="11" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="ParameterizedMethod" id="1132" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001656" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1123" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(5,9)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(5,9)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="1552730443" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000217" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1124" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(10,18)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(10,18)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="599163040" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000070" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1125" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(25,45)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(25,45)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="494826298" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000063" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1126" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(50,90)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(50,90)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="340609848" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000064" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1127" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(100,180)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(100,180)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="1268942723" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000062" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1128" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(250,450)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(250,450)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="1003839958" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000061" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1129" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(500,900)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(500,900)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="2086305841" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000065" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1130" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(1000,1800)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(1000,1800)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="592345922" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000061" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1131" name="ComputeOneVsOnePrize_MatchesPotMinusTenPercent(5000,9000)" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_MatchesPotMinusTenPercent(5000,9000)" methodname="ComputeOneVsOnePrize_MatchesPotMinusTenPercent" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="879183715" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000069" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1133" name="ComputeOneVsOnePrize_NetGainAfterEntryIsPrizeMinusEntry" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_NetGainAfterEntryIsPrizeMinusEntry" methodname="ComputeOneVsOnePrize_NetGainAfterEntryIsPrizeMinusEntry" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="1290235031" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000161" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1134" name="ComputeOneVsOnePrize_ZeroOrNegativeEntryReturnsZero" fullname="TrucoSettlementEditModeTests.ComputeOneVsOnePrize_ZeroOrNegativeEntryReturnsZero" methodname="ComputeOneVsOnePrize_ZeroOrNegativeEntryReturnsZero" classname="TrucoSettlementEditModeTests" runstate="Runnable" seed="609339623" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000138" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1135" name="TrucoTournamentFeedbackTests" fullname="TrucoTournamentFeedbackTests" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="26" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.018430" total="26" passed="26" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="ParameterizedMethod" id="1152" name="AllOpeningTablesReady_AndWinnerWaitsForSibling" fullname="TrucoTournamentFeedbackTests.AllOpeningTablesReady_AndWinnerWaitsForSibling" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001607" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1150" name="AllOpeningTablesReady_AndWinnerWaitsForSibling(4)" fullname="TrucoTournamentFeedbackTests.AllOpeningTablesReady_AndWinnerWaitsForSibling(4)" methodname="AllOpeningTablesReady_AndWinnerWaitsForSibling" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="2135318434" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001023" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1151" name="AllOpeningTablesReady_AndWinnerWaitsForSibling(8)" fullname="TrucoTournamentFeedbackTests.AllOpeningTablesReady_AndWinnerWaitsForSibling(8)" methodname="AllOpeningTablesReady_AndWinnerWaitsForSibling" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="335806186" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000095" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1155" name="DuplicateOrForeignWinnerCannotChangeBracket" fullname="TrucoTournamentFeedbackTests.DuplicateOrForeignWinnerCannotChangeBracket" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000733" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1153" name="DuplicateOrForeignWinnerCannotChangeBracket(4)" fullname="TrucoTournamentFeedbackTests.DuplicateOrForeignWinnerCannotChangeBracket(4)" methodname="DuplicateOrForeignWinnerCannotChangeBracket" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="58545071" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000232" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1154" name="DuplicateOrForeignWinnerCannotChangeBracket(8)" fullname="TrucoTournamentFeedbackTests.DuplicateOrForeignWinnerCannotChangeBracket(8)" methodname="DuplicateOrForeignWinnerCannotChangeBracket" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1811549764" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000074" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1143" name="EnvidoReplyUsesResolvedWinnerIncludingManoTies" fullname="TrucoTournamentFeedbackTests.EnvidoReplyUsesResolvedWinnerIncludingManoTies" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000869" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1140" name="EnvidoReplyUsesResolvedWinnerIncludingManoTies(29,False,&quot;Son buenas&quot;)" fullname="TrucoTournamentFeedbackTests.EnvidoReplyUsesResolvedWinnerIncludingManoTies(29,False,&quot;Son buenas&quot;)" methodname="EnvidoReplyUsesResolvedWinnerIncludingManoTies" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1977738500" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000312" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1141" name="EnvidoReplyUsesResolvedWinnerIncludingManoTies(33,True,&quot;Tengo 33&quot;)" fullname="TrucoTournamentFeedbackTests.EnvidoReplyUsesResolvedWinnerIncludingManoTies(33,True,&quot;Tengo 33&quot;)" methodname="EnvidoReplyUsesResolvedWinnerIncludingManoTies" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1649154597" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000072" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1142" name="EnvidoReplyUsesResolvedWinnerIncludingManoTies(30,False,&quot;Son buenas&quot;)" fullname="TrucoTournamentFeedbackTests.EnvidoReplyUsesResolvedWinnerIncludingManoTies(30,False,&quot;Son buenas&quot;)" methodname="EnvidoReplyUsesResolvedWinnerIncludingManoTies" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="171340424" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000059" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1166" name="FlorGuardsCoverEveryVariant" fullname="TrucoTournamentFeedbackTests.FlorGuardsCoverEveryVariant" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000962" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1162" name="FlorGuardsCoverEveryVariant(Flor)" fullname="TrucoTournamentFeedbackTests.FlorGuardsCoverEveryVariant(Flor)" methodname="FlorGuardsCoverEveryVariant" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="2030616793" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000179" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1163" name="FlorGuardsCoverEveryVariant(FlorChica)" fullname="TrucoTournamentFeedbackTests.FlorGuardsCoverEveryVariant(FlorChica)" methodname="FlorGuardsCoverEveryVariant" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1365583975" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000077" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1164" name="FlorGuardsCoverEveryVariant(ConFlorQuiero)" fullname="TrucoTournamentFeedbackTests.FlorGuardsCoverEveryVariant(ConFlorQuiero)" methodname="FlorGuardsCoverEveryVariant" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1656000016" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000080" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1165" name="FlorGuardsCoverEveryVariant(ContraFlor)" fullname="TrucoTournamentFeedbackTests.FlorGuardsCoverEveryVariant(ContraFlor)" methodname="FlorGuardsCoverEveryVariant" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1783149938" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000074" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1161" name="FullBracketReachesExactlyOneChampion_AndRoundTrips" fullname="TrucoTournamentFeedbackTests.FullBracketReachesExactlyOneChampion_AndRoundTrips" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001789" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1159" name="FullBracketReachesExactlyOneChampion_AndRoundTrips(4)" fullname="TrucoTournamentFeedbackTests.FullBracketReachesExactlyOneChampion_AndRoundTrips(4)" methodname="FullBracketReachesExactlyOneChampion_AndRoundTrips" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1997420091" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001199" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1160" name="FullBracketReachesExactlyOneChampion_AndRoundTrips(8)" fullname="TrucoTournamentFeedbackTests.FullBracketReachesExactlyOneChampion_AndRoundTrips(8)" methodname="FullBracketReachesExactlyOneChampion_AndRoundTrips" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="432847573" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000238" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1158" name="IndependentBranchMergePreservesBothWinners" fullname="TrucoTournamentFeedbackTests.IndependentBranchMergePreservesBothWinners" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001010" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1156" name="IndependentBranchMergePreservesBothWinners(4)" fullname="TrucoTournamentFeedbackTests.IndependentBranchMergePreservesBothWinners(4)" methodname="IndependentBranchMergePreservesBothWinners" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1448100449" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000484" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1157" name="IndependentBranchMergePreservesBothWinners(8)" fullname="TrucoTournamentFeedbackTests.IndependentBranchMergePreservesBothWinners(8)" methodname="IndependentBranchMergePreservesBothWinners" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="235221368" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000162" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1146" name="LobbyUsesPublishedRoomRules" fullname="TrucoTournamentFeedbackTests.LobbyUsesPublishedRoomRules" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001079" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1144" name="LobbyUsesPublishedRoomRules(False,30)" fullname="TrucoTournamentFeedbackTests.LobbyUsesPublishedRoomRules(False,30)" methodname="LobbyUsesPublishedRoomRules" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="50727697" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000636" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1145" name="LobbyUsesPublishedRoomRules(True,15)" fullname="TrucoTournamentFeedbackTests.LobbyUsesPublishedRoomRules(True,15)" methodname="LobbyUsesPublishedRoomRules" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1798476126" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000093" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1171" name="NonFlorRulesAreNotFiltered" fullname="TrucoTournamentFeedbackTests.NonFlorRulesAreNotFiltered" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000896" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1167" name="NonFlorRulesAreNotFiltered(Truco)" fullname="TrucoTournamentFeedbackTests.NonFlorRulesAreNotFiltered(Truco)" methodname="NonFlorRulesAreNotFiltered" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1476689806" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000143" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1168" name="NonFlorRulesAreNotFiltered(Envido)" fullname="TrucoTournamentFeedbackTests.NonFlorRulesAreNotFiltered(Envido)" methodname="NonFlorRulesAreNotFiltered" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1773148204" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000073" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1169" name="NonFlorRulesAreNotFiltered(RealEnvido)" fullname="TrucoTournamentFeedbackTests.NonFlorRulesAreNotFiltered(RealEnvido)" methodname="NonFlorRulesAreNotFiltered" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1077240967" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000069" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1170" name="NonFlorRulesAreNotFiltered(FaltaEnvido)" fullname="TrucoTournamentFeedbackTests.NonFlorRulesAreNotFiltered(FaltaEnvido)" methodname="NonFlorRulesAreNotFiltered" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="2141008342" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000069" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1139" name="PendingCantoBlocksCardsEvenAfterTurnRefresh" fullname="TrucoTournamentFeedbackTests.PendingCantoBlocksCardsEvenAfterTurnRefresh" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.002240" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1136" name="PendingCantoBlocksCardsEvenAfterTurnRefresh(Envido)" fullname="TrucoTournamentFeedbackTests.PendingCantoBlocksCardsEvenAfterTurnRefresh(Envido)" methodname="PendingCantoBlocksCardsEvenAfterTurnRefresh" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1989665446" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001354" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1137" name="PendingCantoBlocksCardsEvenAfterTurnRefresh(RealEnvido)" fullname="TrucoTournamentFeedbackTests.PendingCantoBlocksCardsEvenAfterTurnRefresh(RealEnvido)" methodname="PendingCantoBlocksCardsEvenAfterTurnRefresh" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1877185022" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000227" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1138" name="PendingCantoBlocksCardsEvenAfterTurnRefresh(FaltaEnvido)" fullname="TrucoTournamentFeedbackTests.PendingCantoBlocksCardsEvenAfterTurnRefresh(FaltaEnvido)" methodname="PendingCantoBlocksCardsEvenAfterTurnRefresh" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="711407571" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000210" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1149" name="SameSuitHandRespectsVariantWithoutChangingFlorValue" fullname="TrucoTournamentFeedbackTests.SameSuitHandRespectsVariantWithoutChangingFlorValue" classname="TrucoTournamentFeedbackTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.005979" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1147" name="SameSuitHandRespectsVariantWithoutChangingFlorValue(False,0)" fullname="TrucoTournamentFeedbackTests.SameSuitHandRespectsVariantWithoutChangingFlorValue(False,0)" methodname="SameSuitHandRespectsVariantWithoutChangingFlorValue" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="174217046" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.003782" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1148" name="SameSuitHandRespectsVariantWithoutChangingFlorValue(True,34)" fullname="TrucoTournamentFeedbackTests.SameSuitHandRespectsVariantWithoutChangingFlorValue(True,34)" methodname="SameSuitHandRespectsVariantWithoutChangingFlorValue" classname="TrucoTournamentFeedbackTests" runstate="Runnable" seed="1542682511" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001622" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1172" name="TrucoTournamentStartupTests" fullname="TrucoTournamentStartupTests" classname="TrucoTournamentStartupTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.005050" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1173" name="CompleteOpeningPlansAssignEveryPlayerInFourAndEightPlayerEvents" fullname="TrucoTournamentStartupTests.CompleteOpeningPlansAssignEveryPlayerInFourAndEightPlayerEvents" methodname="CompleteOpeningPlansAssignEveryPlayerInFourAndEightPlayerEvents" classname="TrucoTournamentStartupTests" runstate="Runnable" seed="1460959020" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001987" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1175" name="FailureTakesPrecedenceOverOtherwiseValidTableIdentity" fullname="TrucoTournamentStartupTests.FailureTakesPrecedenceOverOtherwiseValidTableIdentity" methodname="FailureTakesPrecedenceOverOtherwiseValidTableIdentity" classname="TrucoTournamentStartupTests" runstate="Runnable" seed="1909354428" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.001203" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1176" name="MissingOrMismatchedServerIdentityCannotLoadGameplay" fullname="TrucoTournamentStartupTests.MissingOrMismatchedServerIdentityCannotLoadGameplay" methodname="MissingOrMismatchedServerIdentityCannotLoadGameplay" classname="TrucoTournamentStartupTests" runstate="Runnable" seed="140522030" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000301" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1174" name="PartialDuplicateForeignAndMalformedPlansCannotStart" fullname="TrucoTournamentStartupTests.PartialDuplicateForeignAndMalformedPlansCannotStart" methodname="PartialDuplicateForeignAndMalformedPlansCannotStart" classname="TrucoTournamentStartupTests" runstate="Runnable" seed="1728864970" result="Passed" start-time="2026-10-31 08:58:10Z" end-time="2026-10-31 08:58:10Z" duration="0.000479" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/Octal Games/Truco-QA-ClientA\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

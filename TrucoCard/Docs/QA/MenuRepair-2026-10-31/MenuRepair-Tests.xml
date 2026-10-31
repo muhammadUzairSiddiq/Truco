@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-31 10:34:58Z" end-time="2026-10-31 10:34:59Z" duration="0.6185261">
+  <test-suite type="TestSuite" id="1000" name="Truco-QA-ClientA" fullname="Truco-QA-ClientA" runstate="Runnable" testcasecount="147" result="Passed" start-time="2026-10-31 10:34:58Z" end-time="2026-10-31 10:34:59Z" duration="0.618526" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1181" name="Assembly-CSharp-Editor.dll" fullname="D:/TrucoQA/20260923-ClientA/Library/ScriptAssemblies/Assembly-CSharp-Editor.dll" runstate="Runnable" testcasecount="147" result="Passed" start-time="2026-10-31 10:34:58Z" end-time="2026-10-31 10:34:59Z" duration="0.594555" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1916" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1055" name="TrucoMenuPresentationTests" fullname="TrucoMenuPresentationTests" classname="TrucoMenuPresentationTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-31 10:34:58Z" end-time="2026-10-31 10:34:59Z" duration="0.585365" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1057" name="AllOriginalIconNamesFitAndRefreshDoesNotDuplicateCaptions" fullname="TrucoMenuPresentationTests.AllOriginalIconNamesFitAndRefreshDoesNotDuplicateCaptions" methodname="AllOriginalIconNamesFitAndRefreshDoesNotDuplicateCaptions" classname="TrucoMenuPresentationTests" runstate="Runnable" seed="1765735827" result="Passed" start-time="2026-10-31 10:34:58Z" end-time="2026-10-31 10:34:59Z" duration="0.460800" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[Upgrading font asset [Arial Bold] to version 1.1.0.
+]]></output>
+        </test-case>
+        <test-case id="1056" name="OriginalHomeHeaderAndActionsRemainVisible" fullname="TrucoMenuPresentationTests.OriginalHomeHeaderAndActionsRemainVisible" methodname="OriginalHomeHeaderAndActionsRemainVisible" classname="TrucoMenuPresentationTests" runstate="Runnable" seed="1870139164" result="Passed" start-time="2026-10-31 10:34:59Z" end-time="2026-10-31 10:34:59Z" duration="0.031654" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1058" name="SelectionUpdatesEveryOriginalIconAndKeepsActions" fullname="TrucoMenuPresentationTests.SelectionUpdatesEveryOriginalIconAndKeepsActions" methodname="SelectionUpdatesEveryOriginalIconAndKeepsActions" classname="TrucoMenuPresentationTests" runstate="Runnable" seed="1790919704" result="Passed" start-time="2026-10-31 10:34:59Z" end-time="2026-10-31 10:34:59Z" duration="0.044647" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/Octal Games/Truco-QA-ClientA\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

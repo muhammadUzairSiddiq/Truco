@@ -48,7 +48,7 @@ public class TournamentBracketOverlay : MonoBehaviour
         var canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
-        canvas.sortingOrder = 56000;
+        canvas.sortingOrder = TrucoCanvasOrder.Bracket;
         gameObject.AddComponent<GraphicRaycaster>();
         var scaler = gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -62,13 +62,8 @@ public class TournamentBracketOverlay : MonoBehaviour
         rr.anchorMax = Vector2.one;
         rr.offsetMin = rr.offsetMax = Vector2.zero;
         var bg = root.GetComponent<Image>();
-        bg.color = new Color(0.12f, 0.07f, 0.04f, 0.97f);
-        if (TrucoGameplayUiSprites.PanelBrown != null)
-        {
-            bg.sprite = TrucoGameplayUiSprites.PanelBrown;
-            bg.type = Image.Type.Sliced;
-            bg.color = Color.white;
-        }
+        TrucoMenuTheme.Surface(bg, TrucoClubUI.Ink, false);
+        root.AddComponent<TrucoSafeArea>();
 
         var header = new GameObject("Header", typeof(RectTransform), typeof(Image));
         header.transform.SetParent(root.transform, false);
@@ -318,7 +313,7 @@ public class TournamentBracketOverlay : MonoBehaviour
     void Leave()
     {
         gameObject.SetActive(false);
-        MultiplayerController.LeaveTournamentMatchmaking(() =>
+        _ = MultiplayerController.LeaveTournamentByPlayerAsync(() =>
         {
             if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
             TrucoSceneTransition.Go("MainMenu");

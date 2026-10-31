@@ -26,6 +26,9 @@ public class TrucoPhotonCloneSmokeTests
             Assert.Ignore("Opt-in live Photon transport test; set TRUCO_RUN_PHOTON_QA=1 in the isolated QA process.");
         var source = PhotonNetwork.PhotonServerSettings.AppSettings;
         Assert.IsFalse(string.IsNullOrEmpty(source.AppIdRealtime), "QA requires a configured Photon application.");
+        string stagingAppId = Environment.GetEnvironmentVariable("TRUCO_QA_PHOTON_APP_ID");
+        if (!TrucoDevelopmentSettings.IsSeparateStagingApp(source.AppIdRealtime, stagingAppId))
+            Assert.Ignore("Synthetic live QA requires TRUCO_QA_PHOTON_APP_ID set to a separate staging Photon app.");
         string run = "qa-" + Guid.NewGuid().ToString("N");
         var clients = new List<LoadBalancingClient>();
         try
@@ -33,6 +36,7 @@ public class TrucoPhotonCloneSmokeTests
             for (int i = 0; i < count; i++)
             {
                 var settings = source.CopyTo(new AppSettings());
+                settings.AppIdRealtime = stagingAppId;
                 settings.AppVersion = run;
                 var client = new LoadBalancingClient(settings.Protocol);
                 client.AuthValues = new AuthenticationValues(run + "-" + i);

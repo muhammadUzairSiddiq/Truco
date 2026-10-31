@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="2" result="Passed" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-31 11:56:10Z" end-time="2026-10-31 11:56:14Z" duration="4.0692149">
+  <test-suite type="TestSuite" id="1000" name="Truco-QA-ClientA" fullname="Truco-QA-ClientA" runstate="Runnable" testcasecount="159" result="Passed" start-time="2026-10-31 11:56:10Z" end-time="2026-10-31 11:56:14Z" duration="4.069215" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1197" name="Assembly-CSharp-Editor.dll" fullname="D:/TrucoQA/20260923-ClientA/Library/ScriptAssemblies/Assembly-CSharp-Editor.dll" runstate="Runnable" testcasecount="159" result="Passed" start-time="2026-10-31 11:56:10Z" end-time="2026-10-31 11:56:14Z" duration="3.668541" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1476" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1009" name="TrucoCanvasLayerTests" fullname="TrucoCanvasLayerTests" classname="TrucoCanvasLayerTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-31 11:56:10Z" end-time="2026-10-31 11:56:14Z" duration="3.658618" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1010" name="EveryOverlayOrderRoundTripsThroughUnityWithoutSignedShortWrapping" fullname="TrucoCanvasLayerTests.EveryOverlayOrderRoundTripsThroughUnityWithoutSignedShortWrapping" methodname="EveryOverlayOrderRoundTripsThroughUnityWithoutSignedShortWrapping" classname="TrucoCanvasLayerTests" runstate="Runnable" seed="1509897080" result="Passed" start-time="2026-10-31 11:55:57Z" end-time="2026-10-31 11:55:57Z" duration="0.050501" asserts="0">
+          <properties />
+        </test-case>
+        <test-case id="1011" name="RealOverlayGraphicsReceivePointersAboveTheMenuAfterRenderedFrames" fullname="TrucoCanvasLayerTests.RealOverlayGraphicsReceivePointersAboveTheMenuAfterRenderedFrames" methodname="RealOverlayGraphicsReceivePointersAboveTheMenuAfterRenderedFrames" classname="TrucoCanvasLayerTests" runstate="Runnable" seed="320109594" result="Passed" start-time="2026-10-31 11:55:57Z" end-time="2026-10-31 11:56:14Z" duration="16.568007" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/Octal Games/Truco-QA-ClientA\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

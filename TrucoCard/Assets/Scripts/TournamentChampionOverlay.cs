@@ -15,6 +15,15 @@ public class TournamentChampionOverlay : MonoBehaviour
     {
         Ensure().Display(prizeTrucoins, tournamentName, paymentConfirmed);
     }
+    public static void ShowAuthoritativePayout(int actualAmount, string tournamentName, bool paid, string payoutId, string payoutStatus = "pending")
+    {
+        var overlay = Ensure();
+        overlay.Display(0, tournamentName, false);
+        bool confirmed = paid && actualAmount >= 0 && !string.IsNullOrWhiteSpace(payoutId);
+        overlay._prize.text = confirmed ? "Pago confirmado por el servidor:\n<size=52><color=#24734D>"
+            + actualAmount + " TRUCOINS</color></size>" : payoutStatus == "not_due" ? "Campeón confirmado\nEl servidor confirmó que no corresponde un pago."
+            : "Campeón confirmado\nPago pendiente de confirmación del servidor";
+    }
 
     public static void Hide()
     {
@@ -36,7 +45,7 @@ public class TournamentChampionOverlay : MonoBehaviour
         var canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
-        canvas.sortingOrder = 58000;
+        canvas.sortingOrder = TrucoCanvasOrder.Champion;
         gameObject.AddComponent<GraphicRaycaster>();
         var scaler = gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -50,49 +59,55 @@ public class TournamentChampionOverlay : MonoBehaviour
 
         var panel = Child("Panel", dim);
         var prt = panel.GetComponent<RectTransform>();
-        prt.anchorMin = prt.anchorMax = new Vector2(0.5f, 0.5f);
-        prt.sizeDelta = new Vector2(980f, 1640f);
+        Place(prt, .06f, .055f, .94f, .945f);
         var pImg = panel.gameObject.AddComponent<Image>();
-        ApplySprite(pImg, TrucoGameplayUiSprites.PanelBrown, Color.white);
+        TrucoMenuTheme.Surface(pImg, TrucoClubUI.Surface);
+        var edge = panel.gameObject.AddComponent<Outline>();
+        edge.effectColor = new Color(.75f, .57f, .30f, .6f); edge.effectDistance = new Vector2(2, -2);
 
-        var laurelL = Icon("LaurelL", panel, TrucoGameplayUiSprites.Laurel, new Vector2(-240f, 240f), new Vector2(180f, 280f));
-        var laurelR = Icon("LaurelR", panel, TrucoGameplayUiSprites.Laurel, new Vector2(240f, 240f), new Vector2(180f, 280f));
-        laurelR.localScale = new Vector3(-1f, 1f, 1f);
+        var hero = Icon("Trophy", panel, TrucoClubUI.Hero != null ? TrucoClubUI.Hero : TrucoGameplayUiSprites.IconTrophy,
+            Vector2.zero, Vector2.one);
+        Place(hero, .06f, .51f, .94f, .82f);
+        hero.GetComponent<Image>().type = Image.Type.Simple;
 
-        Icon("Trophy", panel, TrucoGameplayUiSprites.IconTrophy, new Vector2(0f, 260f), new Vector2(340f, 360f));
-
-        _title = Label("Title", panel, new Vector2(0f, 600f), new Vector2(840f, 190f), 68f, FontStyles.Bold,
-            new Color(1f, 0.86f, 0.38f, 1f), "¡CAMPEÓN DEL TORNEO!");
-        _prize = Label("Prize", panel, new Vector2(0f, -130f), new Vector2(820f, 300f), 40f, FontStyles.Bold,
-            new Color(1f, 0.95f, 0.82f, 1f), "");
-        _name = Label("Name", panel, new Vector2(0f, -370f), new Vector2(840f, 80f), 30f, FontStyles.Normal,
-            new Color(0.92f, 0.85f, 0.7f, 1f), "");
-        Label("Thanks", panel, new Vector2(0f, -490f), new Vector2(800f, 100f), 28f, FontStyles.Normal,
-            new Color(0.92f, 0.85f, 0.7f), "¡Gracias por jugar y demostrar\ntu habilidad en el truco!");
+        _title = Label("Title", panel, Vector2.zero, Vector2.one, 58f, FontStyles.Bold,
+            TrucoMenuTheme.Gold, "¡CAMPEÓN DEL TORNEO!");
+        Place(_title.rectTransform, .07f, .84f, .93f, .97f);
+        var prizeCard = Child("PrizeCard", panel);
+        Place(prizeCard.GetComponent<RectTransform>(), .07f, .235f, .93f, .425f);
+        TrucoMenuTheme.Surface(prizeCard.gameObject.AddComponent<Image>(), TrucoMenuTheme.Card);
+        _prize = Label("Prize", prizeCard, Vector2.zero, Vector2.one, 36f, FontStyles.Bold,
+            TrucoMenuTheme.Ink, "", stretch: true);
+        _prize.rectTransform.offsetMin = new Vector2(24, 16); _prize.rectTransform.offsetMax = new Vector2(-24, -16);
+        _name = Label("Name", panel, Vector2.zero, Vector2.one, 34f, FontStyles.Bold,
+            TrucoMenuTheme.Gold, "");
+        Place(_name.rectTransform, .07f, .435f, .93f, .505f);
+        var thanks = Label("Thanks", panel, Vector2.zero, Vector2.one, 27f, FontStyles.Normal,
+            TrucoClubUI.Muted, "¡Gracias por demostrar\ntu habilidad en el truco!");
+        Place(thanks.rectTransform, .10f, .135f, .90f, .22f);
 
         var btnGo = Child("Volver", panel);
         var brt = btnGo.GetComponent<RectTransform>();
-        brt.anchorMin = brt.anchorMax = new Vector2(0.5f, 0f);
-        brt.pivot = new Vector2(0.5f, 0f);
-        brt.anchoredPosition = new Vector2(0f, 48f);
-        brt.sizeDelta = new Vector2(640f, 110f);
+        Place(brt, .08f, .035f, .92f, .115f);
         var bImg = btnGo.gameObject.AddComponent<Image>();
-        ApplySprite(bImg, TrucoGameplayUiSprites.ButtonGreenLong, Color.white);
+        TrucoMenuTheme.Surface(bImg, TrucoClubUI.Green);
         var btn = btnGo.gameObject.AddComponent<Button>();
         btn.targetGraphic = bImg;
         btn.onClick.AddListener(CloseAndLeave);
         Label("Cap", btnGo, Vector2.zero, Vector2.zero, 32f, FontStyles.Bold, Color.white, "ACEPTAR", stretch: true);
+        TrucoMenuTheme.StyleButton(btn);
 
         gameObject.SetActive(false);
-        _ = laurelL;
     }
 
     void Display(int prize, string tournamentName, bool paymentConfirmed)
     {
         if (_title != null) _title.text = "¡CAMPEÓN DEL TORNEO!";
         if (_prize != null)
-            _prize.text = (paymentConfirmed ? "Campeón, recibiste el premio:" : "Premio pendiente de confirmación:")
-                + "\n<size=52><color=#F5D76E>" + Mathf.Max(0, prize) + " TRUCOINS</color></size>";
+            // The current receipt confirms payment status but does not return a paid amount.
+            // The request's advertised prize must never be presented as the amount received.
+            _prize.text = (paymentConfirmed ? "El servidor confirmó el pago.\nPremio previsto:" : "Premio previsto · pago sin confirmar:")
+                + "\n<size=52><color=#24734D>" + Mathf.Max(0, prize) + " TRUCOINS</color></size>";
         if (_name != null)
             _name.text = string.IsNullOrEmpty(tournamentName) ? "" : tournamentName;
         gameObject.SetActive(true);
@@ -102,7 +117,7 @@ public class TournamentChampionOverlay : MonoBehaviour
     void CloseAndLeave()
     {
         gameObject.SetActive(false);
-        MultiplayerController.LeaveTournamentMatchmaking(() =>
+        _ = MultiplayerController.LeaveTournamentByPlayerAsync(() =>
         {
             if (Photon.Pun.PhotonNetwork.IsConnected) Photon.Pun.PhotonNetwork.Disconnect();
             TrucoSceneTransition.Go("MainMenu");
@@ -114,6 +129,12 @@ public class TournamentChampionOverlay : MonoBehaviour
         var go = new GameObject(name, typeof(RectTransform));
         go.transform.SetParent(parent, false);
         return go.transform;
+    }
+
+    static void Place(RectTransform rt, float x0, float y0, float x1, float y1)
+    {
+        rt.anchorMin = new Vector2(x0, y0); rt.anchorMax = new Vector2(x1, y1);
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
     }
 
     static RectTransform Icon(string name, Transform parent, Sprite sprite, Vector2 pos, Vector2 size)

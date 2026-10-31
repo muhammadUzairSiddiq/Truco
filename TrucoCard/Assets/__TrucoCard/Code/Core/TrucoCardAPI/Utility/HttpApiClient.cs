@@ -6,10 +6,15 @@ using UnityEngine.Networking;
 
 public static class HttpApiClient
 {
+    const int RequestTimeoutSeconds = 30;
     private static string _cookieHeader;
     private static string _xsrfToken;
     private static string _accessToken;
     private static string _refreshToken;
+    static readonly TrucoSessionCookieJar Cookies = new TrucoSessionCookieJar();
+    static readonly TrucoSessionRefreshGate RefreshGate = new TrucoSessionRefreshGate();
+    static int _authenticationRevision;
+    public static int SessionGeneration { get; private set; }
 
     /// <summary>
     /// Perform GET request with cookies and XSRF token if available.
@@ -56,8 +61,10 @@ public static class HttpApiClient
         bool requireGameSecret = false,
         string matchToken = null)
     {
+        int sessionGeneration = SessionGeneration;
         using (UnityWebRequest req = new UnityWebRequest(url, method))
         {
+            req.timeout = RequestTimeoutSeconds;
             bool hasBody = (method == "POST" || method == "PUT" || method == "PATCH") && !string.IsNullOrEmpty(jsonBody);
             if (hasBody)
             {
@@ -76,6 +83,7 @@ public static class HttpApiClient
             req.downloadHandler = new DownloadHandlerBuffer();
 
             AttachAuthHeaders(req, authToken);
+            int authenticationRevision = _authenticationRevision;
 
             if (method == "POST" || method == "PUT" || method == "PATCH")
                 AttachReplayProtectionHeaders(req);
@@ -93,6 +101,11 @@ public static class HttpApiClient
             req.SendWebRequest().completed += _ => tcs.TrySetResult(req);
             await tcs.Task;
 
+            if (sessionGeneration != SessionGeneration)
+            {
+                UnityWebRequest.ClearCookieCache();
+                throw new OperationCanceledException("La sesión cambió. Volvé a intentarlo.");
+            }
             SaveCookies(req);
 
             string responsePreview = req.downloadHandler != null ? req.downloadHandler.text : null;
@@ -103,7 +116,10 @@ public static class HttpApiClient
             {
                 TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
                     "Request failed with " + req.responseCode + ". Trying refresh...");
-                bool refreshed = await RefreshSessionAsync();
+                // Another request may already have rotated the credentials used by this failed request.
+                bool refreshed = _authenticationRevision != authenticationRevision && !string.IsNullOrEmpty(_accessToken)
+                    || await RefreshSessionAsync();
+                if (sessionGeneration != SessionGeneration) throw new OperationCanceledException("La sesión cambió. Volvé a intentarlo.");
                 if (refreshed)
                 {
                     TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Session refreshed. Retrying original request...");
@@ -117,7 +133,7 @@ public static class HttpApiClient
             {
                 string rawText = responsePreview;
                 TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
-                    method + " " + url + " failed (" + req.responseCode + "): " + rawText);
+                    method + " request failed (HTTP " + req.responseCode + ", " + req.result + "). Response body omitted.");
 
                 cleanMessage = ExtractErrorMessage(rawText);
                 throw new System.Exception(cleanMessage);
@@ -216,6 +232,7 @@ public static class HttpApiClient
 
     private static void AttachAuthHeaders(UnityWebRequest req, string explicitToken = null)
     {
+        SynchronizeCookieState(Cookies.Prune(DateTimeOffset.UtcNow));
         if (!string.IsNullOrEmpty(_cookieHeader))
             req.SetRequestHeader("Cookie", _cookieHeader);
 
@@ -233,87 +250,66 @@ public static class HttpApiClient
 
     public static void SetAuthToken(string token)
     {
-        _accessToken = token;
+        UpdateAccessToken(token);
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Auth token manually set.");
     }
 
     /// <summary>Clears bearer/cookie session so further requests are unauthenticated (e.g. after logout).</summary>
     public static void ClearAuthSession()
     {
+        SessionGeneration++;
         _accessToken = null;
         _refreshToken = null;
         _xsrfToken = null;
         _cookieHeader = null;
+        _authenticationRevision++;
+        Cookies.Clear();
+        RefreshGate.Reset();
+        // Unity also owns an automatic native cookie cache, separate from the manual jar.
+        UnityWebRequest.ClearCookieCache();
     }
 
     private static void SaveCookies(UnityWebRequest req)
     {
         string setCookie = req.GetResponseHeader("Set-Cookie");
         if (string.IsNullOrEmpty(setCookie)) return;
+        MergeSessionCookies(setCookie, DateTimeOffset.UtcNow);
 
-        List<string> cookies = new List<string>();
-
-        string[] rawParts = setCookie.Split(',');
-        string currentPart = "";
-
-        foreach (var rawPart in rawParts)
-        {
-            string part = rawPart.Trim();
-            if (string.IsNullOrEmpty(part)) continue;
-
-            if (currentPart == "")
-            {
-                currentPart = part;
-            }
-            else
-            {
-                if (!part.Contains("=") ||
-                    currentPart.ToLower().EndsWith("expires=mon") || currentPart.ToLower().EndsWith("expires=tue") ||
-                    currentPart.ToLower().EndsWith("expires=wed") || currentPart.ToLower().EndsWith("expires=thu") ||
-                    currentPart.ToLower().EndsWith("expires=fri") || currentPart.ToLower().EndsWith("expires=sat") ||
-                    currentPart.ToLower().EndsWith("expires=sun"))
-                {
-                    currentPart += ", " + part;
-                }
-                else
-                {
-                    ProcessCookieString(currentPart, cookies);
-                    currentPart = part;
-                }
-            }
-        }
-        if (!string.IsNullOrEmpty(currentPart))
-            ProcessCookieString(currentPart, cookies);
-
-        _cookieHeader = string.Join("; ", cookies);
-
-        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Saved cookies: " + _cookieHeader);
+        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Session cookies updated.");
         if (!string.IsNullOrEmpty(_xsrfToken))
-            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Saved XSRF token: " + _xsrfToken);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "XSRF protection available.");
     }
 
-    private static void ProcessCookieString(string rawCookie, List<string> cookies)
+    static void MergeSessionCookies(string header, DateTimeOffset now)
     {
-        string[] pairs = rawCookie.Split(';');
-        string firstPair = pairs[0].Trim();
-        if (string.IsNullOrEmpty(firstPair) || !firstPair.Contains("=")) return;
-
-        cookies.Add(firstPair);
-
-        string[] kv = firstPair.Split(new[] { '=' }, 2);
-        string key = kv[0].Trim();
-        string val = kv[1].Trim();
-
-        if (key.Equals("access_token", System.StringComparison.OrdinalIgnoreCase))
-            _accessToken = val;
-        else if (key.Equals("refresh_token", System.StringComparison.OrdinalIgnoreCase))
-            _refreshToken = val;
-        else if (key.Equals("XSRF-TOKEN", System.StringComparison.OrdinalIgnoreCase))
-            _xsrfToken = val;
+        SynchronizeCookieState(Cookies.Merge(header, now));
+    }
+    static void SynchronizeCookieState(IEnumerable<string> changed)
+    {
+        foreach (string name in changed)
+        {
+            if (name.Equals("access_token", StringComparison.OrdinalIgnoreCase)) UpdateAccessToken(Cookies.Value(name));
+            else if (name.Equals("refresh_token", StringComparison.OrdinalIgnoreCase)) _refreshToken = Cookies.Value(name);
+            else if (name.Equals("XSRF-TOKEN", StringComparison.OrdinalIgnoreCase)) _xsrfToken = Cookies.Value(name);
+        }
+        _cookieHeader = Cookies.Header;
+    }
+    static void UpdateAccessToken(string token)
+    {
+        if (_accessToken != token) _authenticationRevision++;
+        _accessToken = token;
     }
 
-    private static async Task<bool> RefreshSessionAsync()
+    private static Task<bool> RefreshSessionAsync()
     {
+        int generation = SessionGeneration;
+        return RefreshGate.Run(generation, () => RefreshSessionCoreAsync(generation), () => SessionGeneration);
+    }
+
+    private static async Task<bool> RefreshSessionCoreAsync(int sessionGeneration)
+    {
+        SynchronizeCookieState(Cookies.Prune(DateTimeOffset.UtcNow));
+        if (sessionGeneration != SessionGeneration) return false;
         if (string.IsNullOrEmpty(_refreshToken))
         {
             TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "No refresh token found. Cannot refresh session.");
@@ -324,6 +320,7 @@ public static class HttpApiClient
 
         using (UnityWebRequest req = UnityWebRequest.PostWwwForm(ApiConfig.RefreshToken, ""))
         {
+            req.timeout = RequestTimeoutSeconds;
             AttachAuthHeaders(req);
             AttachReplayProtectionHeaders(req);
 
@@ -331,9 +328,14 @@ public static class HttpApiClient
             req.SendWebRequest().completed += _ => tcs.TrySetResult(req);
             await tcs.Task;
 
-            if (req.result != UnityWebRequest.Result.Success)
+            if (sessionGeneration != SessionGeneration)
             {
-                TrucoDebugLog.Error(TrucoDebugLog.Category.Api, "Refresh failed: " + req.error);
+                UnityWebRequest.ClearCookieCache();
+                return false;
+            }
+            if (req.result != UnityWebRequest.Result.Success || req.responseCode >= 400)
+            {
+                TrucoDebugLog.Error(TrucoDebugLog.Category.Api, "Refresh failed (HTTP " + req.responseCode + ", " + req.result + "). Response body omitted.");
                 return false;
             }
 

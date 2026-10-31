@@ -1,0 +1,134 @@
+{
+    "unityVersion": "6000.0.80f1",
+    "bundleVersion": "1.0.4",
+    "androidVersionCode": 1,
+    "automatedChecksPassed": true,
+    "acceptanceNote": "Static checks do not certify production. Validate the signed Android artifact, authoritative backend workflows and real multiplayer reconnect/settlement before release.",
+    "checks": [
+        {
+            "name": "Editor tournament AI disabled",
+            "passed": true,
+            "detail": "TournamentPracticeSettings: enabledInEditor and autoPlayYourSeat must be false for the release handoff."
+        },
+        {
+            "name": "Legacy AI disabled",
+            "passed": true,
+            "detail": "TrucoDevelopmentSettings mode must be Multiplayer."
+        },
+        {
+            "name": "No AI Resources asset",
+            "passed": true,
+            "detail": "AI settings belong under Assets/Editor, outside player Resources."
+        },
+        {
+            "name": "Enabled scenes exist",
+            "passed": true,
+            "detail": "Assets/__TrucoCard/Scenes/InitScene.unity, Assets/Scenes/LoginScreen.unity, Assets/Scenes/MainMenu.unity, Assets/Scenes/AdminScene.unity, Assets/Scenes/Gameplay.unity, Assets/__TrucoCard/Scenes/TempScene.unity"
+        },
+        {
+            "name": "No missing scene scripts",
+            "passed": true,
+            "detail": "All enabled scenes inspected."
+        },
+        {
+            "name": "Editor practice not scene dependencies",
+            "passed": true,
+            "detail": "Enabled build scenes must not reference Editor-only practice assets."
+        },
+        {
+            "name": "WalletSnapshot configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "WalletCreateRequest configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "WalletRequestStatus configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "AdminAudit configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "AdminSetChampion configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "PhotonSession configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "TournamentSnapshot configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "TournamentJoin configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "TournamentStart configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "TournamentLeave configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "TournamentReconcile configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "TournamentFinalizeMatch configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "TournamentFinalize configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "MatchCancelLobbyRefund configured",
+            "passed": true,
+            "detail": "Client route configured; backend implementation and contract acceptance remain required."
+        },
+        {
+            "name": "API catalog validates",
+            "passed": true,
+            "detail": "92 configured logical keys."
+        },
+        {
+            "name": "Android build support installed",
+            "passed": true,
+            "detail": "Checks the installed Unity Android target; does not build or sign an APK."
+        },
+        {
+            "name": "Bundled Android SDK",
+            "passed": true,
+            "detail": "An external toolchain may be configured separately; validate the actual Android build."
+        },
+        {
+            "name": "Bundled Android NDK",
+            "passed": true,
+            "detail": "An external toolchain may be configured separately; validate the actual Android build."
+        },
+        {
+            "name": "Bundled Android OpenJDK",
+            "passed": true,
+            "detail": "An external toolchain may be configured separately; validate the actual Android build."
+        }
+    ]
+}

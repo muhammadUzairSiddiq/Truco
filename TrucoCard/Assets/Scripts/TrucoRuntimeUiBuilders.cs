@@ -26,9 +26,7 @@ public static class TrucoRuntimeUiBuilders
         rowLe.flexibleHeight = 0f;
         var rowBg = rowGo.AddComponent<Image>();
         rowBg.raycastTarget = false;
-        rowBg.sprite = null;
-        rowBg.type = Image.Type.Simple;
-        rowBg.color = TrucoUiTheme.RoomListRowBar;
+        TrucoMenuTheme.Surface(rowBg, TrucoUiTheme.RoomListRowBar);
         var sh = rowGo.AddComponent<Shadow>();
         sh.effectColor = new Color(0f, 0f, 0f, 0.35f);
         sh.effectDistance = new Vector2(1.5f, -2f);
@@ -191,6 +189,7 @@ public static class TrucoRuntimeUiBuilders
         jLe.flexibleHeight = 0f;
         var btn = joinGo.AddComponent<Button>();
         btn.targetGraphic = joinImg;
+        TrucoMenuTheme.StyleButton(btn);
         var jl = new GameObject("L", typeof(RectTransform));
         jl.transform.SetParent(joinGo.transform, false);
         var jrt = jl.GetComponent<RectTransform>();
@@ -424,7 +423,7 @@ public static class TrucoRuntimeUiBuilders
         prizeTmp.fontSize = kLabel;
         prizeTmp.fontStyle = FontStyles.Bold;
         if (f != null) prizeTmp.font = f;
-        prizeTmp.color = Color.white;
+        prizeTmp.color = TrucoUiTheme.EntryPrizeAccent;
         prizeTmp.enableAutoSizing = true;
         prizeTmp.fontSizeMin = 20f;
         prizeTmp.fontSizeMax = kLabel;
@@ -746,23 +745,12 @@ public static class TrucoRuntimeUiBuilders
         le.flexibleWidth = 1f;
         var img = go.AddComponent<Image>();
         img.raycastTarget = true;
-        var green = TrucoUiAssetLoader.GreenButton;
-        if (primary && green != null)
-        {
-            img.sprite = green;
-            img.type = Image.Type.Sliced;
-            img.color = Color.white;
-        }
-        else
-        {
-            img.sprite = null;
-            img.color = primary ? TrucoUiTheme.CreateFormButtonPrimary : TrucoUiTheme.CreateFormButtonSecondary;
-        }
+        TrucoMenuTheme.Surface(img, primary ? TrucoClubUI.Green : TrucoMenuTheme.Brown);
         var b = go.AddComponent<Button>();
         b.targetGraphic = img;
         b.transition = Selectable.Transition.ColorTint;
         var cb = b.colors;
-        var baseCol = img.color;
+        var baseCol = Color.white;
         cb.normalColor = baseCol;
         cb.highlightedColor = baseCol * 1.08f;
         cb.pressedColor = baseCol * 0.9f;
@@ -1089,21 +1077,51 @@ public static class Truco1v1SceneUiWiring
         if (rootImg != null)
         {
             rootImg.enabled = true;
-            rootImg.color = TrucoUiTheme.TournamentListScreenBg;
+            TrucoMenuTheme.Surface(rootImg, TrucoMenuTheme.Paper, false);
             rootImg.raycastTarget = false;
         }
         if (scroll == null) return;
+        var header = FindDeep(roomList.transform, "Top Panel (1)") ?? FindDeep(roomList.transform, "Top Panel");
+        if (header != null)
+        {
+            foreach (var text in header.GetComponentsInChildren<TextMeshProUGUI>(true))
+                if (text.GetComponentInParent<Button>() == null) text.text = "MESAS 1 VS 1";
+        }
+        var scrollRect = (RectTransform)scroll.transform;
+        scrollRect.anchorMin = Vector2.zero; scrollRect.anchorMax = Vector2.one;
+        scrollRect.offsetMin = new Vector2(44, 410); scrollRect.offsetMax = new Vector2(-44, -405);
+        scrollRect.localScale = Vector3.one; scroll.horizontal = false;
+        if (scroll.content != null)
+        {
+            scroll.content.anchorMin = new Vector2(0, 1); scroll.content.anchorMax = Vector2.one;
+            scroll.content.pivot = new Vector2(.5f, 1); scroll.content.anchoredPosition = Vector2.zero;
+            scroll.content.sizeDelta = Vector2.zero; scroll.content.localScale = Vector3.one;
+        }
+        var create = FindDeep(roomList.transform, "CreateRoom Button");
+        if (create is RectTransform createRect)
+        {
+            createRect.anchorMin = new Vector2(.12f, 0); createRect.anchorMax = new Vector2(.88f, 0);
+            createRect.offsetMin = new Vector2(0, 240); createRect.offsetMax = new Vector2(0, 355);
+            createRect.localScale = Vector3.one;
+            PolishToolbarButton(create.GetComponent<Button>(), "CREAR SALA");
+        }
         var bg = scroll.GetComponent<Image>();
-        if (bg != null) bg.color = new Color(0.55f, 0.52f, 0.48f, 0.08f);
+        if (bg != null) bg.color = Color.clear;
         if (scroll.viewport != null)
         {
+            // A transparent Image used as a stencil Mask also masks out every room row.
+            // RectMask2D clips the list without depending on the background's alpha.
+            var stencil = scroll.viewport.GetComponent<Mask>(); if (stencil != null) stencil.enabled = false;
+            if (scroll.viewport.GetComponent<RectMask2D>() == null) scroll.viewport.gameObject.AddComponent<RectMask2D>();
             var vp = scroll.viewport.GetComponent<Image>();
             if (vp != null)
             {
-                vp.color = new Color(0.75f, 0.71f, 0.66f, 0.92f);
+                vp.color = Color.clear;
                 vp.raycastTarget = false;
             }
         }
+        if (scroll.horizontalScrollbar != null) scroll.horizontalScrollbar.gameObject.SetActive(false);
+        scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
     }
 
     /// <summary>Centered refresh strip between the wood header and the room list.</summary>
@@ -1175,6 +1193,12 @@ public static class Truco1v1SceneUiWiring
 
         var btn = refreshTr.GetComponent<Button>();
         PolishToolbarButton(btn, TrucoTextosClient.ActualizarLista, compact: true);
+        var toolbarRect = (RectTransform)toolbar;
+        toolbarRect.anchorMin = new Vector2(.06f, 1); toolbarRect.anchorMax = new Vector2(.94f, 1);
+        toolbarRect.offsetMin = new Vector2(0, -380); toolbarRect.offsetMax = new Vector2(0, -285);
+        // Idempotent placement: repeated initialization must not push the list farther down.
+        var listScroll = roomListRoot.GetComponentInChildren<ScrollRect>(true);
+        if (listScroll != null) ((RectTransform)listScroll.transform).offsetMax = new Vector2(-44, -405);
         return btn;
     }
 
@@ -1183,18 +1207,7 @@ public static class Truco1v1SceneUiWiring
         if (btn == null) return;
         var img = btn.GetComponent<Image>();
         if (img == null) img = btn.gameObject.AddComponent<Image>();
-        var green = TrucoUiAssetLoader.GreenButton;
-        if (green != null)
-        {
-            img.sprite = green;
-            img.type = Image.Type.Sliced;
-            img.color = Color.white;
-        }
-        else
-        {
-            img.sprite = null;
-            img.color = TrucoUiTheme.CreateFormButtonPrimary;
-        }
+        TrucoMenuTheme.Surface(img, TrucoClubUI.Green);
         btn.targetGraphic = img;
         btn.transition = Selectable.Transition.ColorTint;
 
@@ -1233,6 +1246,7 @@ public static class Truco1v1SceneUiWiring
         cap.fontSizeMax = compact ? 28f : 30f;
         cap.raycastTarget = false;
         if (f != null) cap.font = f;
+        TrucoMenuTheme.StyleButton(btn);
     }
 
     static Transform FindDeep(Transform t, string name)

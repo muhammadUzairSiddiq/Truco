@@ -1,0 +1,39 @@
+{
+  "target": "UNITY_ANDROID without UNITY_EDITOR",
+  "artifact": "C# compiler verification assembly, not an APK",
+  "checks": [
+    {
+      "type": "TrucoExecutionMode",
+      "absent": true
+    },
+    {
+      "type": "TrucoDevelopmentSettings",
+      "absent": true
+    },
+    {
+      "type": "TrucoDevelopmentBot",
+      "absent": true
+    },
+    {
+      "type": "TrucoEditorTournamentHooks",
+      "absent": true
+    },
+    {
+      "type": "TrucoTournamentPracticeSettings",
+      "absent": true
+    },
+    {
+      "type": "TrucoTournamentPracticeUI",
+      "absent": true
+    },
+    {
+      "type": "TrucoPracticeMatch",
+      "absent": true
+    },
+    {
+      "type": "TrucoPracticeTournament",
+      "absent": true
+    }
+  ],
+  "passed": true
+}

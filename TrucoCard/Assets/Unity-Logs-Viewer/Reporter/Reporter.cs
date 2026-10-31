@@ -1649,36 +1649,13 @@ public class Reporter : MonoBehaviour
 	int gestureCount = 0;
 	bool isGestureDone()
 	{
-		if (Application.platform == RuntimePlatform.Android ||
-			Application.platform == RuntimePlatform.IPhonePlayer) {
-			if (Input.touches.Length != 1) {
-				gestureDetector.Clear();
-				gestureCount = 0;
-			}
-			else {
-				if (Input.touches[0].phase == TouchPhase.Canceled || Input.touches[0].phase == TouchPhase.Ended)
-					gestureDetector.Clear();
-				else if (Input.touches[0].phase == TouchPhase.Moved) {
-					Vector2 p = Input.touches[0].position;
-					if (gestureDetector.Count == 0 || (p - gestureDetector[gestureDetector.Count - 1]).magnitude > 10)
-						gestureDetector.Add(p);
-				}
-			}
+		Vector2 pointer; bool pressed, released, held;
+		bool hasPointer = ReadPointer(out pointer, out pressed, out released, out held);
+		if (!hasPointer || released || !held) {
+			gestureDetector.Clear(); gestureCount = 0;
 		}
-		else {
-			if (Input.GetMouseButtonUp(0)) {
-				gestureDetector.Clear();
-				gestureCount = 0;
-			}
-			else {
-				if (Input.GetMouseButton(0)) {
-					Vector2 p = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
-					if (gestureDetector.Count == 0 || (p - gestureDetector[gestureDetector.Count - 1]).magnitude > 10)
-						gestureDetector.Add(p);
-				}
-			}
-		}
-
+		else if (gestureDetector.Count == 0 || (pointer - gestureDetector[gestureDetector.Count - 1]).magnitude > 10)
+			gestureDetector.Add(pointer);
 		if (gestureDetector.Count < 10)
 			return false;
 
@@ -1717,37 +1694,15 @@ public class Reporter : MonoBehaviour
 	float lastClickTime = -1;
 	bool isDoubleClickDone()
 	{
-		if (Application.platform == RuntimePlatform.Android ||
-		   Application.platform == RuntimePlatform.IPhonePlayer) {
-			if (Input.touches.Length != 1) {
-				lastClickTime = -1;
-			}
-			else {
-				if (Input.touches[0].phase == TouchPhase.Began) {
-					if (lastClickTime == -1)
-						lastClickTime = Time.realtimeSinceStartup;
-					else if (Time.realtimeSinceStartup - lastClickTime < 0.2f) {
-						lastClickTime = -1;
-						return true;
-					}
-					else {
-						lastClickTime = Time.realtimeSinceStartup;
-					}
-				}
-			}
+		Vector2 pointer; bool pressed, released, held;
+		if (!ReadPointer(out pointer, out pressed, out released, out held)) {
+			lastClickTime = -1; return false;
 		}
-		else {
-			if (Input.GetMouseButtonDown(0)) {
-				if (lastClickTime == -1)
-					lastClickTime = Time.realtimeSinceStartup;
-				else if (Time.realtimeSinceStartup - lastClickTime < 0.2f) {
-					lastClickTime = -1;
-					return true;
-				}
-				else {
-					lastClickTime = Time.realtimeSinceStartup;
-				}
+		if (pressed) {
+			if (lastClickTime >= 0 && Time.realtimeSinceStartup - lastClickTime < .2f) {
+				lastClickTime = -1; return true;
 			}
+			lastClickTime = Time.realtimeSinceStartup;
 		}
 		return false;
 	}
@@ -1758,46 +1713,55 @@ public class Reporter : MonoBehaviour
 	Vector2 downPos;
 	Vector2 getDownPos()
 	{
-		if (Application.platform == RuntimePlatform.Android ||
-		   Application.platform == RuntimePlatform.IPhonePlayer) {
-
-			if (Input.touches.Length == 1 && Input.touches[0].phase == TouchPhase.Began) {
-				downPos = Input.touches[0].position;
-				return downPos;
-			}
+		Vector2 pointer; bool pressed, released, held;
+		if (ReadPointer(out pointer, out pressed, out released, out held) && pressed) {
+			downPos = pointer; return downPos;
 		}
-		else {
-			if (Input.GetMouseButtonDown(0)) {
-				downPos.x = Input.mousePosition.x;
-				downPos.y = Input.mousePosition.y;
-				return downPos;
-			}
-		}
-
 		return Vector2.zero;
 	}
 	//calculate drag amount , this is used for scrolling
 
-	Vector2 mousePosition;
 	Vector2 getDrag()
 	{
+		Vector2 pointer; bool pressed, released, held;
+		return ReadPointer(out pointer, out pressed, out released, out held) && held ? pointer - downPos : Vector2.zero;
+	}
 
-		if (Application.platform == RuntimePlatform.Android ||
-			Application.platform == RuntimePlatform.IPhonePlayer) {
-			if (Input.touches.Length != 1) {
-				return Vector2.zero;
+	// The project uses the Input System only. Reading UnityEngine.Input in that
+	// configuration throws every frame and floods the diagnostic log on all screens.
+	static bool ReadPointer(out Vector2 position, out bool pressed, out bool released, out bool held)
+	{
+		position = Vector2.zero; pressed = released = held = false;
+		bool mobile = Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer;
+#if ENABLE_INPUT_SYSTEM
+		if (mobile) {
+			var screen = UnityEngine.InputSystem.Touchscreen.current;
+			if (screen == null) return false;
+			UnityEngine.InputSystem.Controls.TouchControl active = null;
+			foreach (var touch in screen.touches) {
+				if (!touch.press.isPressed && !touch.press.wasReleasedThisFrame) continue;
+				if (active != null) return false; // Preserve the single-finger gesture contract.
+				active = touch;
 			}
-			return Input.touches[0].position - downPos;
+			if (active == null) return false;
+			position = active.position.ReadValue(); pressed = active.press.wasPressedThisFrame;
+			released = active.press.wasReleasedThisFrame; held = active.press.isPressed; return true;
 		}
-		else {
-			if (Input.GetMouseButton(0)) {
-				mousePosition = Input.mousePosition;
-				return mousePosition - downPos;
-			}
-			else {
-				return Vector2.zero;
-			}
+		var mouse = UnityEngine.InputSystem.Mouse.current;
+		if (mouse == null) return false;
+		position = mouse.position.ReadValue(); pressed = mouse.leftButton.wasPressedThisFrame;
+		released = mouse.leftButton.wasReleasedThisFrame; held = mouse.leftButton.isPressed; return true;
+#else
+		if (mobile) {
+			if (Input.touchCount != 1) return false;
+			var touch = Input.GetTouch(0); position = touch.position;
+			pressed = touch.phase == TouchPhase.Began;
+			released = touch.phase == TouchPhase.Canceled || touch.phase == TouchPhase.Ended;
+			held = !released; return true;
 		}
+		position = Input.mousePosition; pressed = Input.GetMouseButtonDown(0);
+		released = Input.GetMouseButtonUp(0); held = Input.GetMouseButton(0); return true;
+#endif
 	}
 
 	//calculate the start index of visible log

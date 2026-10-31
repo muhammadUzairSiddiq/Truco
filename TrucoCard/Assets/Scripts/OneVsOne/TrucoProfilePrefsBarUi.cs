@@ -29,7 +29,7 @@ public static class TrucoProfilePrefsBarUi
     public static void ResetForLeavingMainMenu()
     {
         TrucoLocalization.OnLanguageChanged -= OnLanguageChanged;
-        if (_root != null) UnityEngine.Object.Destroy(_root);
+        if (_root != null) TrucoMenuTheme.DestroyUI(_root);
         _root = null;
         _engHighlight = null;
         _spnHighlight = null;
@@ -78,8 +78,7 @@ public static class TrucoProfilePrefsBarUi
         _root.AddComponent<GraphicRaycaster>();
 
         var bg = _root.AddComponent<Image>();
-        ApplyPanelSprite(bg);
-        bg.color = new Color(0.72f, 0.58f, 0.42f, 0.98f);
+        TrucoMenuTheme.Surface(bg, TrucoMenuTheme.Card);
         bg.raycastTarget = false;
 
         var outer = _root.AddComponent<VerticalLayoutGroup>();
@@ -93,7 +92,7 @@ public static class TrucoProfilePrefsBarUi
 
         _regionTitle = CreateSectionTitle(_root.transform, TrucoLocalization.T(TrucoLocalization.Key.RegionLabel));
 
-        var regionRow = CreateRow(_root.transform, 50f);
+        var regionRow = CreateRow(_root.transform, 62f);
         var regionH = regionRow.GetComponent<HorizontalLayoutGroup>();
         regionH.spacing = 8f;
         regionH.childAlignment = TextAnchor.MiddleCenter;
@@ -107,7 +106,7 @@ public static class TrucoProfilePrefsBarUi
         if (showLang)
         {
             _langTitle = CreateSectionTitle(_root.transform, TrucoLocalization.T(TrucoLocalization.Key.LangSection));
-            var langRow = CreateRow(_root.transform, 48f);
+            var langRow = CreateRow(_root.transform, 60f);
             var langH = langRow.GetComponent<HorizontalLayoutGroup>();
             langH.spacing = 12f;
             langH.childAlignment = TextAnchor.MiddleCenter;
@@ -132,6 +131,14 @@ public static class TrucoProfilePrefsBarUi
 
     static void ApplyBarRect(RectTransform rt, Transform profilePanel)
     {
+        if (profilePanel.Find("ProfileTheme") != null)
+        {
+            rt.anchorMin = new Vector2(.06f, .195f); rt.anchorMax = new Vector2(.94f, .345f);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            var oldFitter = rt.GetComponent<ContentSizeFitter>(); if (oldFitter != null) oldFitter.enabled = false;
+            var image = rt.GetComponent<Image>(); if (image != null) TrucoMenuTheme.Surface(image, TrucoMenuTheme.Card);
+            return;
+        }
         rt.anchorMin = new Vector2(0.5f, 0f);
         rt.anchorMax = new Vector2(0.5f, 0f);
         rt.pivot = new Vector2(0.5f, 0f);
@@ -160,7 +167,9 @@ public static class TrucoProfilePrefsBarUi
         var le = go.AddComponent<LayoutElement>();
         le.minHeight = height;
         le.preferredHeight = height;
-        go.AddComponent<HorizontalLayoutGroup>();
+        var layout = go.AddComponent<HorizontalLayoutGroup>();
+        layout.childControlWidth = true; layout.childControlHeight = true;
+        layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
         return go;
     }
 
@@ -169,11 +178,11 @@ public static class TrucoProfilePrefsBarUi
         var go = new GameObject("SectionTitle", typeof(RectTransform));
         go.transform.SetParent(parent, false);
         var le = go.AddComponent<LayoutElement>();
-        le.minHeight = 26f;
-        le.preferredHeight = 26f;
+        le.minHeight = 30f;
+        le.preferredHeight = 32f;
         var t = go.AddComponent<TextMeshProUGUI>();
         t.text = text.ToUpperInvariant();
-        StyleText(t, 20f, FontStyles.Bold);
+        StyleText(t, 24f, FontStyles.Bold);
         t.alignment = TextAlignmentOptions.Center;
         t.color = new Color(0.35f, 0.2f, 0.1f, 1f);
         return t;
@@ -204,7 +213,7 @@ public static class TrucoProfilePrefsBarUi
         Stretch(tGo.GetComponent<RectTransform>());
         var t = tGo.AddComponent<TextMeshProUGUI>();
         t.text = label;
-        StyleText(t, 16f, FontStyles.Bold);
+        StyleText(t, 28f, FontStyles.Bold);
         t.alignment = TextAlignmentOptions.Center;
         t.enableWordWrapping = true;
         t.raycastTarget = false;
@@ -239,8 +248,9 @@ public static class TrucoProfilePrefsBarUi
         h.padding = new RectOffset(12, 12, 6, 6);
         h.spacing = 8f;
         h.childAlignment = TextAnchor.MiddleCenter;
-        h.childControlWidth = false;
+        h.childControlWidth = true;
         h.childControlHeight = true;
+        h.childForceExpandWidth = false;
 
         var flagGo = new GameObject("Flag", typeof(RectTransform));
         flagGo.transform.SetParent(row.transform, false);
@@ -256,9 +266,10 @@ public static class TrucoProfilePrefsBarUi
         tGo.transform.SetParent(row.transform, false);
         var tLe = tGo.AddComponent<LayoutElement>();
         tLe.minWidth = 52f;
+        tLe.flexibleWidth = 1f;
         var t = tGo.AddComponent<TextMeshProUGUI>();
         t.text = label;
-        StyleText(t, 18f, FontStyles.Bold);
+        StyleText(t, 26f, FontStyles.Bold);
         t.alignment = TextAlignmentOptions.MidlineLeft;
         t.raycastTarget = false;
 
@@ -270,9 +281,7 @@ public static class TrucoProfilePrefsBarUi
 
     static void ApplyPanelSprite(Image img)
     {
-        var sprite = TrucoUiAssetLoader.Panel;
-        if (sprite == null) return;
-        img.sprite = sprite;
+        img.sprite = TrucoMenuTheme.Rounded;
         img.type = Image.Type.Sliced;
     }
 
@@ -384,18 +393,8 @@ public static class TrucoProfilePrefsBarUi
     static void TintChip(Image img, bool active)
     {
         if (img == null) return;
-        var green = TrucoUiAssetLoader.GreenButton;
-        if (active && green != null)
-        {
-            img.sprite = green;
-            img.type = Image.Type.Sliced;
-            img.color = ActiveChip;
-        }
-        else
-        {
-            ApplyPanelSprite(img);
-            img.color = active ? ActiveChip : InactiveChip;
-        }
+        ApplyPanelSprite(img);
+        img.color = active ? ActiveChip : InactiveChip;
     }
 
     static float ResolveBarBottomY(Transform profilePanel)

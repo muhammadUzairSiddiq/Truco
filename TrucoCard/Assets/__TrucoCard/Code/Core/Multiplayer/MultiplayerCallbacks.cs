@@ -46,8 +46,15 @@ namespace MH.Multiplayer
 
         public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
         {
-            if (_isTournamentModeActive && changedProps.ContainsKey("tournamentRegistered"))
+            if (_isTournamentModeActive)
                 MultiplayerController.ValidateRoom();
+        }
+
+        public override void OnMasterClientSwitched(Player newMasterClient)
+        {
+            if (!_isTournamentModeActive) return;
+            MultiplayerController.ValidateRoom();
+            _ = MultiplayerController.RefreshAuthoritativeStateAsync();
         }
 
         public override void OnJoinRoomFailed(short code, string message)

@@ -95,7 +95,7 @@ public class UserProfileResponse
 [Serializable]
     public class wallet
     {
-        public int balance = 100; 
+        public int balance;
     }
 
     [Serializable]

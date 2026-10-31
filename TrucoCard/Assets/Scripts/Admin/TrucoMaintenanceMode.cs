@@ -79,7 +79,11 @@ public static class TrucoMaintenanceMode
         {
             string json = JsonUtility.ToJson(state);
             string response = await HttpApiClient.PostAsync(ApiConfig.AdminSetMaintenance, json);
-            return TrucoServerAcknowledgement.Accepted(response);
+            if (!TrucoServerAcknowledgement.Accepted(response)) return false;
+            var confirmed = TryParse(response);
+            if (confirmed == null) return false;
+            ApplyLocal(confirmed, persist: true);
+            return true;
         }
         catch (Exception ex)
         {
@@ -102,6 +106,7 @@ public static class TrucoMaintenanceMode
         {
             var root = Newtonsoft.Json.Linq.JObject.Parse(raw);
             if (root["ok"]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean && !(bool)root["ok"]) return null;
+            if (root["success"]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean && !(bool)root["success"]) return null;
             var payload = root["maintenance"] as Newtonsoft.Json.Linq.JObject
                 ?? root["data"] as Newtonsoft.Json.Linq.JObject ?? root;
             payload = payload["maintenance"] as Newtonsoft.Json.Linq.JObject ?? payload;

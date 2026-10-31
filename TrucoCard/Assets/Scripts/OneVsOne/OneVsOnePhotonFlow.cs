@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -59,6 +61,9 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     int _protocolIndex;
     int _connectFailures;
     Coroutine _purposeWatchdog;
+    int _purposeGeneration;
+    bool _authConnecting;
+    bool _validatingParticipants;
 
     static int MaxJoinRetries => TrucoClientSettings.PhotonJoinMaxAttempts;
     float JoinRetryDelaySeconds => TrucoClientSettings.PhotonJoinRetryIntervalSeconds;
@@ -94,7 +99,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     void OnApplicationQuit() => _applicationQuitting = true;
 
     /// <summary>Llamar después de player-create y RegisterPhoton; session ya rellenada con SetHostContext.</summary>
-    public void StartHostPhoton(int maxPlayers, Action<string> onError = null)
+    public async void StartHostPhoton(int maxPlayers, Action<string> onError = null)
     {
         _pendingHostError = onError;
         if (string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName))
@@ -107,6 +112,13 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         _matchFoundFired = false;
         CurrentPurpose = Purpose.CreateHostedRoom;
         BeginPurposeWatchdog();
+        int generation = _purposeGeneration;
+        if (!await ConnectWithCurrentProtocol())
+        {
+            if (this != null && generation == _purposeGeneration) AbortPurpose("No se pudo autenticar la conexión.");
+            return;
+        }
+        if (this == null || generation != _purposeGeneration || CurrentPurpose != Purpose.CreateHostedRoom) return;
         if (EnsureConnectedToFixedRegion()) return;
         TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "StartHostPhoton → " + OneVsOneMatchSession.PhotonRoomName
                   + " region=" + (PhotonNetwork.CloudRegion ?? "?")
@@ -129,13 +141,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "Waiting for Photon MasterServer before CreateRoom…");
             return;
         }
-        if (!ConnectWithCurrentProtocol())
-        {
-            TrucoDebugLog.Error(TrucoDebugLog.Category.Photon, "ConnectUsingSettings failed (host create)");
-            AbortPurpose("ConnectUsingSettings=false");
-        }
     }
-    public void StartJoinPhoton(Action<string> onError = null)
+    public async void StartJoinPhoton(Action<string> onError = null)
     {
         if (string.IsNullOrEmpty(OneVsOneMatchSession.PhotonRoomName))
         {
@@ -148,6 +155,17 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         StopJoinRetryRoutine();
         CurrentPurpose = Purpose.JoinHostedRoom;
         BeginPurposeWatchdog();
+        int generation = _purposeGeneration;
+        if (!await ConnectWithCurrentProtocol())
+        {
+            if (this != null && generation == _purposeGeneration)
+            {
+                onError?.Invoke("No se pudo autenticar la conexión.");
+                AbortPurpose("No se pudo autenticar la conexión.", notifyJoin: false);
+            }
+            return;
+        }
+        if (this == null || generation != _purposeGeneration || CurrentPurpose != Purpose.JoinHostedRoom) return;
         if (EnsureConnectedToFixedRegion()) return;
         TrucoDebugLog.Always(TrucoDebugLog.Category.Photon, "StartJoinPhoton → " + OneVsOneMatchSession.PhotonRoomName
                   + " region=" + (PhotonNetwork.CloudRegion ?? "?")
@@ -170,12 +188,6 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, "Waiting for Photon MasterServer before JoinRoom…");
             return;
         }
-        if (!ConnectWithCurrentProtocol())
-        {
-            TrucoDebugLog.Error(TrucoDebugLog.Category.Photon, "ConnectUsingSettings failed (guest join)");
-            onError?.Invoke(TrucoTextosClient.PhotonConnectFailed);
-            AbortPurpose("ConnectUsingSettings=false", notifyJoin: false);
-        }
     }
 
     // ---- Connection robustness (protocol fallback / bounded retries / watchdog) ----
@@ -195,11 +207,23 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         TrucoDebugLog.Always(TrucoDebugLog.Category.Photon, "Photon protocol → " + protocol);
     }
 
-    bool ConnectWithCurrentProtocol()
+    async Task<bool> ConnectWithCurrentProtocol()
     {
+        while (_authConnecting)
+        {
+            await Task.Delay(50);
+            if (this == null || _applicationQuitting) return false;
+        }
+        _authConnecting = true;
         TrucoPhotonRegionSettings.ApplyToPhoton();
         ApplyProtocol(ProtocolFallbacks[Mathf.Clamp(_protocolIndex, 0, ProtocolFallbacks.Length - 1)]);
-        return PhotonNetwork.ConnectUsingSettings();
+        try
+        {
+            return await TrucoPhotonAuthentication.ConnectUsingSettingsAsync("one_vs_one",
+                matchId: OneVsOneMatchSession.CurrentMatchId, roomName: OneVsOneMatchSession.PhotonRoomName);
+        }
+        catch (Exception) { return false; }
+        finally { _authConnecting = false; }
     }
 
     static bool IsConnectFailureCause(DisconnectCause cause)
@@ -244,6 +268,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     void BeginPurposeWatchdog()
     {
+        _purposeGeneration++;
+        _validatingParticipants = false;
         StopPurposeWatchdog();
         _connectFailures = 0;
         _purposeWatchdog = StartCoroutine(PurposeWatchdogRoutine());
@@ -278,6 +304,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     /// <summary>Give up the current create/join: unstick busy flags and tell the caller (create → API rollback).</summary>
     void AbortPurpose(string reason, bool notifyJoin = true)
     {
+        _purposeGeneration++;
+        _validatingParticipants = false;
         var purpose = CurrentPurpose;
         StopPurposeWatchdog();
         StopJoinRetryRoutine();
@@ -350,6 +378,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public override void OnConnectedToMaster()
     {
         if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
+        if (TrucoPhotonAuthentication.IsAuthenticating || PhotonNetwork.AuthValues?.AuthType != CustomAuthenticationType.Custom) return;
+        if (CurrentPurpose != Purpose.None && !IsAuthorizedForTargetRoom()) return;
         _connectFailures = 0;
         TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
             "Photon OnConnectedToMaster region=" + (PhotonNetwork.CloudRegion ?? "?")
@@ -365,6 +395,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     void ProceedToCreateRoom(string name, int maxPlayers)
     {
+        if (!IsAuthorizedForTargetRoom()) return;
         if (PhotonNetwork.InLobby)
         {
             _deferredCreateAfterLeaveLobby = true;
@@ -377,6 +408,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     void ProceedToJoinRoom()
     {
+        if (!IsAuthorizedForTargetRoom()) return;
         if (PhotonNetwork.InLobby)
         {
             _deferredJoinAfterLeaveLobby = true;
@@ -406,6 +438,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     private void CreateRoomWithOptions(string name, int maxPlayers)
     {
+        if (!IsAuthorizedForTargetRoom()) return;
         var props = new Hashtable
         {
             ["onev1"] = true,
@@ -420,6 +453,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             IsOpen = true,
             PlayerTtl = 60000,
             EmptyRoomTtl = 120000,
+            PublishUserId = true,
             CustomRoomProperties = props,
             CustomRoomPropertiesForLobby = new[] { "onev1", "matchId", "targetScore", "withFlor" }
         };
@@ -466,6 +500,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     void AttemptJoinTargetRoom()
     {
+        if (!IsAuthorizedForTargetRoom()) return;
         string room = OneVsOneMatchSession.PhotonRoomName;
         if (string.IsNullOrEmpty(room))
         {
@@ -596,8 +631,9 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         return true;
     }
 
-    public override void OnDisconnected(DisconnectCause cause)
+    public override async void OnDisconnected(DisconnectCause cause)
     {
+        if (_authConnecting || TrucoPhotonAuthentication.IsAuthenticating) return;
         if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
         StopJoinRetryRoutine();
         _joinRetryCount = 0;
@@ -626,7 +662,8 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
                 return;
             }
         }
-        if (!ConnectWithCurrentProtocol())
+        int generation = _purposeGeneration;
+        if (!await ConnectWithCurrentProtocol() && this != null && generation == _purposeGeneration)
             AbortPurpose(cause + " / reconnect rejected");
     }
 
@@ -660,16 +697,16 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     }
 
     /// <summary>Conecta a Master y entra al lobby por defecto para recibir <see cref="OnRoomListUpdate"/> (conteo real de jugadores).</summary>
-    public void EnsureLobbyForRoomList()
+    public async void EnsureLobbyForRoomList()
     {
         if (PhotonNetwork.OfflineMode) return;
         if (IsMatchmakingBusy) return;
         if (PhotonNetwork.InRoom) return;
         if (!string.IsNullOrEmpty(OneVsOneMatchSession.CurrentMatchId) && !OneVsOneMatchSession.GameStarted)
             return;
-        if (!PhotonNetwork.IsConnected)
+        if (!PhotonNetwork.IsConnected || !TrucoPhotonAuthentication.IsAuthenticatedForCurrentAccount)
         {
-            ConnectWithCurrentProtocol();
+            await ConnectWithCurrentProtocol();
             return;
         }
         if (PhotonNetwork.Server != ServerConnection.MasterServer) return;
@@ -740,6 +777,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
+#if UNITY_EDITOR
+        if (TrucoDevelopmentSettings.IsIsolatedNetworkRoom(PhotonNetwork.CurrentRoom?.Name)) return;
+#endif
+        if (!IsAuthorizedForTargetRoom()) { PhotonNetwork.LeaveRoom(); return; }
         if (PhotonNetwork.CurrentRoom?.CustomProperties.TryGetValue("withFlor", out object flor) == true
             && flor is bool enabled)
             OneVsOneMatchSession.SetWithFlor(enabled);
@@ -792,14 +833,46 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
             FireMatchFound();
     }
 
-    void FireMatchFound()
+    static bool IsAuthorizedForTargetRoom() => TrucoPhotonAuthentication.IsAuthorizedForRoom("one_vs_one", null,
+        OneVsOneMatchSession.CurrentMatchId, OneVsOneMatchSession.PhotonRoomName);
+
+    async void FireMatchFound()
     {
         if (MH.Multiplayer.MultiplayerController.IsTournamentActive) return;
-        if (_matchFoundFired) return;
+        if (_matchFoundFired || _validatingParticipants || CurrentPurpose == Purpose.None) return;
         if (PhotonNetwork.CurrentRoom == null) return;
         if (!OneVsOneLobbyFlowRules.IsReadyToLaunchGameplay(
                 PhotonNetwork.CurrentRoom.PlayerCount, OneVsOneMatchSession.MaxPlayersGameplay))
             return;
+        string matchId = OneVsOneMatchSession.CurrentMatchId;
+        string roomName = PhotonNetwork.CurrentRoom.Name;
+        if (string.IsNullOrEmpty(matchId) || roomName != OneVsOneMatchSession.PhotonRoomName) return;
+        int generation = HttpApiClient.SessionGeneration;
+        int purposeGeneration = _purposeGeneration;
+        _validatingParticipants = true;
+        try
+        {
+            var authoritativeMatch = await ApiController.GetMatch1v1(matchId);
+            if (this == null || generation != HttpApiClient.SessionGeneration || purposeGeneration != _purposeGeneration || !PhotonNetwork.InRoom
+                || PhotonNetwork.CurrentRoom?.Name != roomName || OneVsOneMatchSession.CurrentMatchId != matchId) return;
+            var expected = authoritativeMatch?.players?.Select(OneVsOneLobbyFlowRules.ResolveUserId).ToArray();
+            string status = authoritativeMatch?.status?.ToLowerInvariant();
+            bool playableStatus = authoritativeMatch.IsLobbyLikeStatus() || status == "in_progress" || status == "playing" || status == "live";
+            if (authoritativeMatch?._id != matchId || !playableStatus
+                || !PhotonPlayerHelper.HasMatchingAuthenticatedPair(PhotonNetwork.PlayerList, expected,
+                    ApiController.GetSessionUser?.Data?._id))
+            {
+                AbortPurpose("No se pudieron verificar los jugadores asignados a esta mesa.");
+                return;
+            }
+            OneVsOneMatchSession.SetAuthenticatedParticipants(matchId, expected);
+        }
+        catch (Exception)
+        {
+            if (this != null) AbortPurpose("No se pudieron verificar los jugadores asignados a esta mesa.");
+            return;
+        }
+        finally { if (purposeGeneration == _purposeGeneration) _validatingParticipants = false; }
         _matchFoundFired = true;
         CurrentPurpose = Purpose.None;
         StopJoinRetryRoutine();
@@ -869,9 +942,15 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public void ResetPurpose()
     {
+        _purposeGeneration++;
         StopJoinRetryRoutine();
         StopPurposeWatchdog();
         _joinRetryCount = 0;
+        IsConnecting = false;
+        _deferredJoinAfterLeave = _deferredCreateAfterLeave = false;
+        _deferredJoinAfterLeaveLobby = _deferredCreateAfterLeaveLobby = false;
+        _pendingHostError = null;
+        _validatingParticipants = false;
         CurrentPurpose = Purpose.None;
         _matchFoundFired = false;
     }

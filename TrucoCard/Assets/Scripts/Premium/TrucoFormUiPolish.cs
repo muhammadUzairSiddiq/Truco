@@ -9,17 +9,7 @@ public static class TrucoFormUiPolish
     public static void ApplyWoodCard(Image bg, bool inner = false)
     {
         if (bg == null) return;
-        var panel = TrucoUiAssetLoader.Panel;
-        if (panel != null)
-        {
-            bg.sprite = panel;
-            bg.type = Image.Type.Sliced;
-            bg.color = inner ? TrucoUiTheme.CreateFormPanelInner : Color.white;
-        }
-        else
-        {
-            bg.color = inner ? TrucoUiTheme.CreateFormPanelInner : TrucoUiTheme.CreateFormPanelCard;
-        }
+        TrucoMenuTheme.Surface(bg, inner ? TrucoMenuTheme.Card : TrucoMenuTheme.Brown);
     }
 
     public static TextMeshProUGUI CreateSectionHeader(Transform parent, TMP_FontAsset font, string text, int fontSize = 34)
@@ -57,7 +47,8 @@ public static class TrucoFormUiPolish
     {
         if (tmp == null) return;
         tmp.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
-        tmp.color = Color.white;
+        var surface = tmp.GetComponentInParent<Image>();
+        tmp.color = surface != null && surface.color.grayscale > .6f ? TrucoMenuTheme.Ink : TrucoMenuTheme.Gold;
     }
 
     public static void CreateDivider(Transform parent)
@@ -175,6 +166,7 @@ public static class TrucoFormUiPolish
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = 3;
         grid.childAlignment = TextAnchor.UpperCenter;
+        content.gameObject.AddComponent<TrucoFeeGridLayout>();
 
         Toggle first = null, second = null, third = null;
         for (int i = 0; i < amounts.Length; i++)
@@ -296,18 +288,7 @@ public static class TrucoFormUiPolish
 
     static void StylePillImage(Image img, bool on)
     {
-        var green = TrucoUiAssetLoader.GreenButton;
-        if (green != null)
-        {
-            img.sprite = green;
-            img.type = Image.Type.Sliced;
-            img.color = on ? Color.white : new Color(0.78f, 0.72f, 0.64f, 1f);
-        }
-        else
-        {
-            img.sprite = null;
-            img.color = on ? TrucoUiTheme.CreateFormButtonPrimary : new Color(0.62f, 0.52f, 0.40f, 1f);
-        }
+        TrucoMenuTheme.Surface(img, on ? TrucoClubUI.Green : new Color32(224, 213, 191, 255));
     }
 
     static void StylePillLabel(TextMeshProUGUI tmp, bool on)
@@ -315,5 +296,18 @@ public static class TrucoFormUiPolish
         if (tmp == null) return;
         tmp.fontStyle = FontStyles.Bold;
         tmp.color = on ? Color.white : TrucoUiTheme.CreateFormSubLabelCream;
+    }
+}
+
+/// <summary>Keeps entry choices readable across portrait widths.</summary>
+public sealed class TrucoFeeGridLayout : MonoBehaviour
+{
+    void OnEnable() => Resize();
+    void OnRectTransformDimensionsChange() => Resize();
+    void Resize()
+    {
+        var grid = GetComponent<GridLayoutGroup>(); if (grid == null) return;
+        float width = ((RectTransform)transform).rect.width;
+        if (width > 50) grid.cellSize = new Vector2(Mathf.Max(80, (width - grid.spacing.x * 2) / 3), 72);
     }
 }

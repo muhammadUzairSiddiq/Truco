@@ -17,6 +17,7 @@ public class TrucoPremiumUiBootstrap : MonoBehaviour
         DontDestroyOnLoad(go);
         _instance = go.AddComponent<TrucoPremiumUiBootstrap>();
         _instance.Apply();
+        _instance.InvokeRepeating(nameof(RefreshButtons), 1f, 1f);
     }
 
     void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
@@ -32,6 +33,7 @@ public class TrucoPremiumUiBootstrap : MonoBehaviour
     {
         StartCoroutine(ApplyDeferred());
     }
+    void RefreshButtons() => TrucoUiMotion.AttachButtonFeedbackSceneWide();
 
     IEnumerator ApplyDeferred()
     {

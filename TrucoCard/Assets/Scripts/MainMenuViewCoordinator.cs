@@ -49,13 +49,18 @@ public static class MainMenuViewCoordinator
         ResetStateForLeavingMainMenu();
     }
 
-    public static void TriggerTournamentFromMain() => _showTournamentTab?.Invoke();
+    public static void TriggerTournamentFromMain()
+    {
+#if UNITY_EDITOR
+        if (TrucoEditorTournamentHooks.TryOpen()) return;
+#endif
+        if (_mainRoot == null || _showTournamentTab == null) Initialize();
+        _showTournamentTab?.Invoke();
+    }
 
     /// <summary>Back from tournament list overlay: show main menu and nav highlight (same as bottom &quot;Menu&quot; tab).</summary>
     public static void ReturnToMenuFromTournament()
     {
-        if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
-            MH.Multiplayer.MultiplayerController.LeaveTournamentMatchmaking();
         _showMenuTab?.Invoke();
         EnsureBottomNavVisible();
     }
@@ -64,6 +69,23 @@ public static class MainMenuViewCoordinator
     public static void EnsureTournamentNavPriority()
     {
         if (_bottomNav != null) EnsureBottomNavOnTop(_bottomNav);
+    }
+
+    public static void HideMenuContentForTournament()
+    {
+        if (_mainRoot == null) return;
+        foreach (string name in new[] { "Main Menu Panel", "Profile Panel", "Notification Panel" })
+        {
+            var panel = FindChildDeep(_mainRoot, name);
+            if (panel != null) panel.gameObject.SetActive(false);
+        }
+    }
+
+    static async void OpenLiveTournamentList()
+    {
+        if (await MH.Multiplayer.MultiplayerController.OpenFromMenuAsync())
+        { HideMenuContentForTournament(); return; }
+        TournamentManager.Instance?.DisplayTournamentSelectionUI();
     }
 
     /// <summary>Re-shows the bottom bar after scene transitions or if it was parented under a fading overlay.</summary>
@@ -82,13 +104,14 @@ public static class MainMenuViewCoordinator
     /// <summary>Must not use the first Canvas in the project — DDOL (e.g. AppManager) often has a Canvas without MAIN.</summary>
     public static void Initialize()
     {
-        if (_done) return;
+        if (_done && _mainRoot != null && _mainRoot.gameObject.scene == SceneManager.GetActiveScene()) return;
         if (SceneManager.GetActiveScene().name != "MainMenu") return;
 
         Transform main = FindMainInActiveMenuScene();
         if (main == null) return;
         _mainRoot = main;
         _done = true;
+        TrucoProfilePresentation.Ensure(main);
 
         if (UnityEngine.Object.FindObjectOfType<TrucoAvatarRepository>(true) == null)
         {
@@ -144,7 +167,10 @@ public static class MainMenuViewCoordinator
         void ShowMenuTab()
         {
             if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
-                MH.Multiplayer.MultiplayerController.LeaveTournamentMatchmaking();
+            {
+                _ = MH.Multiplayer.MultiplayerController.LeaveTournamentByPlayerAsync(ShowMenuTab);
+                return;
+            }
             TrucoLobbyLeaveConfirm.RunIfNeeded(() =>
             {
                 Deactivate1v1OverlaysInMain(main);
@@ -186,21 +212,22 @@ public static class MainMenuViewCoordinator
 
         void ShowTournamentTab()
         {
+#if UNITY_EDITOR
+            // Local practice must not wait for lobby cleanup or a backend request.
+            if (TrucoEditorTournamentHooks.TryOpen()) return;
+#endif
             TrucoLobbyLeaveConfirm.RunIfNeeded(() =>
             {
                 Deactivate1v1OverlaysInMain(main);
-                if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
-                if (profilePanel != null) profilePanel.SetActive(false);
-                if (notificationPanel != null) notificationPanel.SetActive(false);
                 if (bottomNav != null) EnsureBottomNavOnTop(bottomNav);
                 ApplyNav(1);
-                if (TournamentManager.Instance != null)
-                    TournamentManager.Instance.DisplayTournamentSelectionUI();
+                OpenLiveTournamentList();
             });
         }
 
         _showTournamentTab = ShowTournamentTab;
         _showMenuTab = ShowMenuTab;
+        WireButton(FindButtonDeep(main, "TournamentsBtn"), ShowTournamentTab);
         WireButton(navMenu, ShowMenuTab);
         WireButton(navTournament, ShowTournamentTab);
         WireButton(navProfile, ShowProfileTab);
@@ -231,7 +258,8 @@ public static class MainMenuViewCoordinator
             });
         }
 
-        ShowMenuTab();
+        // Initial presentation must not cancel an active/resumable tournament.
+        ShowOnlyMainBlock(mainMenuPanel); ApplyNav(0);
         AvatarUiBinder.HookProfileAndMainMenu(main);
         UsernameMainMenuBinder.ApplyToScene();
         TrucoProfilePrefsBarUi.EnsureOnProfilePanel(main);
@@ -351,7 +379,8 @@ public static class MainMenuViewCoordinator
         if (bottomNav == null) return;
         // Tournament / loading / notifications run on a separate root canvas (e.g. Init scene, sorting order 2+).
         // The MainMenu canvas is often order 0, so a nested Canvas here still draws *below* the app overlay.
-        var targetParent = FindTopScreenSpaceOverlayRootRect();
+        var menuCanvas = _mainRoot != null ? _mainRoot.GetComponentInParent<Canvas>() : null;
+        var targetParent = menuCanvas != null ? menuCanvas.rootCanvas.transform as RectTransform : null;
         if (targetParent != null && bottomNav.transform.parent != targetParent)
             bottomNav.transform.SetParent(targetParent, true);
         bottomNav.transform.SetAsLastSibling();
@@ -359,7 +388,7 @@ public static class MainMenuViewCoordinator
         var c = bottomNav.GetComponent<Canvas>();
         if (c == null) c = bottomNav.AddComponent<Canvas>();
         c.overrideSorting = true;
-        c.sortingOrder = 32000;
+        c.sortingOrder = TrucoCanvasOrder.Navigation;
         if (bottomNav.GetComponent<GraphicRaycaster>() == null)
             bottomNav.AddComponent<GraphicRaycaster>();
     }
@@ -420,18 +449,9 @@ public static class MainMenuViewCoordinator
     /// <summary>Recenters the bar (fixes a bad Pos X pushing the strip off-screen) and clears Z.</summary>
     static void FixBottomNavigationBarLayout(GameObject bottomNav)
     {
-        var rt = bottomNav.GetComponent<RectTransform>();
-        if (rt == null) return;
-        rt.anchorMin = new Vector2(0.5f, 0f);
-        rt.anchorMax = new Vector2(0.5f, 0f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        if (rt.sizeDelta.y < 10f) rt.sizeDelta = new Vector2(1080f, 164.5f);
-        var ap = rt.anchoredPosition;
-        if (Mathf.Abs(ap.x) > 0.5f) rt.anchoredPosition = new Vector2(0f, ap.y);
-        if (ap.y < 40f) rt.anchoredPosition = new Vector2(0f, 82f);
-        var lp = rt.localPosition;
-        if (Mathf.Abs(lp.x) > 0.5f || Mathf.Abs(lp.z) > 0.5f) rt.localPosition = new Vector3(0f, lp.y, 0f);
-        rt.localScale = Vector3.one;
+        var layout = bottomNav.GetComponent<TrucoBottomNavLayout>();
+        if (layout == null) layout = bottomNav.AddComponent<TrucoBottomNavLayout>();
+        layout.Refresh();
     }
 
     /// <summary>Call from <c>Start</c> if the first <see cref="Initialize"/> ran before MAIN was findable, or a nav <see cref="Button"/> was missing.</summary>
@@ -511,10 +531,13 @@ public static class MainMenuViewCoordinator
 
         void ShowMenuTab()
         {
+            if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
+            {
+                _ = MH.Multiplayer.MultiplayerController.LeaveTournamentByPlayerAsync(ShowMenuTab);
+                return;
+            }
             TrucoLobbyLeaveConfirm.RunIfNeeded(() =>
             {
-                if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
-                    MH.Multiplayer.MultiplayerController.LeaveTournamentMatchmaking();
                 Deactivate1v1OverlaysInMain(main);
                 ShowOnlyMainBlock(mainMenuPanel);
                 if (TournamentManager.Instance != null)
@@ -554,21 +577,21 @@ public static class MainMenuViewCoordinator
 
         void ShowTournamentTab()
         {
+#if UNITY_EDITOR
+            if (TrucoEditorTournamentHooks.TryOpen()) return;
+#endif
             TrucoLobbyLeaveConfirm.RunIfNeeded(() =>
             {
                 Deactivate1v1OverlaysInMain(main);
-                if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
-                if (profilePanel != null) profilePanel.SetActive(false);
-                if (notificationPanel != null) notificationPanel.SetActive(false);
                 if (bottomNav != null) EnsureBottomNavOnTop(bottomNav);
                 ApplyNav(1);
-                if (TournamentManager.Instance != null)
-                    TournamentManager.Instance.DisplayTournamentSelectionUI();
+                OpenLiveTournamentList();
             });
         }
 
         _showTournamentTab = ShowTournamentTab;
         _showMenuTab = ShowMenuTab;
+        WireButton(FindButtonDeep(main, "TournamentsBtn"), ShowTournamentTab);
         WireButton(navMenu, ShowMenuTab);
         WireButton(navTournament, ShowTournamentTab);
         WireButton(navProfile, ShowProfileTab);

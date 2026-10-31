@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -27,6 +28,10 @@ public class AdminControlCenterOverlay : MonoBehaviour
     Toggle _blockTx;
     bool _built;
     bool _refreshing;
+    bool _auditRefreshing;
+    string _auditCursor, _auditNextCursor;
+    readonly Stack<string> _auditPrevious = new Stack<string>();
+    Button _auditPreviousButton, _auditNextButton;
     float _nextRefresh;
 
     void Update()
@@ -58,8 +63,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
     {
         if (_built) return;
         _built = true;
-        if (FindObjectOfType<EventSystem>() == null)
-            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        TrucoEventSystem.Ensure();
 
         _root = new GameObject("AdminControlCenterModal");
         _root.transform.SetParent(transform, false);
@@ -71,6 +75,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
         MkBtn(header.transform, TrucoTextosClient.AdminVolver, new Vector2(120, 40), new Color(0.35f, 0.35f, 0.35f), Close);
         MkTmp(header.transform, TrucoTextosClient.AdminControlTitle, 22, true);
         MkBtn(header.transform, TrucoTextosClient.AdminRefreshList, new Vector2(140, 40), new Color(0.2f, 0.5f, 0.7f), () => _ = RefreshAsync());
+        MkBtn(panel.transform, "Solicitudes de compra / venta de Trucoins", new Vector2(640, 48), TrucoClubUI.Green, TrucoWalletAdminScreen.Show);
 
         _stats = MkTmp(panel.transform, "…", 18, false, 86);
         _alerts = MkTmp(panel.transform, "", 16, false, 90);
@@ -99,8 +104,13 @@ public class AdminControlCenterOverlay : MonoBehaviour
         _prizeReason = MkInput(panel.transform, "motivo (auditoría)");
         MkBtn(panel.transform, "Acreditar premio", new Vector2(240, 40), new Color(0.55f, 0.42f, 0.12f), ConfirmCreditPrize);
 
-        MkTmp(panel.transform, "Registro de admin", 16, false, 24);
-        _audit = MkTmp(panel.transform, "", 15, false, 160);
+        MkTmp(panel.transform, "Auditoría confirmada por el servidor", 16, false, 24);
+        _audit = MkTmp(panel.transform, "Actualizá para consultar la auditoría del servidor.", 15, false, 160);
+        var auditPages = Row(panel.transform, 44);
+        _auditPreviousButton = MkBtn(auditPages.transform, "ANTERIOR", new Vector2(180, 40), TrucoClubUI.Surface, () => _ = MoveAudit(false));
+        _auditNextButton = MkBtn(auditPages.transform, "SIGUIENTE", new Vector2(180, 40), TrucoClubUI.Green, () => _ = MoveAudit(true));
+        UpdateAuditNavigation();
+        MakeControlsScrollable(panel);
 
         _root.SetActive(false);
     }
@@ -143,7 +153,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
             "Partidas 1v1 activas: " + matchCount + "   ·   Torneos listados: " + tourneyCount +
             " (en curso ~" + liveTourney + ")\n" +
             "Conexión Photon: " + (Photon.Pun.PhotonNetwork.IsConnectedAndReady ? "lista" : "desconectada") +
-            "   ·   Mantenimiento: " + (TrucoMaintenanceMode.IsActive ? "ACTIVO" : "off") +
+            "   ·   Mantenimiento: " + (TrucoMaintenanceMode.IsActive ? "ACTIVO" : "inactivo") +
             (string.IsNullOrEmpty(onlineRaw) ? "" : "\nOnline API: " + Trunc(onlineRaw, 160));
 
         _alerts.text =
@@ -151,17 +161,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
             Trunc(reconnect, 220) + "\n" +
             Trunc(fraud, 220);
 
-        var log = TrucoAdminAuditLog.Load();
-        var sb = new System.Text.StringBuilder();
-        int n = Mathf.Min(12, log.Count);
-        for (int i = 0; i < n; i++)
-        {
-            var e = log[i];
-            sb.Append(e.at).Append("  ").Append(e.admin).Append("  ").Append(e.action);
-            if (!string.IsNullOrEmpty(e.detail)) sb.Append(" — ").Append(e.detail);
-            sb.Append('\n');
-        }
-        _audit.text = sb.Length == 0 ? "(sin registros aún)" : sb.ToString();
+        await RefreshAudit(_auditCursor);
         SyncTogglesFromState();
         }
         catch (Exception ex)
@@ -174,6 +174,64 @@ public class AdminControlCenterOverlay : MonoBehaviour
             _refreshing = false;
             if (showLoading) AppManager.Instance?.HideLoadingUI();
         }
+    }
+
+    async System.Threading.Tasks.Task<bool> RefreshAudit(string cursor)
+    {
+        if (_auditRefreshing || _audit == null) return false;
+        _auditRefreshing = true; _audit.text = "Consultando la auditoría del servidor…"; UpdateAuditNavigation();
+        try
+        {
+            var page = await TrucoAdminAuditService.List(cursor, 5);
+            if (this == null || _audit == null) return false;
+            _auditCursor = cursor; _auditNextCursor = page.nextCursor;
+            var text = new System.Text.StringBuilder();
+            foreach (var entry in page.items)
+            {
+                text.Append(entry.at).Append(" · ").Append(entry.actorId).Append(" · ").Append(entry.action);
+                if (!string.IsNullOrEmpty(entry.targetId)) text.Append(" · ").Append(entry.targetType).Append(": ").Append(entry.targetId);
+                if (!string.IsNullOrEmpty(entry.reason)) text.Append("\n").Append(entry.reason);
+                if (!string.IsNullOrEmpty(entry.detail)) text.Append("\n").Append(entry.detail);
+                text.Append('\n');
+            }
+            _audit.text = text.Length == 0 ? "No hay eventos de auditoría en esta página." : text.ToString();
+            _audit.GetComponent<LayoutElement>().preferredHeight = Mathf.Max(160, _audit.GetPreferredValues(_audit.text, 900, 0).y + 12);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            if (this != null && _audit != null) _audit.text = "No se pudo confirmar la auditoría del servidor. " + exception.Message;
+            return false;
+        }
+        finally { _auditRefreshing = false; if (this != null) UpdateAuditNavigation(); }
+    }
+    async System.Threading.Tasks.Task MoveAudit(bool next)
+    {
+        if (_auditRefreshing || next && string.IsNullOrEmpty(_auditNextCursor) || !next && _auditPrevious.Count == 0) return;
+        string previous = _auditCursor, destination = next ? _auditNextCursor : _auditPrevious.Peek();
+        if (!await RefreshAudit(destination)) return;
+        if (next) _auditPrevious.Push(previous); else _auditPrevious.Pop();
+        UpdateAuditNavigation();
+    }
+    void UpdateAuditNavigation()
+    {
+        if (_auditPreviousButton != null) _auditPreviousButton.interactable = !_auditRefreshing && _auditPrevious.Count > 0;
+        if (_auditNextButton != null) _auditNextButton.interactable = !_auditRefreshing && !string.IsNullOrEmpty(_auditNextCursor);
+    }
+    static void MakeControlsScrollable(GameObject panel)
+    {
+        var originalLayout = panel.GetComponent<VerticalLayoutGroup>(); originalLayout.enabled = false;
+        var controls = new List<Transform>(); foreach (Transform child in panel.transform) controls.Add(child);
+        var scrollRoot = TrucoClubUI.Rect("ControlsScroll", panel.transform, Vector2.zero, Vector2.one);
+        var scroll = scrollRoot.gameObject.AddComponent<ScrollRect>();
+        var viewport = TrucoClubUI.Rect("Viewport", scrollRoot, Vector2.zero, Vector2.one); viewport.gameObject.AddComponent<RectMask2D>();
+        var content = TrucoClubUI.Rect("Controls", viewport, new Vector2(0, 1), new Vector2(1, 1)); content.pivot = new Vector2(.5f, 1);
+        var layout = content.gameObject.AddComponent<VerticalLayoutGroup>();
+        layout.padding = originalLayout.padding; layout.spacing = originalLayout.spacing; layout.childControlWidth = layout.childControlHeight = true;
+        layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
+        content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        foreach (var child in controls) child.SetParent(content, false);
+        scroll.content = content; scroll.viewport = viewport; scroll.horizontal = false; scroll.movementType = ScrollRect.MovementType.Clamped;
     }
 
     void SyncTogglesFromState()
@@ -233,13 +291,19 @@ public class AdminControlCenterOverlay : MonoBehaviour
     {
         var state = CaptureState(on);
         bool pushed = await TrucoMaintenanceMode.PushToServerAsync(state);
-        if (pushed) TrucoMaintenanceMode.ApplyLocal(state);
-        TrucoAdminAuditLog.Record(on ? "KILL_SWITCH_ON" : "KILL_SWITCH_OFF",
-            "game=" + state.blockGame + " tables=" + state.blockTables + " tourneys=" + state.blockTournaments
-            + " tx=" + state.blockTransactions + " api=" + pushed);
+        // PushToServerAsync applies only the canonical confirmed server state.
+        if (pushed)
+        {
+            SyncTogglesFromState();
+            if (_maintMsg != null) _maintMsg.text = TrucoMaintenanceMode.Message;
+        }
+        var actual = pushed ? TrucoMaintenanceMode.Current : state;
+        TrucoAdminAuditLog.Record(pushed ? actual.active ? "KILL_SWITCH_ON" : "KILL_SWITCH_OFF" : "KILL_SWITCH_REJECTED",
+            "game=" + actual.blockGame + " tables=" + actual.blockTables + " tourneys=" + actual.blockTournaments
+            + " tx=" + actual.blockTransactions + " api=" + pushed);
         AppManager.Instance?.DisplayNotification(!pushed
             ? "El servidor no confirmó el cambio. Mantenimiento sin cambios."
-            : on ? "Mantenimiento activado y confirmado por el servidor." : "Mantenimiento desactivado.");
+            : actual.active ? "Mantenimiento activo confirmado por el servidor." : "Mantenimiento desactivado y confirmado por el servidor.");
         await RefreshAsync();
     }
 
@@ -264,7 +328,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
         bool ok = await ApiController.AdminForceCloseTournament(id);
         if (AppManager.Instance != null) AppManager.Instance.HideLoadingUI();
         TrucoAdminAuditLog.Record("FORCE_CLOSE_TOURNAMENT", id + " ok=" + ok);
-        AppManager.Instance?.DisplayNotification(ok ? "Torneo cerrado." : "No se pudo cerrar (ruta de admin vacía o error).");
+        AppManager.Instance?.DisplayNotification(ok ? "Cierre y reintegros confirmados." : "Cierre sin confirmar. Revisá la auditoría o reintentá la misma acción.");
         await RefreshAsync();
     }
 
@@ -288,7 +352,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
     {
         bool ok = await ApiController.FinalizeTournament(tid, uid);
         TrucoAdminAuditLog.Record("MANUAL_CHAMPION", tid + " → " + uid + " ok=" + ok);
-        AppManager.Instance?.DisplayNotification(ok ? "Campeón registrado." : "No se pudo fijar el campeón.");
+        AppManager.Instance?.DisplayNotification(ok ? "Campeón confirmado por el servidor." : "Campeón sin confirmar. Revisá la auditoría o reintentá la misma acción.");
         await RefreshAsync();
     }
 
@@ -312,7 +376,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
     {
         bool ok = await ApiController.AdminCreditUserCoins(uid, amount, reason);
         TrucoAdminAuditLog.Record("MANUAL_PRIZE", uid + " +" + amount + " " + reason + " ok=" + ok);
-        AppManager.Instance?.DisplayNotification(ok ? "Premio acreditado." : "No se pudo acreditar (ruta /admin/users/{id}/coins).");
+        AppManager.Instance?.DisplayNotification(ok ? "Crédito confirmado por el servidor." : "Crédito sin confirmar. Revisá la auditoría o reintentá con los mismos datos.");
         await RefreshAsync();
     }
 
@@ -378,7 +442,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
         return t;
     }
 
-    static void MkBtn(Transform parent, string label, Vector2 size, Color bg, UnityEngine.Events.UnityAction click)
+    static Button MkBtn(Transform parent, string label, Vector2 size, Color bg, UnityEngine.Events.UnityAction click)
     {
         var go = new GameObject("B", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
         go.transform.SetParent(parent, false);
@@ -398,6 +462,7 @@ public class AdminControlCenterOverlay : MonoBehaviour
         lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
         lrt.offsetMin = lrt.offsetMax = Vector2.zero;
         go.GetComponent<Button>().onClick.AddListener(click);
+        return go.GetComponent<Button>();
     }
 
     static Toggle MkToggle(Transform parent, string label)

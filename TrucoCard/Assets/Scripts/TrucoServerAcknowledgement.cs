@@ -32,8 +32,8 @@ public static class TrucoServerAcknowledgement
         if (root == null || Rejected(root)) return false;
         var receipt = root["data"] as JObject ?? root;
         if (Rejected(receipt)) return false;
-        string returnedId = (string)receipt["matchId"];
-        if (!string.IsNullOrEmpty(returnedId) && returnedId != matchId) return false;
+        if (receipt["matchId"]?.Type != JTokenType.String || string.IsNullOrWhiteSpace(matchId)
+            || receipt["matchId"].Value<string>() != matchId) return false;
         return True(receipt["refunded"]) || True(receipt["alreadyRefunded"])
             || (string)receipt["status"] == "refunded";
     }
@@ -44,6 +44,17 @@ public static class TrucoServerAcknowledgement
         if (root == null || Rejected(root)) return false;
         var receipt = root["data"] as JObject ?? root;
         return !Rejected(receipt) && (True(receipt["paid"]) || True(receipt["prizePaid"]));
+    }
+
+    public static bool MatchClosureConfirmed(string json, string matchId)
+    {
+        var root = Parse(json);
+        if (root == null || !Accepted(json) || string.IsNullOrWhiteSpace(matchId)) return false;
+        var receipt = root["data"] as JObject ?? root;
+        return !Rejected(receipt) && receipt["matchId"]?.Type == JTokenType.String
+            && receipt["matchId"].Value<string>() == matchId
+            && (receipt["status"]?.Value<string>() == "cancelled" || receipt["status"]?.Value<string>() == "closed")
+            && True(receipt["refundsApplied"]);
     }
 
     static JObject Parse(string json)

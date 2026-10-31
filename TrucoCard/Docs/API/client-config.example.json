@@ -1,0 +1,471 @@
+{
+  "success": true,
+  "data": {
+    "schemaVersion": 1,
+    "revision": 1,
+    "minimumClientContractVersion": 1,
+    "apiBaseUrl": "https://srv983121.hstgr.cloud/api",
+    "endpoints": [
+      {
+        "key": "AcknowledgeAlert",
+        "method": "POST",
+        "pathTemplate": "/alerts/{0}"
+      },
+      {
+        "key": "AddUserCoins",
+        "method": "POST",
+        "pathTemplate": "/admin/users/{0}/coins"
+      },
+      {
+        "key": "AdminAcknowledgeAlert",
+        "method": "POST",
+        "pathTemplate": "/admin/alerts/{0}/acknowledge"
+      },
+      {
+        "key": "AdminAlertsSummary",
+        "method": "GET",
+        "pathTemplate": "/admin/alerts/stats/summary"
+      },
+      {
+        "key": "AdminAudit",
+        "method": "GET",
+        "pathTemplate": "/admin/audit"
+      },
+      {
+        "key": "AdminBulkAcknowledgeAlerts",
+        "method": "POST",
+        "pathTemplate": "/admin/alerts/bulk/acknowledge"
+      },
+      {
+        "key": "AdminDismissAlert",
+        "method": "POST",
+        "pathTemplate": "/admin/alerts/{0}/dismiss"
+      },
+      {
+        "key": "AdminForceCloseMatch",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/force-close"
+      },
+      {
+        "key": "AdminForceCloseTournament",
+        "method": "POST",
+        "pathTemplate": "/admin/tournaments/{0}/force-close"
+      },
+      {
+        "key": "AdminGetAlert",
+        "method": "GET",
+        "pathTemplate": "/admin/alerts/{0}"
+      },
+      {
+        "key": "AdminGetMatch",
+        "method": "GET",
+        "pathTemplate": "/admin/matches/{0}"
+      },
+      {
+        "key": "AdminGetTournament",
+        "method": "GET",
+        "pathTemplate": "/admin/tournaments/{0}"
+      },
+      {
+        "key": "AdminListAlerts",
+        "method": "GET",
+        "pathTemplate": "/admin/alerts"
+      },
+      {
+        "key": "AdminListMatches",
+        "method": "GET",
+        "pathTemplate": "/admin/matches"
+      },
+      {
+        "key": "AdminListTournaments",
+        "method": "GET",
+        "pathTemplate": "/admin/tournaments"
+      },
+      {
+        "key": "AdminLogin",
+        "method": "POST",
+        "pathTemplate": "/admin/login"
+      },
+      {
+        "key": "AdminLogout",
+        "method": "POST",
+        "pathTemplate": "/admin/logout"
+      },
+      {
+        "key": "AdminResolveAlert",
+        "method": "POST",
+        "pathTemplate": "/admin/alerts/{0}/resolve"
+      },
+      {
+        "key": "AdminSetChampion",
+        "method": "POST",
+        "pathTemplate": "/admin/tournaments/{0}/champion"
+      },
+      {
+        "key": "AdminSetMaintenance",
+        "method": "POST",
+        "pathTemplate": "/admin/system/maintenance"
+      },
+      {
+        "key": "AdminWalletRequestApprove",
+        "method": "POST",
+        "pathTemplate": "/admin/wallet/requests/{0}/approve"
+      },
+      {
+        "key": "AdminWalletRequestDetail",
+        "method": "GET",
+        "pathTemplate": "/admin/wallet/requests/{0}"
+      },
+      {
+        "key": "AdminWalletRequestList",
+        "method": "GET",
+        "pathTemplate": "/admin/wallet/requests"
+      },
+      {
+        "key": "AdminWalletRequestPay",
+        "method": "POST",
+        "pathTemplate": "/admin/wallet/requests/{0}/pay"
+      },
+      {
+        "key": "AdminWalletRequestReject",
+        "method": "POST",
+        "pathTemplate": "/admin/wallet/requests/{0}/reject"
+      },
+      {
+        "key": "AlertsSummary",
+        "method": "GET",
+        "pathTemplate": "/alerts/stats/summary"
+      },
+      {
+        "key": "BulkAcknowledgeAlerts",
+        "method": "POST",
+        "pathTemplate": "/alerts/bulk/acknowledge"
+      },
+      {
+        "key": "ChangePassword",
+        "method": "POST",
+        "pathTemplate": "/profile/password"
+      },
+      {
+        "key": "CheckAdmin",
+        "method": "GET",
+        "pathTemplate": "/auth/check-admin"
+      },
+      {
+        "key": "ClientConfiguration",
+        "method": "GET",
+        "pathTemplate": "/client/config"
+      },
+      {
+        "key": "CreateAlert",
+        "method": "POST",
+        "pathTemplate": "/alerts/create"
+      },
+      {
+        "key": "CreateMatchGlobal",
+        "method": "POST",
+        "pathTemplate": "/matches"
+      },
+      {
+        "key": "CreateTournament",
+        "method": "POST",
+        "pathTemplate": "/tournaments"
+      },
+      {
+        "key": "CreateTournamentMatch",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/create-match"
+      },
+      {
+        "key": "DashboardActiveTournaments",
+        "method": "GET",
+        "pathTemplate": "/dashboard/realtime/active-tournaments"
+      },
+      {
+        "key": "DashboardOnlinePlayers",
+        "method": "GET",
+        "pathTemplate": "/dashboard/realtime/online-players"
+      },
+      {
+        "key": "DashboardRealtimeActiveMatches",
+        "method": "GET",
+        "pathTemplate": "/dashboard/realtime/active-matches"
+      },
+      {
+        "key": "DashboardRealtimeFraudAlerts",
+        "method": "GET",
+        "pathTemplate": "/dashboard/realtime/fraud-alerts"
+      },
+      {
+        "key": "DashboardReconnectAlerts",
+        "method": "GET",
+        "pathTemplate": "/dashboard/realtime/reconnect-alerts"
+      },
+      {
+        "key": "DismissAlert",
+        "method": "POST",
+        "pathTemplate": "/alerts/{0}/dismiss"
+      },
+      {
+        "key": "EnterTournament",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/join"
+      },
+      {
+        "key": "FinalizeMatch",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/finalize-match"
+      },
+      {
+        "key": "FinalizeTournament",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/finalize"
+      },
+      {
+        "key": "ForgotPassword",
+        "method": "POST",
+        "pathTemplate": "/auth/forgot-password"
+      },
+      {
+        "key": "GetAlert",
+        "method": "GET",
+        "pathTemplate": "/alerts/{0}"
+      },
+      {
+        "key": "GetAlertsDashboard",
+        "method": "GET",
+        "pathTemplate": "/admin/alerts/dashboard"
+      },
+      {
+        "key": "GetCurrentUserProfile",
+        "method": "GET",
+        "pathTemplate": "/auth/me"
+      },
+      {
+        "key": "GetMatch",
+        "method": "GET",
+        "pathTemplate": "/matches/{0}"
+      },
+      {
+        "key": "GetMyMatches",
+        "method": "GET",
+        "pathTemplate": "/matches/player/my-matches"
+      },
+      {
+        "key": "GetSystemStatus",
+        "method": "GET",
+        "pathTemplate": "/system/status"
+      },
+      {
+        "key": "GetTournament",
+        "method": "GET",
+        "pathTemplate": "/tournaments/{0}"
+      },
+      {
+        "key": "GetTournamentPlayers",
+        "method": "GET",
+        "pathTemplate": "/tournaments/{0}/players"
+      },
+      {
+        "key": "GetUserProfile",
+        "method": "GET",
+        "pathTemplate": "/profile/profile"
+      },
+      {
+        "key": "GetUserStats",
+        "method": "GET",
+        "pathTemplate": "/admin/users/{0}/stats"
+      },
+      {
+        "key": "ListAlerts",
+        "method": "GET",
+        "pathTemplate": "/alerts"
+      },
+      {
+        "key": "ListTournaments",
+        "method": "GET",
+        "pathTemplate": "/tournaments"
+      },
+      {
+        "key": "ListTransactions",
+        "method": "GET",
+        "pathTemplate": "/admin/transactions"
+      },
+      {
+        "key": "ListUsers",
+        "method": "GET",
+        "pathTemplate": "/admin/users"
+      },
+      {
+        "key": "Login",
+        "method": "POST",
+        "pathTemplate": "/auth/login"
+      },
+      {
+        "key": "Logout",
+        "method": "POST",
+        "pathTemplate": "/auth/logout"
+      },
+      {
+        "key": "MatchCancelLobbyRefund",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/cancel-lobby-refund"
+      },
+      {
+        "key": "MatchEnd",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/end"
+      },
+      {
+        "key": "MatchList",
+        "method": "GET",
+        "pathTemplate": "/matches"
+      },
+      {
+        "key": "MatchPlayerLeave",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/leave"
+      },
+      {
+        "key": "MatchRegisterPhotonRoom",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/photon-room"
+      },
+      {
+        "key": "MatchRequestToken",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/match-token"
+      },
+      {
+        "key": "MatchStartGame",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/start-game"
+      },
+      {
+        "key": "MatchSubmitResult",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/result"
+      },
+      {
+        "key": "MatchWalkover",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/walkover"
+      },
+      {
+        "key": "PhotonSession",
+        "method": "POST",
+        "pathTemplate": "/auth/photon-session"
+      },
+      {
+        "key": "PlayerCreateMatch",
+        "method": "POST",
+        "pathTemplate": "/matches/player-create"
+      },
+      {
+        "key": "PlayerJoinMatch",
+        "method": "POST",
+        "pathTemplate": "/matches/{0}/join"
+      },
+      {
+        "key": "RefreshToken",
+        "method": "POST",
+        "pathTemplate": "/auth/refresh"
+      },
+      {
+        "key": "Register",
+        "method": "POST",
+        "pathTemplate": "/auth/register"
+      },
+      {
+        "key": "ResendPasswordReset",
+        "method": "POST",
+        "pathTemplate": "/auth/resend-password-reset"
+      },
+      {
+        "key": "ResendVerification",
+        "method": "POST",
+        "pathTemplate": "/auth/resend-verification"
+      },
+      {
+        "key": "ResetPassword",
+        "method": "POST",
+        "pathTemplate": "/auth/reset-password"
+      },
+      {
+        "key": "ResolveAlert",
+        "method": "POST",
+        "pathTemplate": "/alerts/{0}/resolve"
+      },
+      {
+        "key": "TournamentFinalize",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/finalize"
+      },
+      {
+        "key": "TournamentFinalizeMatch",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/finalize-match"
+      },
+      {
+        "key": "TournamentJoin",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/join"
+      },
+      {
+        "key": "TournamentLeave",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/leave"
+      },
+      {
+        "key": "TournamentReconcile",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/reconcile"
+      },
+      {
+        "key": "TournamentSnapshot",
+        "method": "GET",
+        "pathTemplate": "/tournaments/{0}"
+      },
+      {
+        "key": "TournamentStart",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/start"
+      },
+      {
+        "key": "UpdateAvatar",
+        "method": "POST",
+        "pathTemplate": "/profile/avatar"
+      },
+      {
+        "key": "UpdateAwardPercentage",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/update-award-percentage"
+      },
+      {
+        "key": "ValidatePrivateTournament",
+        "method": "POST",
+        "pathTemplate": "/tournaments/{0}/validate-password"
+      },
+      {
+        "key": "VerifyEmail",
+        "method": "POST",
+        "pathTemplate": "/auth/verify-email"
+      },
+      {
+        "key": "WalletCreateRequest",
+        "method": "POST",
+        "pathTemplate": "/wallet/requests"
+      },
+      {
+        "key": "WalletRequestStatus",
+        "method": "GET",
+        "pathTemplate": "/wallet/requests/{0}"
+      },
+      {
+        "key": "WalletSnapshot",
+        "method": "GET",
+        "pathTemplate": "/wallet/snapshot"
+      }
+    ]
+  }
+}

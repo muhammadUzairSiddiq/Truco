@@ -18,11 +18,22 @@ public class TrucoApiEndpointsSO : ScriptableObject
     [Tooltip("e.g. https://srv983121.hstgr.cloud/api")]
     public string baseUrl = "https://srv983121.hstgr.cloud/api";
 
+    [Header("Runtime configuration (compatible route updates without a new APK)")]
+    public bool fetchRemoteConfiguration = true;
+    public string remoteConfigurationUrl = "https://srv983121.hstgr.cloud/api/client/config";
+    [Min(1)] public int remoteConfigurationRevision = 1;
+    [Range(2, 20)] public int configurationTimeoutSeconds = 6;
+    [Tooltip("Additional HTTPS API origins trusted before shipping. Same-origin path changes need no extra entry.")]
+    public List<string> additionalTrustedApiOrigins = new List<string>();
+
     [System.Serializable]
     public class Endpoint
     {
         [Tooltip("Logical key. Known keys: MatchList, PlayerCreateMatch, PlayerJoinMatch, MatchRegisterPhotonRoom, MatchSubmitResult, MatchWalkover, MatchPlayerLeave, MatchCancelLobbyRefund, MatchEnd, GetMatch, GetMyMatches, EnterTournament, ValidatePrivateTournament, FinalizeTournament, FinalizeMatch, CreateTournamentMatch, AdminForceCloseTournament, AdminSetMaintenance, DashboardOnlinePlayers, DashboardActiveTournaments, DashboardReconnectAlerts.")]
         public string key;
+
+        [Tooltip("HTTP method required by the backend contract; display/documentation metadata.")]
+        public string method;
 
         [Tooltip("Path that begins with '/'. Use {0} where an id goes. Example: /matches/{0}/end")]
         public string pathTemplate;

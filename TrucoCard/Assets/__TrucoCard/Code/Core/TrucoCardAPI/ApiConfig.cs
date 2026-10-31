@@ -13,7 +13,7 @@ public static class ApiConfig
     static void AutoLoadEndpointsFromResources()
     {
         var so = UnityEngine.Resources.Load<TrucoApiEndpointsSO>("TrucoApiEndpoints");
-        if (so != null) ApplyEndpoints(so);
+        if (so != null) { ApplyEndpoints(so); TrucoRemoteApiConfiguration.Initialize(so); }
     }
 
     /// <summary>Apply base URL + endpoint overrides from the central ScriptableObject.</summary>
@@ -30,11 +30,20 @@ public static class ApiConfig
             "Endpoints loaded from SO. Base=" + BaseUrl + ", overrides=" + _overrides.Count);
     }
 
+    public static void ApplyRemoteEndpoints(string baseUrl, System.Collections.Generic.IEnumerable<TrucoApiEndpointsSO.Endpoint> endpoints)
+    {
+        var next = _overrides == null ? new System.Collections.Generic.Dictionary<string, string>()
+            : new System.Collections.Generic.Dictionary<string, string>(_overrides);
+        foreach (var endpoint in endpoints) next[endpoint.key] = endpoint.pathTemplate;
+        BaseUrl = baseUrl.TrimEnd('/');
+        _overrides = next;
+    }
+
     static string PathOf(string key, string defaultPath)
         => _overrides != null && _overrides.TryGetValue(key, out var t) && !string.IsNullOrEmpty(t) ? t : defaultPath;
 
     static string Url(string key, string defaultPath) => BaseUrl + PathOf(key, defaultPath);
-    static string Url(string key, string defaultPath, string id) => BaseUrl + string.Format(PathOf(key, defaultPath), id);
+    static string Url(string key, string defaultPath, string id) => BaseUrl + string.Format(PathOf(key, defaultPath), System.Uri.EscapeDataString(id ?? ""));
 
     /// <summary>Resolve a brand-new endpoint defined only in the SO (no code member). Returns null if missing.</summary>
     public static string Custom(string key, params object[] args)
@@ -46,25 +55,25 @@ public static class ApiConfig
 
     #region Auth
 
-    public static string Login => $"{BaseUrl}/auth/login";
-    public static string Register => $"{BaseUrl}/auth/register";
-    public static string Logout => $"{BaseUrl}/auth/logout";
-    public static string GetCurrentUserProfile => $"{BaseUrl}/auth/me";
-    public static string CheckAdmin => $"{BaseUrl}/auth/check-admin";
-    public static string RefreshToken => $"{BaseUrl}/auth/refresh";
-    public static string ForgotPassword => $"{BaseUrl}/auth/forgot-password";
-    public static string ResendVerification => $"{BaseUrl}/auth/resend-verification";
-    public static string ResendPasswordReset => $"{BaseUrl}/auth/resend-password-reset";
-    public static string ResetPassword => $"{BaseUrl}/auth/reset-password";
-    public static string VerifyEmail => $"{BaseUrl}/auth/verify-email";
+    public static string Login => Url("Login", "/auth/login");
+    public static string Register => Url("Register", "/auth/register");
+    public static string Logout => Url("Logout", "/auth/logout");
+    public static string GetCurrentUserProfile => Url("GetCurrentUserProfile", "/auth/me");
+    public static string CheckAdmin => Url("CheckAdmin", "/auth/check-admin");
+    public static string RefreshToken => Url("RefreshToken", "/auth/refresh");
+    public static string ForgotPassword => Url("ForgotPassword", "/auth/forgot-password");
+    public static string ResendVerification => Url("ResendVerification", "/auth/resend-verification");
+    public static string ResendPasswordReset => Url("ResendPasswordReset", "/auth/resend-password-reset");
+    public static string ResetPassword => Url("ResetPassword", "/auth/reset-password");
+    public static string VerifyEmail => Url("VerifyEmail", "/auth/verify-email");
 
     #endregion
 
     #region Profile
 
-    public static string GetUserProfile => $"{BaseUrl}/profile/profile";
-    public static string UpdateAvatar => $"{BaseUrl}/profile/avatar";
-    public static string ChangePassword => $"{BaseUrl}/profile/password";
+    public static string GetUserProfile => Url("GetUserProfile", "/profile/profile");
+    public static string UpdateAvatar => Url("UpdateAvatar", "/profile/avatar");
+    public static string ChangePassword => Url("ChangePassword", "/profile/password");
 
     #endregion
 
@@ -72,6 +81,7 @@ public static class ApiConfig
     // Torneos: creación reservada al panel de administración (no hay flujo de jugador que cree torneos en esta app).
 
     public static string ListTournaments => Url("ListTournaments", "/tournaments");
+    public static string CreateTournament => Url("CreateTournament", "/tournaments");
     public static string GetTournament(string id) => Url("GetTournament", "/tournaments/{0}", id);
     public static string EnterTournament(string id) => Url("EnterTournament", "/tournaments/{0}/join", id);
     public static string ValidatePrivateTournament(string id) => Url("ValidatePrivateTournament", "/tournaments/{0}/validate-password", id);
@@ -87,7 +97,7 @@ public static class ApiConfig
     // 1v1: resultados y saldos normales = autoridad del backend; el cliente solo consume API (join, códigos, etc.).
 
     public static string ListMatches => Url("MatchList", "/matches");
-    public static string CreateMatchGlobal => BaseUrl + "/matches"; // same endpoint but global
+    public static string CreateMatchGlobal => Url("CreateMatchGlobal", "/matches"); // same endpoint but global
     public static string GetMatch(string id) => Url("GetMatch", "/matches/{0}", id);
     public static string GetMyMatches => Url("GetMyMatches", "/matches/player/my-matches");
 
@@ -135,21 +145,21 @@ public static class ApiConfig
 
     #region Alerts
 
-    public static string CreateAlert => BaseUrl + "/alerts/create";
-    public static string ListAlerts => BaseUrl + "/alerts";
-    public static string GetAlert(string id) => $"{BaseUrl}/alerts/{id}";
-    public static string AcknowledgeAlert(string id) => $"{BaseUrl}/alerts/{id}";
-    public static string ResolveAlert(string id) => $"{BaseUrl}/alerts/{id}/resolve";
-    public static string DismissAlert(string id) => $"{BaseUrl}/alerts/{id}/dismiss";
-    public static string AlertsSummary => BaseUrl + "/alerts/stats/summary";
-    public static string BulkAcknowledgeAlerts => BaseUrl + "/alerts/bulk/acknowledge";
+    public static string CreateAlert => Url("CreateAlert", "/alerts/create");
+    public static string ListAlerts => Url("ListAlerts", "/alerts");
+    public static string GetAlert(string id) => Url("GetAlert", "/alerts/{0}", id);
+    public static string AcknowledgeAlert(string id) => Url("AcknowledgeAlert", "/alerts/{0}", id);
+    public static string ResolveAlert(string id) => Url("ResolveAlert", "/alerts/{0}/resolve", id);
+    public static string DismissAlert(string id) => Url("DismissAlert", "/alerts/{0}/dismiss", id);
+    public static string AlertsSummary => Url("AlertsSummary", "/alerts/stats/summary");
+    public static string BulkAcknowledgeAlerts => Url("BulkAcknowledgeAlerts", "/alerts/bulk/acknowledge");
 
     #endregion
 
     #region Dashboard (admin / live)
 
-    public static string DashboardRealtimeActiveMatches => $"{BaseUrl}/dashboard/realtime/active-matches";
-    public static string DashboardRealtimeFraudAlerts => $"{BaseUrl}/dashboard/realtime/fraud-alerts";
+    public static string DashboardRealtimeActiveMatches => Url("DashboardRealtimeActiveMatches", "/dashboard/realtime/active-matches");
+    public static string DashboardRealtimeFraudAlerts => Url("DashboardRealtimeFraudAlerts", "/dashboard/realtime/fraud-alerts");
     public static string DashboardRealtimeOnlinePlayers => Url("DashboardOnlinePlayers", "/dashboard/realtime/online-players");
     public static string DashboardRealtimeActiveTournaments => Url("DashboardActiveTournaments", "/dashboard/realtime/active-tournaments");
     public static string DashboardRealtimeReconnectAlerts => Url("DashboardReconnectAlerts", "/dashboard/realtime/reconnect-alerts");
@@ -158,29 +168,29 @@ public static class ApiConfig
 
     #region Admin
 
-    public static string AdminLogin => $"{BaseUrl}/admin/login";
-    public static string AdminLogout => $"{BaseUrl}/admin/logout";
-    public static string ListUsers => $"{BaseUrl}/admin/users";
-    public static string GetUserStats(string id) => $"{BaseUrl}/admin/users/{id}/stats";
-    public static string AddUserCoins(string id) => $"{BaseUrl}/admin/users/{id}/coins";
-    public static string AdminListTournaments => $"{BaseUrl}/admin/tournaments";
-    public static string AdminGetTournament(string id) => $"{BaseUrl}/admin/tournaments/{id}";
-    public static string AdminListMatches => $"{BaseUrl}/admin/matches";
-    public static string AdminGetMatch(string id) => $"{BaseUrl}/admin/matches/{id}";
+    public static string AdminLogin => Url("AdminLogin", "/admin/login");
+    public static string AdminLogout => Url("AdminLogout", "/admin/logout");
+    public static string ListUsers => Url("ListUsers", "/admin/users");
+    public static string GetUserStats(string id) => Url("GetUserStats", "/admin/users/{0}/stats", id);
+    public static string AddUserCoins(string id) => Url("AddUserCoins", "/admin/users/{0}/coins", id);
+    public static string AdminListTournaments => Url("AdminListTournaments", "/admin/tournaments");
+    public static string AdminGetTournament(string id) => Url("AdminGetTournament", "/admin/tournaments/{0}", id);
+    public static string AdminListMatches => Url("AdminListMatches", "/admin/matches");
+    public static string AdminGetMatch(string id) => Url("AdminGetMatch", "/admin/matches/{0}", id);
 
-    public static string AdminForceCloseMatch(string id) => $"{BaseUrl}/matches/{id}/force-close";
+    public static string AdminForceCloseMatch(string id) => Url("AdminForceCloseMatch", "/matches/{0}/force-close", id);
     public static string AdminForceCloseTournament(string id) => Url("AdminForceCloseTournament", "/admin/tournaments/{0}/force-close", id);
     public static string AdminSetMaintenance => Url("AdminSetMaintenance", "/admin/system/maintenance");
-    public static string ListTransactions => $"{BaseUrl}/admin/transactions";
-    public static string GetSystemStatus => $"{BaseUrl}/admin/system/status";
-    public static string GetAlertsDashboard => $"{BaseUrl}/admin/alerts/dashboard";
-    public static string AdminListAlerts => $"{BaseUrl}/admin/alerts";
-    public static string AdminGetAlert(string id) => $"{BaseUrl}/admin/alerts/{id}";
-    public static string AdminAcknowledgeAlert(string id) => $"{BaseUrl}/admin/alerts/{id}/acknowledge";
-    public static string AdminResolveAlert(string id) => $"{BaseUrl}/admin/alerts/{id}/resolve";
-    public static string AdminDismissAlert(string id) => $"{BaseUrl}/admin/alerts/{id}/dismiss";
-    public static string AdminBulkAcknowledgeAlerts => $"{BaseUrl}/admin/alerts/bulk/acknowledge";
-    public static string AdminAlertsSummary => $"{BaseUrl}/admin/alerts/stats/summary";
+    public static string ListTransactions => Url("ListTransactions", "/admin/transactions");
+    public static string GetSystemStatus => Url("GetSystemStatus", "/admin/system/status");
+    public static string GetAlertsDashboard => Url("GetAlertsDashboard", "/admin/alerts/dashboard");
+    public static string AdminListAlerts => Url("AdminListAlerts", "/admin/alerts");
+    public static string AdminGetAlert(string id) => Url("AdminGetAlert", "/admin/alerts/{0}", id);
+    public static string AdminAcknowledgeAlert(string id) => Url("AdminAcknowledgeAlert", "/admin/alerts/{0}/acknowledge", id);
+    public static string AdminResolveAlert(string id) => Url("AdminResolveAlert", "/admin/alerts/{0}/resolve", id);
+    public static string AdminDismissAlert(string id) => Url("AdminDismissAlert", "/admin/alerts/{0}/dismiss", id);
+    public static string AdminBulkAcknowledgeAlerts => Url("AdminBulkAcknowledgeAlerts", "/admin/alerts/bulk/acknowledge");
+    public static string AdminAlertsSummary => Url("AdminAlertsSummary", "/admin/alerts/stats/summary");
 
     #endregion
 }

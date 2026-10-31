@@ -12,6 +12,7 @@ public class TournamentManager : SingeltonBase<TournamentManager>
     [SerializeField] private TournamentMatchmakingOverlay _tournamentMatchmakingOverlay;
     [SerializeField] private TournamentWaitingRoomOverlay _tournamentWaitingRoomOverlay;
     [SerializeField] private TournamentPasswordInputOverlay _tournamentPasswordInputOverlay;
+    private bool _loadingTournamentList;
 
     #endregion
 
@@ -34,43 +35,35 @@ public class TournamentManager : SingeltonBase<TournamentManager>
 
     public async void DisplayTournamentSelectionUI()
     {
+#if UNITY_EDITOR
+        if (TrucoEditorTournamentHooks.TryOpen()) return;
+#endif
         if (!TrucoPlayAccess.TryTournaments()) return;
-        AppManager.Instance.DisplayLoadingUI("Buscando torneos…");
-        
-        bool result = await ApiController.RequestLatestTournaments();
-
-        if (result)
+        if (_loadingTournamentList) return;
+        _loadingTournamentList = true;
+        AppManager.Instance?.DisplayLoadingUI("Buscando torneos…");
+        try
         {
-            await Task.Delay(3000);
-
-            AppManager.Instance.HideLoadingUI();
-
-
-            if (ApiController.GetActiveTournaments == null)
+            bool result = await ApiController.RequestLatestTournaments();
+            if (this == null) return;
+            if (!result || _tournamentsSelectionOverlay == null)
             {
-                AppManager.Instance.DisplayNotification("No hay torneos activos por ahora. Volvé más tarde.");
+                AppManager.Instance?.DisplayNotification("No se pudieron cargar los torneos. Probá de nuevo.");
+                MainMenuViewCoordinator.ReturnToMenuFromTournament();
+                return;
             }
-            else
-            {
-                Tournament[] tournaments = ApiController.GetActiveTournaments.TournamentsArray;
-
-                if (tournaments.Length < 1)
-                {
-                    AppManager.Instance.DisplayNotification("No hay torneos activos por ahora. Volvé más tarde.");
-                }
-                else
-                {
-                    _tournamentsSelectionOverlay.DisplayTournamentSelectionUI(tournaments);
-                    MainMenuViewCoordinator.EnsureTournamentNavPriority();
-                }
-            }
+            Tournament[] tournaments = ApiController.GetActiveTournaments?.TournamentsArray ?? Array.Empty<Tournament>();
+            _tournamentsSelectionOverlay.DisplayTournamentSelectionUI(tournaments);
+            MainMenuViewCoordinator.HideMenuContentForTournament();
+            MainMenuViewCoordinator.EnsureTournamentNavPriority();
         }
-        else
+        catch (Exception exception)
         {
-            AppManager.Instance.HideLoadingUI();
-            AppManager.Instance.DisplayNotification("No se pudieron cargar los torneos. Probá de nuevo.");
+            Debug.LogWarning("Tournament list could not open: " + exception.GetType().Name);
+            AppManager.Instance?.DisplayNotification("No se pudieron cargar los torneos. Probá de nuevo.");
+            MainMenuViewCoordinator.ReturnToMenuFromTournament();
         }
-
+        finally { _loadingTournamentList = false; AppManager.Instance?.HideLoadingUI(); }
     }
     public void HideTournamentSelectionUI()
     {
