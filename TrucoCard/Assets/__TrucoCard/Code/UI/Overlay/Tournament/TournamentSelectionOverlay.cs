@@ -23,6 +23,10 @@ public class TournamentSelectionOverlay : MonoBehaviour
     [SerializeField] private float _headerBlockHeight = 128f;
 
     private List<TournamentCardItem> _instantiatedCards = new List<TournamentCardItem>();
+    TextMeshProUGUI _stateText;
+    Button _retry;
+    bool _loading;
+    public bool IsVisible => _contentHolder != null && _contentHolder.activeInHierarchy;
 
     private void Awake()
     {
@@ -126,7 +130,45 @@ public class TournamentSelectionOverlay : MonoBehaviour
                 layout.childForceExpandHeight = false; layout.childForceExpandWidth = true;
             }
         }
+        var formats = TrucoClubUI.Panel("TournamentFormats", holder, TrucoMenuTheme.DeepBrown,
+            new Vector2(.025f, 0), new Vector2(.975f, 0), new Vector2(0, 218), new Vector2(0, 412));
+        TrucoClubUI.Text(formats.transform, "CONOCÉ EL CUADRO", 29, TrucoMenuTheme.Gold,
+            new Vector2(.03f, .66f), new Vector2(.97f, .96f), true);
+        TrucoClubUI.Button(formats.transform, "4 JUGADORES", () => TournamentBracketOverlay.ShowFormat(4),
+            new Vector2(.025f, .08f), new Vector2(.5f, .64f), true);
+        TrucoClubUI.Button(formats.transform, "8 JUGADORES", () => TournamentBracketOverlay.ShowFormat(8),
+            new Vector2(.5f, .08f), new Vector2(.975f, .64f), true);
+        if (scroll != null) scroll.offsetMin = new Vector2(20, 430);
+        _stateText = TrucoClubUI.Text(holder, "", 30, TrucoClubUI.Cream,
+            new Vector2(.07f, .41f), new Vector2(.93f, .69f), false, TextAlignmentOptions.Center);
+        _stateText.name = "TournamentListState";
+        _retry = TrucoClubUI.Button(holder, "ACTUALIZAR", () => TournamentManager.Instance?.DisplayTournamentSelectionUI(),
+            new Vector2(.16f, .29f), new Vector2(.84f, .38f));
+        _retry.name = "RetryTournamentList";
+        SetListState(null, false);
         LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+    }
+
+    void SetListState(string message, bool loading)
+    {
+        bool showingState = !string.IsNullOrEmpty(message);
+        _loading = loading;
+        if (_stateText != null) { _stateText.text = message ?? ""; _stateText.gameObject.SetActive(showingState); }
+        if (_retry != null) { _retry.gameObject.SetActive(showingState); _retry.interactable = !loading; }
+        var scroll = _contentHolder != null ? _contentHolder.transform.Find("Scroll View") : null;
+        if (scroll != null) scroll.gameObject.SetActive(!showingState);
+    }
+
+    public void DisplayLoading()
+    {
+        DisplayTournamentSelectionUI(System.Array.Empty<Tournament>());
+        SetListState("CARGANDO TORNEOS\nBuscando tu próxima mesa…", true);
+    }
+
+    public void DisplayUnavailable()
+    {
+        DisplayTournamentSelectionUI(System.Array.Empty<Tournament>());
+        SetListState("TORNEOS NO DISPONIBLES\nNo se pudo cargar la lista. Volvé a intentar.\n\nPodés ver los cuadros de 4 y 8 jugadores.", false);
     }
 
     public void DisplayTournamentSelectionUI(Tournament[] activeTournaments)
@@ -134,6 +176,7 @@ public class TournamentSelectionOverlay : MonoBehaviour
         if (_contentHolder == null) return;
         if (_tournamentsCardHolder == null) return;
         EnsureListChrome();
+        SetListState(null, false);
 
         foreach (var card in _instantiatedCards) if (card != null) { card.gameObject.SetActive(false); Destroy(card.gameObject); }
         _instantiatedCards.Clear();
@@ -152,15 +195,13 @@ public class TournamentSelectionOverlay : MonoBehaviour
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(_tournamentsCardHolder);
         Canvas.ForceUpdateCanvases();
-        var empty = _contentHolder.transform.Find("EmptyState");
-        if (empty == null) empty = TrucoClubUI.Text(_contentHolder.transform,
-            "NO HAY TORNEOS ABIERTOS\nVolvé pronto para encontrar tu próxima mesa.", 32, TrucoClubUI.Cream,
-            new Vector2(.08f, .35f), new Vector2(.92f, .6f), true, TextAlignmentOptions.Center).transform;
-        empty.name = "EmptyState"; empty.gameObject.SetActive(_instantiatedCards.Count == 0);
+        if (_instantiatedCards.Count == 0)
+            SetListState("NO HAY TORNEOS ABIERTOS\nVolvé pronto para encontrar tu próxima mesa.\n\nPodés ver los cuadros de 4 y 8 jugadores.", false);
     }
 
     public void HideTournamentSelectionUI()
     {
+        if (_loading) SetListState(null, false);
         if (_contentHolder != null) _contentHolder.SetActive(false);
         foreach (var t in _instantiatedCards)
         {

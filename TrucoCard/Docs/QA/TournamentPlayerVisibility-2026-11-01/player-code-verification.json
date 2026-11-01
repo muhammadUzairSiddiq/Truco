@@ -1,0 +1,31 @@
+{
+  "compilerTarget": "UNITY_ANDROID without UNITY_EDITOR",
+  "cSharpCompileExit": 0,
+  "typeCheckMethod": "PE metadata TypeDefinitions (no Unity dependency loading)",
+  "types": [
+    {
+      "type": "TournamentBracketOverlay",
+      "included": true
+    },
+    {
+      "type": "TournamentBracketGraphic",
+      "included": true
+    },
+    {
+      "type": "TournamentSelectionOverlay",
+      "included": true
+    },
+    {
+      "type": "TrucoTournamentPracticeUI",
+      "included": false
+    },
+    {
+      "type": "TrucoDevelopmentBot",
+      "included": false
+    }
+  ],
+  "inspectedExistingApkVersionName": "1.0.4",
+  "clientReportedVersion114ArtifactAvailable": false,
+  "apkBuiltThisAudit": false,
+  "backendReadinessVerified": false
+}

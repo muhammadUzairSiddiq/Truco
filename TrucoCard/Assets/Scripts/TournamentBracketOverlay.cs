@@ -15,16 +15,34 @@ public class TournamentBracketOverlay : MonoBehaviour
     TextMeshProUGUI _header;
     TextMeshProUGUI _status;
     Button _leaveBtn;
+    Button _refreshBtn;
     bool _spectator;
+    TournamentBracketState _format;
 
     public static void Show(bool spectator)
     {
         Ensure().Display(spectator);
     }
 
+    /// <summary>Public, read-only format using the live bracket renderer. No players, registration or network operations.</summary>
+    public static void ShowFormat(int capacity)
+    {
+        if (capacity != 4 && capacity != 8) throw new System.ArgumentOutOfRangeException(nameof(capacity));
+        var overlay = Ensure();
+        overlay._format = new TournamentBracketState(capacity);
+        overlay._refreshBtn.gameObject.SetActive(false);
+        overlay._leaveBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 28f);
+        overlay.Rebuild();
+        overlay.gameObject.SetActive(true);
+    }
+
     public static void Hide()
     {
-        if (_instance != null) _instance.gameObject.SetActive(false);
+        if (_instance != null)
+        {
+            _instance.gameObject.SetActive(false);
+            _instance._format = null;
+        }
     }
 
     public static void RefreshIfOpen()
@@ -37,7 +55,7 @@ public class TournamentBracketOverlay : MonoBehaviour
     {
         if (_instance != null) return _instance;
         var go = new GameObject("TournamentBracketOverlay");
-        DontDestroyOnLoad(go);
+        if (Application.isPlaying) DontDestroyOnLoad(go);
         _instance = go.AddComponent<TournamentBracketOverlay>();
         _instance.Build();
         return _instance;
@@ -160,6 +178,7 @@ public class TournamentBracketOverlay : MonoBehaviour
         refresh.GetComponent<Image>().sprite = TrucoGameplayUiSprites.ButtonGreenLong;
         refresh.GetComponentInChildren<TextMeshProUGUI>().text = "ACTUALIZAR";
         var refreshButton = refresh.GetComponent<Button>();
+        _refreshBtn = refreshButton;
         refreshButton.onClick = new Button.ButtonClickedEvent();
         refreshButton.onClick.AddListener(Rebuild);
 
@@ -168,6 +187,9 @@ public class TournamentBracketOverlay : MonoBehaviour
 
     void Display(bool spectator)
     {
+        _format = null;
+        _refreshBtn.gameObject.SetActive(true);
+        _leaveBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-240f, 28f);
         _spectator = spectator;
         Rebuild();
         gameObject.SetActive(true);
@@ -178,7 +200,15 @@ public class TournamentBracketOverlay : MonoBehaviour
     {
         if (_roundsHost == null) return;
         for (int i = _roundsHost.childCount - 1; i >= 0; i--)
-            Destroy(_roundsHost.GetChild(i).gameObject);
+            TrucoMenuTheme.DestroyUI(_roundsHost.GetChild(i).gameObject);
+
+        if (_format != null)
+        {
+            _header.text = "CUADRO DE " + _format.maxPlayers + " JUGADORES";
+            _status.text = "FORMATO DEL TORNEO · Las plazas y los resultados se confirman al comenzar.";
+            TournamentBracketGraphic.Build((RectTransform)_roundsHost, _format, null);
+            return;
+        }
 
         var req = MultiplayerController.CurrentTournamentRequest;
         var bracket = MultiplayerController.BracketState;
@@ -312,6 +342,11 @@ public class TournamentBracketOverlay : MonoBehaviour
 
     void Leave()
     {
+        if (_format != null)
+        {
+            Hide();
+            return;
+        }
         gameObject.SetActive(false);
         _ = MultiplayerController.LeaveTournamentByPlayerAsync(() =>
         {

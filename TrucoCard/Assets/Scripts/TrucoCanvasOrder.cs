@@ -6,7 +6,7 @@ public static class TrucoCanvasOrder
 {
     public const int Navigation = 32000;
     public const int Screen = 32300;
-    public const int Bracket = 32400;
+    public const int Bracket = 32525;
     public const int TournamentStatus = 32500;
     public const int Champion = 32550;
     public const int EditorPractice = 32600;

@@ -1,0 +1,27 @@
+[
+  {
+    "path": "Assets/Scripts/MainMenuViewCoordinator.cs",
+    "sha256": "0132F9816CC094BE731FEA6E24B23B5676F97630236B398E6E32947D9830853B",
+    "matchesTestedQa": true
+  },
+  {
+    "path": "Assets/Scripts/TournamentBracketOverlay.cs",
+    "sha256": "B45FF4FA9664B19F3EE8CD80731BADBA581D77C1341B3A9021349F6797725B0E",
+    "matchesTestedQa": true
+  },
+  {
+    "path": "Assets/Scripts/TrucoCanvasOrder.cs",
+    "sha256": "B58B58AF0C75B5C3A9CCB74FFA45D0798D9CE2FB0513B682402971D1A956B815",
+    "matchesTestedQa": true
+  },
+  {
+    "path": "Assets/__TrucoCard/Code/Manager/TournamentManager.cs",
+    "sha256": "3A9015861EB21711F7ADCBF2EA758B200EA9AE608ABFAA8D0F83F02B9F6CE082",
+    "matchesTestedQa": true
+  },
+  {
+    "path": "Assets/__TrucoCard/Code/UI/Overlay/Tournament/TournamentSelectionOverlay.cs",
+    "sha256": "3267D76B1E99FBCD9B40F811F60354CF05EAC2B1D506D538009B392521B1B6B3",
+    "matchesTestedQa": true
+  }
+]

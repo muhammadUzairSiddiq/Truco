@@ -83,9 +83,13 @@ public static class MainMenuViewCoordinator
 
     static async void OpenLiveTournamentList()
     {
-        if (await MH.Multiplayer.MultiplayerController.OpenFromMenuAsync())
-        { HideMenuContentForTournament(); return; }
-        TournamentManager.Instance?.DisplayTournamentSelectionUI();
+        var manager = TournamentManager.Instance;
+        if (manager == null || !manager.ShowTournamentBrowser()) return;
+        bool resumed = await MH.Multiplayer.MultiplayerController.OpenFromMenuAsync();
+        if (manager == null || !manager.IsTournamentBrowserVisible) return;
+        if (resumed)
+        { manager.HideTournamentSelectionUI(); HideMenuContentForTournament(); return; }
+        manager.DisplayTournamentSelectionUI();
     }
 
     /// <summary>Re-shows the bottom bar after scene transitions or if it was parented under a fading overlay.</summary>

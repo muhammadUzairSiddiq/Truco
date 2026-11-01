@@ -58,6 +58,8 @@ public sealed class TrucoCanvasLayerTests
         }
         Assert.Greater(TrucoCanvasOrder.Transition, TrucoCanvasOrder.Confirm);
         Assert.Greater(TrucoCanvasOrder.Confirm, TrucoCanvasOrder.EditorPractice);
+        Assert.Greater(TrucoCanvasOrder.Bracket, TrucoCanvasOrder.TournamentStatus,
+            "VER CUADRO must open above the waiting/status screen that launched it.");
     }
 
     [UnityTest]
@@ -131,6 +133,39 @@ public sealed class TrucoCanvasLayerTests
         yield return RenderedFrames();
         Assert.IsNotEmpty(wallet.GetComponentsInChildren<TMP_InputField>(true),
             "The wallet control must also respond to a pointer click above the menu.");
+    }
+
+    [UnityTest]
+    public IEnumerator PlayerBracketReceivesPointersAboveTheWaitingScreenWithAIAbsent()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        yield return new EnterPlayMode();
+        // Direct empty-scene entry has no sceneLoaded callback to finish the bootstrap transition.
+        TrucoSceneTransition.ReleaseCover();
+        TrucoSceneTransition.Ensure().FadeIn(.15f);
+        yield return new WaitForSecondsRealtime(.25f);
+        CreateMenuAndEvents();
+        var status = Track(TrucoTournamentStatusScreen.EditorPreview(TrucoTournamentPhase.Filling));
+        var show = status.GetComponentsInChildren<Button>().Single(button => button.name == "VER CUADRO");
+        // A read-only empty format needs no API account, registration or development AI.
+        show.onClick.RemoveAllListeners();
+        show.onClick.AddListener(() => TournamentBracketOverlay.ShowFormat(8));
+        yield return RenderedFrames();
+        var hit = FirstHitAt(show.transform as RectTransform);
+        Assert.AreSame(show, hit.gameObject.GetComponentInParent<Button>(),
+            "Top hit: " + hit.gameObject.name + " on " + hit.gameObject.GetComponentInParent<Canvas>()?.name);
+        Click(hit);
+        var bracket = Object.FindFirstObjectByType<TournamentBracketOverlay>();
+        Assert.IsNotNull(bracket); Track(bracket.gameObject);
+        yield return RenderedFrames();
+        var back = bracket.transform.Find("Root/Leave").GetComponent<Button>();
+        hit = FirstHitAt(back.transform as RectTransform);
+        Assert.AreSame(back, hit.gameObject.GetComponentInParent<Button>(),
+            "The visible bracket must receive taps above the opaque waiting screen.");
+        Click(hit);
+        yield return RenderedFrames();
+        Assert.IsFalse(bracket.gameObject.activeSelf);
+        Assert.IsTrue(status.activeInHierarchy);
     }
 
     static IEnumerator RenderedFrames()

@@ -13,6 +13,8 @@ public class TournamentManager : SingeltonBase<TournamentManager>
     [SerializeField] private TournamentWaitingRoomOverlay _tournamentWaitingRoomOverlay;
     [SerializeField] private TournamentPasswordInputOverlay _tournamentPasswordInputOverlay;
     private bool _loadingTournamentList;
+    private int _listGeneration;
+    public bool IsTournamentBrowserVisible => _tournamentsSelectionOverlay != null && _tournamentsSelectionOverlay.IsVisible;
 
     #endregion
 
@@ -33,6 +35,22 @@ public class TournamentManager : SingeltonBase<TournamentManager>
 
     #region Tournament Selection Overlay
 
+    /// <summary>Present the player screen immediately, before any resume/list network request.</summary>
+    public bool ShowTournamentBrowser()
+    {
+        if (!TrucoPlayAccess.TryTournaments()) return false;
+        if (_tournamentsSelectionOverlay == null)
+        {
+            Debug.LogError("TournamentSelectionOverlay is missing from TournamentManager.");
+            AppManager.Instance?.DisplayNotification("No se pudo abrir la pantalla de torneos.");
+            return false;
+        }
+        _tournamentsSelectionOverlay.DisplayLoading();
+        MainMenuViewCoordinator.HideMenuContentForTournament();
+        MainMenuViewCoordinator.EnsureTournamentNavPriority();
+        return true;
+    }
+
     public async void DisplayTournamentSelectionUI()
     {
 #if UNITY_EDITOR
@@ -40,16 +58,16 @@ public class TournamentManager : SingeltonBase<TournamentManager>
 #endif
         if (!TrucoPlayAccess.TryTournaments()) return;
         if (_loadingTournamentList) return;
+        if (!ShowTournamentBrowser()) return;
+        int generation = ++_listGeneration;
         _loadingTournamentList = true;
-        AppManager.Instance?.DisplayLoadingUI("Buscando torneos…");
         try
         {
             bool result = await ApiController.RequestLatestTournaments();
-            if (this == null) return;
-            if (!result || _tournamentsSelectionOverlay == null)
+            if (this == null || generation != _listGeneration || !_tournamentsSelectionOverlay.IsVisible) return;
+            if (!result)
             {
-                AppManager.Instance?.DisplayNotification("No se pudieron cargar los torneos. Probá de nuevo.");
-                MainMenuViewCoordinator.ReturnToMenuFromTournament();
+                _tournamentsSelectionOverlay.DisplayUnavailable();
                 return;
             }
             Tournament[] tournaments = ApiController.GetActiveTournaments?.TournamentsArray ?? Array.Empty<Tournament>();
@@ -60,14 +78,16 @@ public class TournamentManager : SingeltonBase<TournamentManager>
         catch (Exception exception)
         {
             Debug.LogWarning("Tournament list could not open: " + exception.GetType().Name);
-            AppManager.Instance?.DisplayNotification("No se pudieron cargar los torneos. Probá de nuevo.");
-            MainMenuViewCoordinator.ReturnToMenuFromTournament();
+            if (this != null && generation == _listGeneration && _tournamentsSelectionOverlay.IsVisible)
+                _tournamentsSelectionOverlay.DisplayUnavailable();
         }
-        finally { _loadingTournamentList = false; AppManager.Instance?.HideLoadingUI(); }
+        finally { if (generation == _listGeneration) _loadingTournamentList = false; }
     }
     public void HideTournamentSelectionUI()
     {
-        _tournamentsSelectionOverlay.HideTournamentSelectionUI();
+        ++_listGeneration;
+        _loadingTournamentList = false;
+        _tournamentsSelectionOverlay?.HideTournamentSelectionUI();
     }
 
     #endregion

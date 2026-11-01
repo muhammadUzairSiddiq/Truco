@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="8" result="Passed" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-01 17:35:33Z" end-time="2026-11-01 17:35:38Z" duration="5.1628271">
+  <test-suite type="TestSuite" id="1000" name="Truco" fullname="Truco" runstate="Runnable" testcasecount="343" result="Passed" start-time="2026-11-01 17:35:33Z" end-time="2026-11-01 17:35:38Z" duration="5.162827" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1427" name="Assembly-CSharp-Editor.dll" fullname="D:/TrucoQA/20260923-ClientA/Library/ScriptAssemblies/Assembly-CSharp-Editor.dll" runstate="Runnable" testcasecount="343" result="Passed" start-time="2026-11-01 17:35:33Z" end-time="2026-11-01 17:35:38Z" duration="4.996460" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="22920" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1045" name="TrucoCanvasLayerTests" fullname="TrucoCanvasLayerTests" classname="TrucoCanvasLayerTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-01 17:35:33Z" end-time="2026-11-01 17:35:38Z" duration="4.900509" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1046" name="EveryOverlayOrderRoundTripsThroughUnityWithoutSignedShortWrapping" fullname="TrucoCanvasLayerTests.EveryOverlayOrderRoundTripsThroughUnityWithoutSignedShortWrapping" methodname="EveryOverlayOrderRoundTripsThroughUnityWithoutSignedShortWrapping" classname="TrucoCanvasLayerTests" runstate="Runnable" seed="1296159475" result="Passed" start-time="2026-11-01 17:35:16Z" end-time="2026-11-01 17:35:16Z" duration="0.019172" asserts="0">
+          <properties />
+        </test-case>
+        <test-case id="1048" name="PlayerBracketReceivesPointersAboveTheWaitingScreenWithAIAbsent" fullname="TrucoCanvasLayerTests.PlayerBracketReceivesPointersAboveTheWaitingScreenWithAIAbsent" methodname="PlayerBracketReceivesPointersAboveTheWaitingScreenWithAIAbsent" classname="TrucoCanvasLayerTests" runstate="Runnable" seed="95394189" result="Passed" start-time="2026-11-01 17:35:16Z" end-time="2026-11-01 17:35:28Z" duration="11.685041" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+          </properties>
+        </test-case>
+        <test-case id="1047" name="RealOverlayGraphicsReceivePointersAboveTheMenuAfterRenderedFrames" fullname="TrucoCanvasLayerTests.RealOverlayGraphicsReceivePointersAboveTheMenuAfterRenderedFrames" methodname="RealOverlayGraphicsReceivePointersAboveTheMenuAfterRenderedFrames" classname="TrucoCanvasLayerTests" runstate="Runnable" seed="1307898905" result="Passed" start-time="2026-11-01 17:35:28Z" end-time="2026-11-01 17:35:38Z" duration="10.500433" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1370" name="TrucoTournamentPlayerPresentationTests" fullname="TrucoTournamentPlayerPresentationTests" classname="TrucoTournamentPlayerPresentationTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-11-01 17:35:38Z" end-time="2026-11-01 17:35:38Z" duration="0.087654" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1375" name="EmptyListIsDistinctFromFailureAndRepeatedStatesDoNotDuplicateChrome" fullname="TrucoTournamentPlayerPresentationTests.EmptyListIsDistinctFromFailureAndRepeatedStatesDoNotDuplicateChrome" methodname="EmptyListIsDistinctFromFailureAndRepeatedStatesDoNotDuplicateChrome" classname="TrucoTournamentPlayerPresentationTests" runstate="Runnable" seed="626335603" result="Passed" start-time="2026-11-01 17:35:38Z" end-time="2026-11-01 17:35:38Z" duration="0.018742" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1371" name="LoadingAndFailureKeepThePlayerScreenAndBothFormatActionsAvailable" fullname="TrucoTournamentPlayerPresentationTests.LoadingAndFailureKeepThePlayerScreenAndBothFormatActionsAvailable" methodname="LoadingAndFailureKeepThePlayerScreenAndBothFormatActionsAvailable" classname="TrucoTournamentPlayerPresentationTests" runstate="Runnable" seed="1476755331" result="Passed" start-time="2026-11-01 17:35:38Z" end-time="2026-11-01 17:35:38Z" duration="0.006241" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1376" name="OpeningLiveBracketClearsTheReadOnlyFormatMode" fullname="TrucoTournamentPlayerPresentationTests.OpeningLiveBracketClearsTheReadOnlyFormatMode" methodname="OpeningLiveBracketClearsTheReadOnlyFormatMode" classname="TrucoTournamentPlayerPresentationTests" runstate="Runnable" seed="135008221" result="Passed" start-time="2026-11-01 17:35:38Z" end-time="2026-11-01 17:35:38Z" duration="0.025238" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1374" name="PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining" fullname="TrucoTournamentPlayerPresentationTests.PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining" classname="TrucoTournamentPlayerPresentationTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-11-01 17:35:38Z" end-time="2026-11-01 17:35:38Z" duration="0.035968" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1372" name="PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining(4)" fullname="TrucoTournamentPlayerPresentationTests.PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining(4)" methodname="PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining" classname="TrucoTournamentPlayerPresentationTests" runstate="Runnable" seed="52836131" result="Passed" start-time="2026-11-01 17:35:38Z" end-time="2026-11-01 17:35:38Z" duration="0.016040" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1373" name="PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining(8)" fullname="TrucoTournamentPlayerPresentationTests.PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining(8)" methodname="PlayerCanOpenAndCloseTheRealBracketRendererWithoutJoining" classname="TrucoTournamentPlayerPresentationTests" runstate="Runnable" seed="84000210" result="Passed" start-time="2026-11-01 17:35:38Z" end-time="2026-11-01 17:35:38Z" duration="0.018822" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+            <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/Octal Games/Truco\TestResults.xml
+]]></output>
+          </test-case>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
