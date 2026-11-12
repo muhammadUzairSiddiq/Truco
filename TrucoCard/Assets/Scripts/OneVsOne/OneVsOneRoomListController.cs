@@ -90,7 +90,7 @@ public class OneVsOneRoomListController : MonoBehaviour
     {
         TrucoReturnFromGameplayCleanup.ConsumeIfNeeded();
         OneVsOnePhotonFlow.OnLobbyRoomCountsChanged += OnPhotonLobbyCountsChanged;
-        if (_buttonRefresh != null) _buttonRefresh.onClick.AddListener(() => Refresh(showLoading: true, forcePurge: true));
+        if (_buttonRefresh != null) _buttonRefresh.onClick.AddListener(() => Refresh(showLoading: true));
         if (_buttonCreate != null) _buttonCreate.onClick.AddListener(OnClickCreate);
         if (_buttonBack != null)
         {
@@ -105,7 +105,7 @@ public class OneVsOneRoomListController : MonoBehaviour
             _skipNextOnEnableRefresh = false;
             return;
         }
-        Refresh(showLoading: true, forcePurge: true);
+        Refresh(showLoading: true);
     }
 
     void OnDisable()
@@ -156,7 +156,7 @@ public class OneVsOneRoomListController : MonoBehaviour
         MainMenuViewCoordinator.EnsureBottomNavVisible();
         _nextAutoRefresh = Time.unscaledTime + 1f;
         if (refreshOnOpen)
-            Refresh(showLoading: true, forcePurge: true);
+            Refresh(showLoading: true);
     }
 
     /// <summary>When enabled in TrucoClientSettings, POST /leave on every stale lobby row for this user before listing rooms.</summary>
@@ -174,14 +174,6 @@ public class OneVsOneRoomListController : MonoBehaviour
             {
                 TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby, "Purge skipped: no logged-in user yet.");
                 return default;
-            }
-
-            if (force && await ApiController.CheckUserAdmin())
-            {
-                AppManager.Instance?.DisplayLoadingUI(TrucoTextosClient.Conectando);
-                int adminClosed = await OneVsOneMatchLifecycle.AdminPurgeAllLobbyMatchesAsync(
-                    err => TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby, "Admin force-close: " + err));
-                TrucoDebugLog.Log(TrucoDebugLog.Category.Lobby, "Admin force-closed " + adminClosed + " matches.");
             }
 
             AppManager.Instance?.DisplayLoadingUI(TrucoTextosClient.Conectando);
@@ -292,12 +284,11 @@ public class OneVsOneRoomListController : MonoBehaviour
                 AppManager.Instance.HideLoadingUI();
         }
         if (generation != _refreshGeneration) return;
-        if (list == null) return;
-        await CancelAllExtraHostedRoomsAsync(list);
-        await ScrubAbandonedHostRoomsAsync(list);
-        list = await ApiController.FetchPlayer1v1MatchList();
-        if (generation != _refreshGeneration) return;
-        if (list == null) return;
+        if (list == null || !ApiController.LastMatchListFetchSucceeded)
+        {
+            if (showLoading) AppManager.Instance?.DisplayNotification("No se pudo actualizar la lista de mesas. Volvé a intentar.");
+            return;
+        }
         OneVsOneMatchLifecycle.ReconcilePersistedLobbyState(list);
         ReconcileStickyHostAfterList(list);
         // Clear immediately before spawning: any await above could otherwise let a second pass
@@ -911,20 +902,6 @@ public class OneVsOneRoomListController : MonoBehaviour
             AppManager.Instance.DisplayNotification(TrucoTextosClient.CodigoInvalido4);
             return;
         }
-        if (m != null && m.IsStaleFullVersusPhoton())
-        {
-            TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby, "TryJoin abort: stale full vs Photon");
-            AppManager.Instance.DisplayNotification(TrucoTextosClient.SalaExpiradaAviso);
-            await RemoveAbandonedLobbyRowAsync(m._id, TrucoTextosClient.SalaExpiradaAviso);
-            return;
-        }
-        if (m != null && m.IsHostAbandonedVersusPhoton())
-        {
-            TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby,
-                "TryJoin abort: host abandoned Photon room gone match=" + m._id);
-            await RemoveAbandonedLobbyRowAsync(m._id, TrucoTextosClient.AnfitrionSalioSala);
-            return;
-        }
         var fresh = await ApiController.GetMatch1v1(m._id);
         if (fresh != null)
         {
@@ -1085,77 +1062,6 @@ public class OneVsOneRoomListController : MonoBehaviour
         }
         TrucoNotificationLog.Success(TrucoTextosClient.LogUnidoSala);
         await System.Threading.Tasks.Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Guest path: host left Photon but API row still shows 1/2 — cancel row and tell player.
-    /// Does not replace host Delete / pause-cancel; only cleans zombies others still see.
-    /// </summary>
-    async System.Threading.Tasks.Task RemoveAbandonedLobbyRowAsync(string matchId, string userMessage)
-    {
-        if (!string.IsNullOrEmpty(userMessage))
-            AppManager.Instance?.DisplayNotification(userMessage);
-        if (!string.IsNullOrEmpty(matchId))
-        {
-            try
-            {
-                TrucoDebugLog.Log(TrucoDebugLog.Category.Lobby,
-                    "RemoveAbandonedLobbyRow match=" + matchId);
-                await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(matchId);
-            }
-            catch (System.Exception ex)
-            {
-                TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby,
-                    "RemoveAbandonedLobbyRow cancel failed: " + ex.Message);
-            }
-        }
-        _skipNextOnEnableRefresh = true;
-        Refresh(showLoading: false, forcePurge: false);
-    }
-
-    /// <summary>While listing rooms, drop API zombies where Photon already shows host gone (0 players).</summary>
-    async System.Threading.Tasks.Task ScrubAbandonedHostRoomsAsync(List<Player1v1Match> list)
-    {
-        if (list == null) return;
-        if (_photonFlow == null) _photonFlow = OneVsOnePhotonFlow.EnsureInstance();
-        _photonFlow?.EnsureLobbyForRoomList();
-        for (int i = 0; i < list.Count; i++)
-        {
-            var m = list[i];
-            if (m == null || string.IsNullOrEmpty(m._id)) continue;
-            if (!m.IsHostAbandonedVersusPhoton() && !m.IsStaleFullVersusPhoton()) continue;
-            // Never auto-cancel our own live host wait from this scrub (Delete / pause own that).
-            if (m.IsCurrentUserHostOfRoom() && PhotonNetwork.InRoom) continue;
-            TrucoDebugLog.Log(TrucoDebugLog.Category.Lobby,
-                "ScrubAbandonedHostRooms cancel match=" + m._id
-                + " abandoned=" + m.IsHostAbandonedVersusPhoton()
-                + " staleFull=" + m.IsStaleFullVersusPhoton());
-            try { await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(m._id); }
-            catch (System.Exception ex)
-            {
-                TrucoDebugLog.Warn(TrucoDebugLog.Category.Lobby, "Scrub cancel failed: " + ex.Message);
-            }
-        }
-    }
-
-    static async System.Threading.Tasks.Task CancelAllExtraHostedRoomsAsync(List<Player1v1Match> list)
-    {
-        if (list == null || PhotonNetwork.InRoom) return;
-        if (OneVsOnePhotonFlow.IsMatchmakingBusyGlobally) return;
-        if (!await ApiController.EnsureSessionUserLoadedAsync()) return;
-        string userId = ApiController.GetSessionUser?.Data?._id;
-        if (string.IsNullOrEmpty(userId)) return;
-
-        string keep = OneVsOneMatchLifecycle.IsHostWaitingForGuest()
-            ? OneVsOneMatchSession.CurrentMatchId
-            : null;
-        var hosted = OneVsOneLobbyFlowRules.GetAllHostedMatchIds(list, userId);
-        for (int i = 0; i < hosted.Count; i++)
-        {
-            if (!string.IsNullOrEmpty(keep) && hosted[i] == keep) continue;
-            TrucoDebugLog.Log(TrucoDebugLog.Category.Lobby, "Cancel extra hosted room=" + hosted[i]);
-            await OneVsOneMatchLifecycle.CancelLobbyMatchAsync(hosted[i]);
-        }
     }
 
     void PrepareMatchmakingUi()

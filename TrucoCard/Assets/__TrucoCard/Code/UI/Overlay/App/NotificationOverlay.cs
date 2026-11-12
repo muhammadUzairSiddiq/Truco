@@ -1,49 +1,42 @@
 using System;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class NotificationOverlay : MonoBehaviour
 {
-    #region Setters/Private Variables
-
     [SerializeField] private GameObject _contentHolder;
-    [SerializeField] private TextMeshProUGUI _notificationText;
-    [SerializeField] private Button _closeNotificationBtn;
+    TrucoThemeRuntime.Prompt _prompt;
+    string _customTitle;
+    Action _onClose;
 
-    #endregion
+    void Awake() => TrucoLocalization.OnLanguageChanged += ReapplyTheme;
+    void OnDestroy() => TrucoLocalization.OnLanguageChanged -= ReapplyTheme;
 
-    void Awake()
+    public void DisplayNotification(string msgStr = "", Action onCloseAction = null, string title = null)
     {
-        TrucoLocalization.OnLanguageChanged += OnLanguageChanged;
-        ApplyTheme();
-    }
-
-    void OnDestroy() => TrucoLocalization.OnLanguageChanged -= OnLanguageChanged;
-
-    void OnLanguageChanged() => ApplyTheme();
-
-    public void DisplayNotification(string msgStr = "", Action onCloseAction = null)
-    {
-        _notificationText.text = msgStr;
-        ApplyTheme();
+        if (_contentHolder == null) return;
         _contentHolder.SetActive(true);
-
-        _closeNotificationBtn.onClick.RemoveAllListeners();
-        _closeNotificationBtn.onClick.AddListener(() =>
-        {
-            onCloseAction?.Invoke();
-            HideNotification();
-        });
+        _prompt ??= TrucoThemeRuntime.BuildPrompt((RectTransform)_contentHolder.transform, TrucoCanvasOrder.Notification);
+        _customTitle = title;
+        _onClose = onCloseAction;
+        _prompt.SetBody(msgStr);
+        ReapplyTheme();
     }
 
-    public void HideNotification() => _contentHolder.SetActive(false);
-
-    public void ReapplyTheme() => ApplyTheme();
-
-    void ApplyTheme()
+    public void HideNotification()
     {
-        if (_contentHolder == null || _notificationText == null) return;
-        TrucoThemeRuntime.ApplyToNotification(_contentHolder.transform, _notificationText, _closeNotificationBtn);
+        if (_contentHolder != null) _contentHolder.SetActive(false);
+        _onClose = null;
+    }
+
+    public void ReapplyTheme()
+    {
+        if (_prompt == null) return;
+        _prompt.Title.text = _customTitle ?? TrucoLocalization.T(TrucoLocalization.Key.ImportantTitle);
+        TrucoThemeRuntime.SetAction(_prompt.Primary, TrucoTextosClient.Ok, () =>
+        {
+            var onClose = _onClose;
+            HideNotification();
+            onClose?.Invoke();
+        });
     }
 }

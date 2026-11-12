@@ -66,27 +66,16 @@ public class OneVsOnePhotonSessionUi : MonoBehaviour
             _panelBackground = _overlayRoot.GetComponent<Image>();
         if (_panelBackground == null) return;
 
-        var panel = TrucoUiAssetLoader.Panel;
-        if (panel != null)
-        {
-            _panelBackground.sprite = panel;
-            _panelBackground.type = Image.Type.Sliced;
-            _panelBackground.color = new Color(1f, 1f, 1f, 0.97f);
-        }
-        else
-        {
-            _panelBackground.color = waiting
-                ? new Color(0.1f, 0.22f, 0.14f, 0.95f)
-                : new Color(0.12f, 0.32f, 0.2f, 0.96f);
-        }
+        TrucoMenuTheme.Surface(_panelBackground, waiting ? TrucoClubUI.Ink : TrucoClubUI.Surface);
 
         if (_statusText != null)
         {
-            _statusText.color = Color.white;
+            _statusText.color = TrucoClubUI.Cream;
             _statusText.fontStyle = FontStyles.Bold;
             _statusText.enableAutoSizing = true;
             _statusText.fontSizeMin = 20f;
             _statusText.fontSizeMax = 32f;
+            _statusText.textWrappingMode = TextWrappingModes.Normal;
         }
         if (_countdownText != null)
         {

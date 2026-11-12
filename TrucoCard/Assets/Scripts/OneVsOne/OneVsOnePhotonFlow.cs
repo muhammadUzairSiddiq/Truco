@@ -73,7 +73,6 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     /// <summary>Salas visibles en el lobby de Photon (nombre → jugadores en tiempo real).</summary>
     readonly Dictionary<string, int> _lobbyRoomPlayerCount = new Dictionary<string, int>(32, StringComparer.Ordinal);
     readonly Dictionary<string, RoomInfo> _lobbyRooms = new Dictionary<string, RoomInfo>(32, StringComparer.Ordinal);
-    bool _lobbySyncReceived;
 
     /// <summary>La lista de salas del menú debe refrescar filas cuando llega <see cref="OnRoomListUpdate"/>.</summary>
     public static event Action OnLobbyRoomCountsChanged;
@@ -421,7 +420,6 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     public override void OnLeftLobby()
     {
         _lobbyRoomPlayerCount.Clear();
-        _lobbySyncReceived = false;
         if (_deferredJoinAfterLeaveLobby)
         {
             _deferredJoinAfterLeaveLobby = false;
@@ -462,6 +460,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnCreateRoomFailed(short returnCode, string message)
     {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive || CurrentPurpose != Purpose.CreateHostedRoom) return;
         // 32766 = GameIdAlreadyExists — reclaim by joining instead of failing the host flow.
         bool alreadyExists = returnCode == 32766
             || (!string.IsNullOrEmpty(message)
@@ -593,6 +592,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
+        if (MH.Multiplayer.MultiplayerController.IsTournamentActive || CurrentPurpose == Purpose.None) return;
         TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
             "JoinRoomFailed code=" + returnCode + " msg=" + message + " attempt=" + (_joinRetryCount + 1) +
             "/" + MaxJoinRetries);
@@ -642,7 +642,6 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         _deferredJoinAfterLeaveLobby = false;
         _deferredCreateAfterLeaveLobby = false;
         _lobbyRoomPlayerCount.Clear();
-        _lobbySyncReceived = false;
         if (_applicationQuitting || Application.isPlaying == false) return;
         if (cause == DisconnectCause.ApplicationQuit) return;
         TrucoDebugLog.Always(TrucoDebugLog.Category.Photon,
@@ -671,13 +670,11 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
     {
         _lobbyRoomPlayerCount.Clear();
         _lobbyRooms.Clear();
-        _lobbySyncReceived = false;
     }
 
     public override void OnRoomListUpdate(List<RoomInfo> roomList)
     {
         if (roomList == null) return;
-        _lobbySyncReceived = true;
         for (int i = 0; i < roomList.Count; i++)
         {
             var ri = roomList[i];
@@ -713,7 +710,7 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         if (!PhotonNetwork.InLobby) PhotonNetwork.JoinLobby(TypedLobby.Default);
     }
 
-    /// <summary>Conteo en vivo según el lobby de Photon. Si el nombre no está y ya hubo sync, la sala no existe (0 jugadores).</summary>
+    /// <summary>Only an observed Photon lobby row supplies a count. The list may omit active rooms.</summary>
     public bool TryGetLiveLobbyPlayerCount(string photonRoomName, out int count)
     {
         count = 0;
@@ -721,11 +718,6 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
         if (_lobbyRoomPlayerCount.TryGetValue(photonRoomName, out int c))
         {
             count = Mathf.Clamp(c, 0, 2);
-            return true;
-        }
-        if (_lobbySyncReceived)
-        {
-            count = 0;
             return true;
         }
         return false;
@@ -914,10 +906,10 @@ public class OneVsOnePhotonFlow : MonoBehaviourPunCallbacks
 
     IEnumerator LaunchGameplayCountdownRoutine()
     {
-        AppManager.Instance?.DisplayNotification(TrucoTextosClient.PartidaEncontrada);
-        yield return new WaitForSecondsRealtime(1f);
-        AppManager.Instance?.HideNotification();
-        yield return new WaitForSecondsRealtime(2f);
+        AppManager.Instance?.DisplayLoadingUI(TrucoTextosClient.PartidaEncontrada);
+        yield return new WaitForSecondsRealtime(3f);
+        AppManager.Instance?.HideLoadingUI();
+        if (!TrucoMatchPlayGate.IsLiveTable()) yield break;
         TrucoOneVsOneGameplayLaunch.LoadFromCurrentRoom();
         if (!PhotonNetwork.IsMasterClient)
             StartCoroutine(GuestWaitForSyncedGameplay());

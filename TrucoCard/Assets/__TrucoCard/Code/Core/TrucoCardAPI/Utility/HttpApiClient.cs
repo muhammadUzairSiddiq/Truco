@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -132,8 +133,9 @@ public static class HttpApiClient
             if (req.result != UnityWebRequest.Result.Success || req.responseCode >= 400)
             {
                 string rawText = responsePreview;
+                string path = Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.AbsolutePath : "(invalid URL)";
                 TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
-                    method + " request failed (HTTP " + req.responseCode + ", " + req.result + "). Response body omitted.");
+                    $"{method} {path} failed (HTTP {req.responseCode}, {req.result}, replayRejected={isReplayReject}).");
 
                 cleanMessage = ExtractErrorMessage(rawText);
                 throw new System.Exception(cleanMessage);
@@ -162,10 +164,9 @@ public static class HttpApiClient
     {
         string nonce = Guid.NewGuid().ToString("N");
         // Milliseconds — matches typical Node replay middleware (Date.now()).
-        string timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        string timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
         req.SetRequestHeader("x-nonce", nonce);
         req.SetRequestHeader("x-timestamp", timestamp);
-        TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "replay headers nonce=" + nonce.Substring(0, 8) + "… tsMs=" + timestamp);
     }
 
     /// <summary>

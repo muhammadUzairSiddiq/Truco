@@ -106,4 +106,79 @@ public sealed class TrucoTournamentPlayerPresentationTests
         Assert.IsNull(typeof(TournamentBracketOverlay).GetField("_format", Fields).GetValue(overlay));
         Assert.IsTrue(overlay.transform.Find("Root/Refresh").gameObject.activeSelf);
     }
+
+    [TestCase(320, 568)]
+    [TestCase(480, 800)]
+    [TestCase(390, 844)]
+    public void ConfirmationActionsAndContentStayInsideThePortraitViewport(int width, int height)
+    {
+        var canvas = _root.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        var bounds = (RectTransform)_root.transform;
+        bounds.sizeDelta = new Vector2(1080, 1080f * height / width);
+        var prompt = TrucoThemeRuntime.BuildPrompt(bounds, TrucoCanvasOrder.Confirm, twoActions: true);
+        prompt.Title.text = "INSCRIBIRSE AL TORNEO";
+        prompt.SetBody("Prod Smoke 701\n4 jugadores · 15 puntos\nCon Flor\nEntrada: 10 Trucoins\nPremio previsto: 40 Trucoins");
+        TrucoThemeRuntime.SetAction(prompt.Secondary, "VOLVER", null);
+        TrucoThemeRuntime.SetAction(prompt.Primary, "INSCRIBIRME", null);
+        foreach (var item in new[] { prompt.Title.rectTransform, (RectTransform)prompt.Secondary.transform,
+                     (RectTransform)prompt.Primary.transform })
+        {
+            var corners = new Vector3[4];
+            item.GetWorldCorners(corners);
+            Assert.That(corners.All(corner => bounds.rect.Contains(bounds.InverseTransformPoint(corner))));
+        }
+        var scroll = bounds.GetComponentInChildren<ScrollRect>();
+        Assert.That(scroll.content.rect.height, Is.LessThanOrEqualTo(scroll.viewport.rect.height));
+        prompt.SetBody(string.Join("\n", Enumerable.Repeat("La respuesta del servidor todavía requiere confirmación.", 32)));
+        Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+        Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1f).Within(.01f));
+    }
+
+    [Test]
+    public void ConfirmationKeepsEachActionDistinctAndClosesBeforeCallingBack()
+    {
+        int confirm = 0, cancel = 0;
+        void Show() => TrucoConfirmDialog.Show("INSCRIBIRSE AL TORNEO", "Entrada: 10 Trucoins", "VOLVER", "INSCRIBIRME",
+            () => { Assert.IsFalse(TrucoConfirmDialog.IsVisible()); confirm++; },
+            () => { Assert.IsFalse(TrucoConfirmDialog.IsVisible()); cancel++; });
+        Show();
+        var dialog = GameObject.Find("TrucoConfirmDialogCanvas");
+        try
+        {
+            dialog.GetComponentsInChildren<Button>().Single(button => button.name == "PromptSecondary").onClick.Invoke();
+            Show();
+            dialog.GetComponentsInChildren<Button>().Single(button => button.name == "PromptPrimary").onClick.Invoke();
+            Assert.AreEqual(1, confirm);
+            Assert.AreEqual(1, cancel);
+        }
+        finally { Object.DestroyImmediate(dialog); }
+    }
+
+    [Test]
+    public void RuntimeNotificationAndLoadingCreateTheirOwnLayersAndCloseCorrectly()
+    {
+        var noticeHolder = TrucoClubUI.Rect("Notice", _root.transform, Vector2.zero, Vector2.one);
+        var loadingHolder = TrucoClubUI.Rect("Loading", _root.transform, Vector2.zero, Vector2.one);
+        var notice = _root.AddComponent<NotificationOverlay>();
+        var loading = _root.AddComponent<LoadingOverlay>();
+        typeof(NotificationOverlay).GetField("_contentHolder", Fields).SetValue(notice, noticeHolder.gameObject);
+        typeof(LoadingOverlay).GetField("_contentHolder", Fields).SetValue(loading, loadingHolder.gameObject);
+        noticeHolder.gameObject.SetActive(false);
+        loadingHolder.gameObject.SetActive(false);
+        loading.DisplayLoadingUI("Conectando…");
+        Assert.IsTrue(loadingHolder.gameObject.activeSelf);
+        Assert.AreEqual(TrucoCanvasOrder.Loading, loadingHolder.GetComponent<Canvas>().sortingOrder);
+        loading.HideLoadingUI();
+        Assert.IsFalse(loadingHolder.gameObject.activeSelf);
+
+        notice.DisplayNotification("Primer mensaje", () => notice.DisplayNotification("Segundo mensaje"));
+        Assert.AreEqual(TrucoCanvasOrder.Notification, noticeHolder.GetComponent<Canvas>().sortingOrder);
+        var close = noticeHolder.GetComponentInChildren<Button>();
+        close.onClick.Invoke();
+        Assert.IsTrue(noticeHolder.gameObject.activeSelf);
+        Assert.That(noticeHolder.GetComponentsInChildren<TextMeshProUGUI>().Any(text => text.text == "Segundo mensaje"));
+        close.onClick.Invoke();
+        Assert.IsFalse(noticeHolder.gameObject.activeSelf);
+    }
 }

@@ -182,7 +182,7 @@ public static class ApiConfig
     public static string AdminForceCloseTournament(string id) => Url("AdminForceCloseTournament", "/admin/tournaments/{0}/force-close", id);
     public static string AdminSetMaintenance => Url("AdminSetMaintenance", "/admin/system/maintenance");
     public static string ListTransactions => Url("ListTransactions", "/admin/transactions");
-    public static string GetSystemStatus => Url("GetSystemStatus", "/admin/system/status");
+    public static string GetSystemStatus => Url("GetSystemStatus", "/system/status");
     public static string GetAlertsDashboard => Url("GetAlertsDashboard", "/admin/alerts/dashboard");
     public static string AdminListAlerts => Url("AdminListAlerts", "/admin/alerts");
     public static string AdminGetAlert(string id) => Url("AdminGetAlert", "/admin/alerts/{0}", id);

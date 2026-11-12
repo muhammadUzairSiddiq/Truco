@@ -1,30 +1,20 @@
-using TMPro;
 using UnityEngine;
 
 public class LoadingOverlay : MonoBehaviour
 {
-    #region Setters/Private Variables
-
     [SerializeField] private GameObject _contentHolder;
-    [SerializeField] private TextMeshProUGUI _loadingText;
+    TrucoThemeRuntime.Prompt _prompt;
 
-    #endregion
-
-    void Awake()
-    {
-        TrucoLocalization.OnLanguageChanged += OnLanguageChanged;
-        ApplyTheme();
-    }
-
-    void OnDestroy() => TrucoLocalization.OnLanguageChanged -= OnLanguageChanged;
-
-    void OnLanguageChanged() => ApplyTheme();
+    void Awake() => TrucoLocalization.OnLanguageChanged += ReapplyTheme;
+    void OnDestroy() => TrucoLocalization.OnLanguageChanged -= ReapplyTheme;
 
     public void DisplayLoadingUI(string msgStr = "")
     {
-        if (_loadingText != null) _loadingText.text = msgStr;
-        ApplyTheme();
-        if (_contentHolder != null) _contentHolder.SetActive(true);
+        if (_contentHolder == null) return;
+        _contentHolder.SetActive(true);
+        _prompt ??= TrucoThemeRuntime.BuildPrompt((RectTransform)_contentHolder.transform, TrucoCanvasOrder.Loading, loading: true);
+        ReapplyTheme();
+        _prompt.SetBody(msgStr);
     }
 
     public void HideLoadingUI()
@@ -32,11 +22,8 @@ public class LoadingOverlay : MonoBehaviour
         if (_contentHolder != null) _contentHolder.SetActive(false);
     }
 
-    public void ReapplyTheme() => ApplyTheme();
-
-    void ApplyTheme()
+    public void ReapplyTheme()
     {
-        if (_contentHolder == null || _loadingText == null) return;
-        TrucoThemeRuntime.ApplyToLoading(_contentHolder.transform, _loadingText);
+        if (_prompt != null) _prompt.Title.text = TrucoLocalization.T(TrucoLocalization.Key.Espere);
     }
 }

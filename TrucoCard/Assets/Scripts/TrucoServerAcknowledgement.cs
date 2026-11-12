@@ -63,6 +63,6 @@ public static class TrucoServerAcknowledgement
         try { return JObject.Parse(json); } catch { return null; }
     }
     static bool True(JToken token) => token?.Type == JTokenType.Boolean && token.Value<bool>();
-    static bool Rejected(JObject root) => root["ok"]?.Type == JTokenType.Boolean && !root["ok"].Value<bool>()
-        || root["success"]?.Type == JTokenType.Boolean && !root["success"].Value<bool>();
+    internal static bool Rejected(JObject root) => root != null && (root["ok"]?.Type == JTokenType.Boolean && !root["ok"].Value<bool>()
+        || root["success"]?.Type == JTokenType.Boolean && !root["success"].Value<bool>());
 }

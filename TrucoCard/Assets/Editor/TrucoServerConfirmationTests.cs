@@ -44,6 +44,7 @@ public class TrucoServerConfirmationTests
     [TestCase("{\"data\":{\"active\":true}}")]
     [TestCase("{\"data\":{\"maintenance\":{\"active\":true}}}")]
     [TestCase("{\"active\":true}")]
+    [TestCase("{\"data\":{\"maintenance\":{\"enabled\":true}}}")]
     public void WrappedMaintenanceCannotAccidentallyDisableBlocking(string json)
     {
         var state = TrucoMaintenanceMode.TryParse(json);
@@ -56,7 +57,20 @@ public class TrucoServerConfirmationTests
     [TestCase("{\"ok\":false,\"active\":false}")]
     [TestCase("{\"success\":false,\"data\":{\"maintenance\":{\"active\":false}}}")]
     [TestCase("{\"error\":\"Unauthorized\"}")]
+    [TestCase("{\"active\":true,\"enabled\":false}")]
+    [TestCase("{\"enabled\":\"false\"}")]
     [TestCase("not json")]
     public void InvalidMaintenanceResponseDoesNotReplaceKnownState(string json) =>
         Assert.IsNull(TrucoMaintenanceMode.TryParse(json));
+
+    [Test]
+    public void LiveMaintenanceResponseClearsBlocking()
+    {
+        const string response = "{\"success\":true,\"data\":{\"maintenance\":{\"enabled\":false,\"message\":\"system error\",\"blockGame\":false,\"blockTransactions\":false}}}";
+        var state = TrucoMaintenanceMode.TryParse(response);
+        Assert.IsNotNull(state);
+        Assert.IsFalse(state.active);
+        Assert.IsFalse(state.blockGame);
+        Assert.IsFalse(state.blockTransactions);
+    }
 }

@@ -59,20 +59,12 @@ namespace MH.Multiplayer
 
         public override void OnJoinRoomFailed(short code, string message)
         {
-            if (!_isTournamentModeActive) return;
-            // A failed rejoin attempt must not erase the active match while the reconnect
-            // manager still owns its retry window and cached room identity.
-            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Gameplay"
-                && MultiplayerController.ActiveMatch != null) return;
-            MultiplayerController.LeaveTournamentMatchmaking();
-            AppManager.Instance?.DisplayNotification("No se pudo entrar al torneo: " + message);
+            if (_isTournamentModeActive) MultiplayerController.OnAssignedRoomFailed("join", code);
         }
 
         public override void OnCreateRoomFailed(short code, string message)
         {
-            if (!_isTournamentModeActive) return;
-            MultiplayerController.LeaveTournamentMatchmaking();
-            AppManager.Instance?.DisplayNotification("No se pudo crear la mesa del torneo. Inscripción/reembolso pendientes de revisión: " + message);
+            if (_isTournamentModeActive) MultiplayerController.OnAssignedRoomFailed("create", code);
         }
 
         public override void OnPlayerLeftRoom(Player otherPlayer)
@@ -89,14 +81,6 @@ namespace MH.Multiplayer
                 MultiplayerController.OnRoomPropertiesUpdate(propertiesThatChanged);
         }
 
-        public override void OnLeftRoom()
-        {
-            if (_isTournamentModeActive)
-            {
-                MultiplayerController.OnLeftRoom();
-            }
-        }
-
         #endregion
 
         #region Photon Callbacks - Connection Events
@@ -104,7 +88,10 @@ namespace MH.Multiplayer
         public override void OnDisconnected(DisconnectCause cause)
         {
             if (_isTournamentModeActive && MultiplayerController.IsTournamentActive)
+            {
+                MultiplayerController.OnAssignedRoomDisconnected(cause);
                 return;
+            }
             if (_isTournamentModeActive)
                 DisableTournamentMode();
         }
@@ -112,10 +99,6 @@ namespace MH.Multiplayer
         public override void OnConnectedToMaster()
         {
             TrucoPunPlayerAvatarUtil.ApplyLocalPlayerAvatar();
-            if (_isTournamentModeActive)
-            {
-                MultiplayerController.OnConnectedToMasterForTournament();
-            }
         }
 
         #endregion

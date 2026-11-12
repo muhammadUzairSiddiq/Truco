@@ -24,11 +24,13 @@ public static class TrucoPhotonAuthentication
     public static string LastError { get; private set; }
     static string LocalId => ApiController.GetSessionUser?.Data?._id;
     static string Mode(string value) => value == "1v1" ? "one_vs_one" : value;
+    static string Scope(string user, string mode, string tournamentId, string matchId, string roomName) =>
+        user + ":" + mode + ":" + tournamentId + ":" + matchId + ":" + roomName;
 
     public static Task<bool> ConnectUsingSettingsAsync(string mode, string tournamentId = null, string matchId = null, string roomName = null)
     {
         mode = Mode(mode);
-        string scope = LocalId + ":" + mode + ":" + tournamentId + ":" + matchId + ":" + roomName;
+        string scope = Scope(LocalId, mode, tournamentId, matchId, roomName);
         if (_connection != null && !_connection.IsCompleted)
             return _pendingScope == scope ? _connection : AfterCurrent(_connection, LocalId, mode, tournamentId, matchId, roomName);
         _pendingScope = scope;
@@ -46,6 +48,7 @@ public static class TrucoPhotonAuthentication
         string matchId = null, string roomName = null, int timeoutSeconds = 20)
     {
         string user = LocalId; int generation = _generation, sessionGeneration = HttpApiClient.SessionGeneration;
+        string scope = Scope(user, Mode(mode), tournamentId, matchId, roomName);
         _readyWaiters++;
         try
         {
@@ -53,11 +56,20 @@ public static class TrucoPhotonAuthentication
             var deadline = DateTime.UtcNow.AddSeconds(Math.Max(1, Math.Min(60, timeoutSeconds)));
             while (DateTime.UtcNow < deadline && generation == _generation && sessionGeneration == HttpApiClient.SessionGeneration && LocalId == user)
             {
-                if (IsVerifiedReady(user)) return true;
+                if (_ticketScope == scope && IsVerifiedReady(user))
+                {
+                    TrucoDebugLog.Log(TrucoDebugLog.Category.Photon, $"Photon Master ready mode={Mode(mode)} assigned={roomName != null}.");
+                    return true;
+                }
                 if (!PhotonNetwork.IsConnected && PhotonNetwork.NetworkClientState == ClientState.Disconnected) break;
                 await Task.Delay(50);
             }
-            LastError = "No se pudo confirmar una conexión multijugador autenticada. No se autorizó una nueva entrada.";
+            if (generation != _generation || sessionGeneration != HttpApiClient.SessionGeneration || LocalId != user) return false;
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon,
+                $"Photon Master unavailable mode={Mode(mode)} assigned={roomName != null} state={PhotonNetwork.NetworkClientState} cause={PhotonNetwork.NetworkingClient.DisconnectedCause}.");
+            LastError = PhotonNetwork.NetworkingClient.DisconnectedCause == DisconnectCause.CustomAuthenticationFailed
+                ? "El servicio multijugador no pudo validar tu conexión. No se envió una nueva inscripción."
+                : "No se pudo confirmar una conexión multijugador autenticada. No se autorizó una nueva entrada.";
             return false;
         }
         finally { _readyWaiters--; }
@@ -74,16 +86,23 @@ public static class TrucoPhotonAuthentication
     static async Task<bool> ConnectCore(string mode, string tournamentId, string matchId, string roomName, string scope)
     {
         int generation = _generation, sessionGeneration = HttpApiClient.SessionGeneration; string user = LocalId; LastError = null;
+        string step = "request validation";
         try
         {
             if (string.IsNullOrWhiteSpace(user) || mode != "one_vs_one" && mode != "tournament" && mode != "spectator")
                 throw new InvalidOperationException();
-            if (_ticketScope == scope && IsVerifiedConnection(user) && ValidUntil(_ticket.expiresAt) > DateTimeOffset.UtcNow.AddSeconds(5)) return true;
+            if (_ticketScope == scope && _ticket?.userId == user && ValidUntil(_ticket.expiresAt) > DateTimeOffset.UtcNow.AddSeconds(5)
+                && (IsVerifiedConnection(user) || PhotonNetwork.IsConnected && !PhotonNetwork.IsConnectedAndReady
+                    && PhotonNetwork.NetworkClientState != ClientState.Disconnecting)) return true;
             var route = ApiConfig.Custom("PhotonSession");
             if (string.IsNullOrWhiteSpace(route)) throw new InvalidOperationException();
             var payload = new Request { mode = mode, tournamentId = tournamentId, matchId = matchId, roomName = roomName };
-            var ticket = ReadTicket(await HttpApiClient.PostAsync(route, JsonConvert.SerializeObject(payload)), user, mode, tournamentId, matchId, roomName);
+            step = "POST photon-session";
+            string response = await HttpApiClient.PostAsync(route, JsonConvert.SerializeObject(payload));
+            step = "ticket validation";
+            var ticket = ReadTicket(response, user, mode, tournamentId, matchId, roomName);
             if (generation != _generation || sessionGeneration != HttpApiClient.SessionGeneration || LocalId != user) return false;
+            step = "Photon connection";
             if (PhotonNetwork.IsConnected)
             {
                 PhotonNetwork.Disconnect();
@@ -101,11 +120,18 @@ public static class TrucoPhotonAuthentication
             var settings = PhotonNetwork.PhotonServerSettings.AppSettings.CopyTo(new AppSettings());
             settings.AppVersion = ticket.appVersion;
             bool connected = PhotonNetwork.ConnectUsingSettings(settings);
-            if (!connected) LastError = "No se pudo iniciar la conexión multijugador autenticada.";
+            if (!connected)
+            {
+                _ticket = null; _ticketScope = null;
+                TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon, $"Photon connection rejected locally mode={mode} assigned={roomName != null}.");
+                LastError = "No se pudo iniciar la conexión multijugador autenticada.";
+            }
             return connected;
         }
         catch (Exception)
         {
+            if (generation != _generation || sessionGeneration != HttpApiClient.SessionGeneration || LocalId != user) return false;
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon, $"{step} failed mode={mode} assigned={roomName != null}.");
             LastError = "El servidor no confirmó una sesión multijugador segura. Volvé a intentarlo más tarde.";
             return false;
         }

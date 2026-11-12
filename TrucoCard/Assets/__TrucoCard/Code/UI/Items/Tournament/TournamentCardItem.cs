@@ -321,7 +321,13 @@ public class TournamentCardItem : MonoBehaviour
     {
         if (_iTournamentData == null) return;
         if (!TrucoPlayAccess.TryTournaments()) return;
-        if (ApiController.GetSessionUser.Data.wallet.balance < _iTournamentData.entryFee
+        var player = ApiController.GetSessionUser?.Data;
+        if (player == null)
+        {
+            AppManager.Instance?.DisplayNotification("Volvé a iniciar sesión para inscribirte.");
+            return;
+        }
+        if (player.wallet != null && player.wallet.balance < _iTournamentData.entryFee
             && !_iTournamentData.IsCurrentUserRegistered())
         {
             AppManager.Instance.DisplayNotification("No tenés Trucoins suficientes para inscribirte.");
@@ -360,7 +366,7 @@ public class TournamentCardItem : MonoBehaviour
         TrucoConfirmDialog.Show("INSCRIBIRSE AL TORNEO", _iTournamentData.name + "\n"
             + _iTournamentData.maxPlayers + " jugadores · " + _iTournamentData.targetScore + " puntos\n"
             + (_iTournamentData.withFlor ? "Con Flor" : "Sin Flor") + "\nEntrada: " + _iTournamentData.entryFee
-            + " Trucoins · Premio previsto: " + _iTournamentData.prizePool + " Trucoins",
+            + " Trucoins\nPremio previsto: " + _iTournamentData.prizePool + " Trucoins",
             "VOLVER", "INSCRIBIRME", DoMatchMaking);
     }
     private void DoMatchMaking()

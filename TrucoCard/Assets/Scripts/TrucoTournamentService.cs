@@ -72,7 +72,7 @@ public static class TrucoTournamentService
         return route;
     }
     public static async Task<Snapshot> Get(string tournamentId, Snapshot previous = null) =>
-        ReadReceipt(await HttpApiClient.GetAsync(Route("TournamentSnapshot", tournamentId)), tournamentId, LocalId, previous);
+        ReadServiceReceipt("snapshot", await HttpApiClient.GetAsync(Route("TournamentSnapshot", tournamentId)), tournamentId, previous);
 
     /// <summary>Display-only compatibility DTO; advertisedPrize never represents a paid receipt.</summary>
     public static Tournament ToLegacyTournament(Snapshot snapshot)
@@ -113,12 +113,30 @@ public static class TrucoTournamentService
         var original = JsonConvert.DeserializeObject<Mutation>(jsonBody);
         if (original == null || original.idempotencyKey != key || original.matchId != matchId || original.winnerId != winnerId || original.reason != reason)
             throw new InvalidOperationException("Existe una solicitud pendiente con otros datos. Consultá el estado antes de enviar otra.");
-        var result = ReadReceipt(await HttpApiClient.PostAsync(Route(route, snapshot.tournamentId), jsonBody),
-            snapshot.tournamentId, LocalId, snapshot, key);
+        var result = ReadServiceReceipt(operation, await HttpApiClient.PostAsync(Route(route, snapshot.tournamentId), jsonBody),
+            snapshot.tournamentId, snapshot, key);
         if (operation == "reconcile") ForgetOperation(snapshot.tournamentId, operation, matchId);
         if (operation == "leave" && (result.localStatus == "withdrawn" || result.status == "cancelled"))
             ForgetOperation(snapshot.tournamentId, "join", null);
         return result;
+    }
+
+    static Snapshot ReadServiceReceipt(string operation, string response, string tournamentId, Snapshot previous, string key = null)
+    {
+        try
+        {
+            var snapshot = ReadReceipt(response, tournamentId, LocalId, previous, key);
+            if (previous == null || snapshot.revision != previous.revision || key != null)
+                TrucoDebugLog.Log(TrucoDebugLog.Category.Api,
+                    $"Tournament {operation} confirmed state={snapshot.status} revision={snapshot.revision} assigned={snapshot.localAssignment != null}.");
+            return snapshot;
+        }
+        catch (InvalidOperationException exception)
+        {
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
+                $"Tournament {operation} response did not validate against contract v1 ({exception.InnerException?.Message ?? "unknown validation failure"}).");
+            throw;
+        }
     }
 
     static string KeyName(string tournamentId, string operation, string subject)
@@ -145,26 +163,31 @@ public static class TrucoTournamentService
         try
         {
             var root = JsonConvert.DeserializeObject<JObject>(json, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
-            if (root == null) throw new InvalidOperationException();
+            if (root == null) throw new InvalidOperationException("Expected a JSON object");
             var data = root["data"] as JObject;
             var raw = data?["snapshot"] as JObject;
             if (root["success"]?.Type != JTokenType.Boolean || !root["success"].Value<bool>()
-                || root["ok"]?.Type == JTokenType.Boolean && !root["ok"].Value<bool>()
-                || data?["schemaVersion"]?.Type != JTokenType.Integer || data["schemaVersion"].Value<int>() != 1
-                || raw == null || raw["revision"]?.Type != JTokenType.Integer
+                || root["ok"]?.Type == JTokenType.Boolean && !root["ok"].Value<bool>())
+                throw new InvalidOperationException("Expected success=true");
+            if (data?["schemaVersion"]?.Type != JTokenType.Integer || data["schemaVersion"].Value<int>() != 1)
+                throw new InvalidOperationException("Expected data.schemaVersion=1");
+            if (raw == null) throw new InvalidOperationException("Missing data.snapshot");
+            if (raw["revision"]?.Type != JTokenType.Integer
                 || raw["maxPlayers"]?.Type != JTokenType.Integer || raw["targetScore"]?.Type != JTokenType.Integer
                 || raw["entryFee"]?.Type != JTokenType.Integer || raw["advertisedPrize"]?.Type != JTokenType.Integer
                 || raw["withFlor"]?.Type != JTokenType.Boolean || raw["participants"] is not JArray
-                || raw["matches"] is not JArray || raw["refunds"] is not JArray
-                || raw["wallet"] is not JObject || raw["wallet"]["available"]?.Type != JTokenType.Integer
-                || raw["wallet"]["held"]?.Type != JTokenType.Integer || raw["wallet"]["revision"]?.Type != JTokenType.Integer
-                || idempotencyKey != null && (string)data["idempotencyKey"] != idempotencyKey)
-                throw new InvalidOperationException();
+                || raw["matches"] is not JArray || raw["refunds"] is not JArray)
+                throw new InvalidOperationException("Snapshot fields missing or incorrectly typed");
+            if (raw["wallet"] is not JObject || raw["wallet"]["available"]?.Type != JTokenType.Integer
+                || raw["wallet"]["held"]?.Type != JTokenType.Integer || raw["wallet"]["revision"]?.Type != JTokenType.Integer)
+                throw new InvalidOperationException("Expected snapshot.wallet available, held and revision");
+            if (idempotencyKey != null && (string)data["idempotencyKey"] != idempotencyKey)
+                throw new InvalidOperationException("Missing or mismatched idempotency receipt");
             if (((JArray)raw["participants"]).Any(p => p["position"]?.Type != JTokenType.Integer || p["entryPaid"]?.Type != JTokenType.Boolean)
                 || ((JArray)raw["matches"]).Any(m => m["round"]?.Type != JTokenType.Integer || m["index"]?.Type != JTokenType.Integer)
                 || ((JArray)raw["refunds"]).Any(r => r["amount"]?.Type != JTokenType.Integer)
                 || raw["payout"] is JObject payout && (string)payout["status"] == "paid" && payout["amount"]?.Type != JTokenType.Integer)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Participant, match or settlement fields are incorrectly typed");
             var snapshot = raw.ToObject<Snapshot>();
             Validate(snapshot, expectedTournament, localPlayerId, previous);
             return snapshot;
@@ -172,7 +195,8 @@ public static class TrucoTournamentService
         catch (Exception exception) when (exception is JsonException || exception is InvalidOperationException
             || exception is ArgumentException || exception is OverflowException || exception is FormatException)
         {
-            throw new InvalidOperationException("El servidor no confirmó un estado de torneo válido. No se avanzó ni se modificó el saldo.");
+            string reason = exception is InvalidOperationException ? exception.Message : "Malformed JSON or field value";
+            throw new InvalidOperationException("El servidor no confirmó un estado de torneo válido.", new InvalidOperationException(reason));
         }
     }
 

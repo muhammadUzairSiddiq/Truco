@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -104,24 +105,22 @@ public static class TrucoMaintenanceMode
     {
         try
         {
-            var root = Newtonsoft.Json.Linq.JObject.Parse(raw);
-            if (root["ok"]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean && !(bool)root["ok"]) return null;
-            if (root["success"]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean && !(bool)root["success"]) return null;
-            var payload = root["maintenance"] as Newtonsoft.Json.Linq.JObject
-                ?? root["data"] as Newtonsoft.Json.Linq.JObject ?? root;
-            payload = payload["maintenance"] as Newtonsoft.Json.Linq.JObject ?? payload;
-            if (payload["active"]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean) return null;
-            return payload.ToObject<State>();
+            var root = JObject.Parse(raw);
+            if (root["ok"]?.Type == JTokenType.Boolean && !(bool)root["ok"]) return null;
+            if (root["success"]?.Type == JTokenType.Boolean && !(bool)root["success"]) return null;
+            var payload = root["maintenance"] as JObject ?? root["data"] as JObject ?? root;
+            payload = payload["maintenance"] as JObject ?? payload;
+            var active = payload["active"];
+            var enabled = payload["enabled"];
+            if (active == null && enabled == null || active != null && active.Type != JTokenType.Boolean
+                || enabled != null && enabled.Type != JTokenType.Boolean
+                || active != null && enabled != null && (bool)active != (bool)enabled) return null;
+            var state = payload.ToObject<State>();
+            state.active = (bool)(active ?? enabled);
+            return state;
         }
         catch { }
         return null;
     }
 
-    [Serializable]
-    class StatusWrap
-    {
-        public State maintenance;
-        public State data;
-        public bool ok;
-    }
 }

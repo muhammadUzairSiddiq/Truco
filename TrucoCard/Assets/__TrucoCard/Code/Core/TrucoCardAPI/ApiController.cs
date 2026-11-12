@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
@@ -300,27 +302,20 @@ public static class ApiController
             string response = await HttpApiClient.GetAsync(ApiConfig.ListTournaments);
             Debug.Log("[ApiController] - Tournament list response received.");
 
-            TournamentsListResponse tournamentsListResponse = JsonUtility.FromJson<TournamentsListResponse>(response);
-
-            if (tournamentsListResponse != null)
+            var tournaments = TryParseTournamentListJson(response);
+            if (tournaments == null)
             {
-                if (GetActiveTournaments == null)
-                {
-                    GameObject sessionObj = new GameObject("[SessionTournaments]");
-                    Object.DontDestroyOnLoad(sessionObj);
-
-                    GetActiveTournaments = sessionObj.AddComponent<SessionTournament>();
-                }
-
-                var tournaments = tournamentsListResponse.tournaments ?? new System.Collections.Generic.List<Tournament>();
-                GetActiveTournaments.UpdateTournaments(tournaments);
-                Debug.Log("[ApiController] - Active tournaments: " + tournaments.Count);
-
-                return true;
+                TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "Tournament list response did not contain a valid list.");
+                return false;
             }
-
-            Debug.Log("[ApiController] - No Active Tournament Found!");
-
+            if (GetActiveTournaments == null)
+            {
+                GameObject sessionObj = new GameObject("[SessionTournaments]");
+                Object.DontDestroyOnLoad(sessionObj);
+                GetActiveTournaments = sessionObj.AddComponent<SessionTournament>();
+            }
+            GetActiveTournaments.UpdateTournaments(tournaments);
+            Debug.Log("[ApiController] - Active tournaments: " + tournaments.Count);
             return true;
 
         }
@@ -705,48 +700,26 @@ public static class ApiController
         return null;
     }
 
-    public static List<Player1v1Match> TryParsePlayerMatchListJson(string response)
+    public static List<Player1v1Match> TryParsePlayerMatchListJson(string response) => ReadMatchmakingList<Player1v1Match>(response, "matches");
+
+    public static List<Tournament> TryParseTournamentListJson(string response) => ReadMatchmakingList<Tournament>(response, "tournaments");
+
+    static List<T> ReadMatchmakingList<T>(string response, string listKey)
     {
-        var list = new List<Player1v1Match>();
-        if (string.IsNullOrEmpty(response) || !response.TrimStart().StartsWith("{"))
-        {
-            if (response != null && response.TrimStart().StartsWith("["))
-            {
-                try
-                {
-                    var arr = JsonHelper.FromJson<Player1v1Match>(response);
-                    if (arr != null) list.AddRange(arr);
-                }
-                catch (Exception e) { Debug.LogWarning("[ApiController] array parse: " + e.Message); }
-            }
-            return list;
-        }
+        if (string.IsNullOrWhiteSpace(response)) return null;
         try
         {
-            var top = JsonUtility.FromJson<MatchesListEnvelope>(response);
-            if (top?.matches != null && top.matches.Length > 0)
+            var raw = JsonConvert.DeserializeObject<JToken>(response, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+            if (raw is JObject envelope)
             {
-                list.AddRange(top.matches);
-                return list;
+                var data = envelope["data"] as JObject;
+                if (TrucoServerAcknowledgement.Rejected(envelope) || TrucoServerAcknowledgement.Rejected(data)) return null;
+                raw = envelope[listKey] ?? data?[listKey] ?? envelope["data"];
             }
+            return raw is JArray list && list.All(item => item is JObject)
+                ? JsonHelper.FromJson<T>(list.ToString(Formatting.None))?.ToList() : null;
         }
-        catch (Exception) { }
-        try
-        {
-            var dataRoot = JsonUtility.FromJson<MatchesListDataRoot>(response);
-            if (dataRoot?.data != null && dataRoot.data.matches != null)
-            {
-                list.AddRange(dataRoot.data.matches);
-                return list;
-            }
-            if (dataRoot?.matches != null)
-            {
-                list.AddRange(dataRoot.matches);
-                return list;
-            }
-        }
-        catch (Exception) { }
-        return list;
+        catch (Exception exception) when (exception is JsonException || exception is ArgumentException) { return null; }
     }
 
     /// <summary>
@@ -797,12 +770,13 @@ public static class ApiController
                 onError?.Invoke(response ?? "Error al crear la sala (backend).");
                 return null;
             }
-            var parsed = JsonUtility.FromJson<PlayerCreateMatchResponse>(response);
-            if (parsed?.match != null && !string.IsNullOrEmpty(parsed.match._id))
+            var match = TryParseSingleMatchJson(response);
+            if (match != null)
             {
                 await GetCurrentUserProfile();
-                return parsed.match;
+                return match;
             }
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "1v1 create response did not confirm a match ID.");
             onError?.Invoke("No se pudo crear la sala. Revisá el backend y el formato de respuesta.");
             return null;
         }
@@ -911,34 +885,18 @@ public static class ApiController
 
     public static Player1v1Match TryParseSingleMatchJson(string response)
     {
-        if (string.IsNullOrEmpty(response) || !response.Contains("{")) return null;
+        if (string.IsNullOrWhiteSpace(response)) return null;
         try
         {
-            var wrapped = JsonUtility.FromJson<PlayerCreateMatchResponse>(response);
-            if (wrapped?.match != null && !string.IsNullOrEmpty(wrapped.match._id))
-                return wrapped.match;
+            var root = JsonConvert.DeserializeObject<JObject>(response, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+            if (root == null || TrucoServerAcknowledgement.Rejected(root)) return null;
+            var data = root["data"] as JObject;
+            var payload = root["match"] as JObject ?? data?["match"] as JObject ?? data ?? root;
+            if (TrucoServerAcknowledgement.Rejected(data) || TrucoServerAcknowledgement.Rejected(payload)
+                || payload["_id"]?.Type != JTokenType.String || string.IsNullOrWhiteSpace((string)payload["_id"])) return null;
+            return JsonUtility.FromJson<Player1v1Match>(payload.ToString(Formatting.None));
         }
-        catch (Exception) { }
-        try
-        {
-            var join = JsonUtility.FromJson<PlayerJoinMatchResponse>(response);
-            if (join?.match != null && !string.IsNullOrEmpty(join.match._id))
-                return join.match;
-        }
-        catch (Exception) { }
-        try
-        {
-            var direct = JsonUtility.FromJson<Player1v1Match>(response);
-            if (direct != null && !string.IsNullOrEmpty(direct._id)) return direct;
-        }
-        catch (Exception) { }
-        try
-        {
-            var flat = JsonUtility.FromJson<PlayerJoinMatchFlattenedDataRoot>(response);
-            if (flat?.data != null && !string.IsNullOrEmpty(flat.data._id)) return flat.data;
-        }
-        catch (Exception) { }
-        return null;
+        catch (Exception exception) when (exception is JsonException || exception is ArgumentException) { return null; }
     }
 
     public static async Task<Player1v1Match> GetMatch1v1(string matchId)
@@ -948,7 +906,9 @@ public static class ApiController
         {
             string response = await HttpApiClient.GetAsync(ApiConfig.GetMatch(matchId));
             TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "GET match id=" + matchId);
-            return TryParseSingleMatchJson(response);
+            var match = TryParseSingleMatchJson(response);
+            if (match?._id == matchId) return match;
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "1v1 details response did not confirm the requested match ID.");
         }
         catch (Exception ex)
         {

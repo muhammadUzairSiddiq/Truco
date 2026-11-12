@@ -18,12 +18,14 @@ namespace MH.Multiplayer
         static string _pendingMatchRoomName;
         static int _generation;
         static bool _joining, _starting, _refreshing, _advancing, _leaving, _loadingTable, _isInTournamentMatch, _finishing;
+        static bool _connectingAssignedRoom, _joiningAssignedRoom, _retryAssignedRoom;
         static string _presentedAssignment, _shownPayout;
         public static TournamentRequest CurrentTournamentRequest => _currentTournamentRequest;
         public static TrucoTournamentService.Snapshot CurrentSnapshot { get; private set; }
         public static bool IsTournamentActive => _currentTournamentRequest != null;
         public static bool HasSavedTournament => !string.IsNullOrEmpty(TrucoTournamentSessionStore.Remembered());
         public static bool LastLeaveConfirmed { get; private set; }
+        public static bool CanRetryAssignedRoom => _retryAssignedRoom && !_connectingAssignedRoom && !_joiningAssignedRoom;
         public static TournamentMatch ActiveMatch;
         public static TournamentMatch NextMatch;
         public static TournamentBracketState BracketState { get; private set; }
@@ -55,7 +57,8 @@ namespace MH.Multiplayer
             ValidateRoom();
         }
 
-        public static async void InitMultiplayerSession_Tournament(TournamentRequest request, Action<string> onErrorAction = null)
+        public static async Task InitMultiplayerSession_Tournament(TournamentRequest request, Action<string> onErrorAction = null,
+            Action<string> onProgress = null)
         {
             if (_joining || IsTournamentActive) return;
             if (request == null || string.IsNullOrWhiteSpace(request.TournamentId) || request.MaxPlayerCount != 4 && request.MaxPlayerCount != 8)
@@ -63,16 +66,27 @@ namespace MH.Multiplayer
             _joining = true;
             TrucoTournamentSessionStore.SuppressAutomaticResume = false;
             int generation = ++_generation;
+            string playerError = "No se pudieron verificar los datos del torneo. No se envió la inscripción.";
             try
             {
                 // Verify the versioned read contract before a registration can debit anything.
+                onProgress?.Invoke("Consultando el estado del torneo…");
                 var before = await TrucoTournamentService.Get(request.TournamentId);
                 if (generation != _generation) return;
                 bool alreadyRegistered = before.participants.Any(p => p.playerId == LocalId && p.status != "withdrawn");
                 OneVsOnePhotonFlow.Instance?.ResetPurpose();
-                if (!alreadyRegistered && !await TrucoPhotonAuthentication.ConnectAndWaitUntilReadyAsync("tournament", request.TournamentId))
-                    throw new InvalidOperationException(TrucoPhotonAuthentication.LastError);
+                if (!alreadyRegistered)
+                {
+                    onProgress?.Invoke("Verificando la conexión multijugador…");
+                    if (!await TrucoPhotonAuthentication.ConnectAndWaitUntilReadyAsync("tournament", request.TournamentId))
+                    {
+                        if (generation == _generation)
+                            onErrorAction?.Invoke(TrucoPhotonAuthentication.LastError ?? "No se pudo verificar la conexión multijugador.");
+                        return;
+                    }
+                }
                 if (generation != _generation) return;
+                onProgress?.Invoke("Confirmando tu inscripción…");
                 _currentTournamentRequest = RequestFrom(before);
                 CurrentSnapshot = before;
                 TrucoTournamentSessionStore.Remember(before.tournamentId);
@@ -85,8 +99,9 @@ namespace MH.Multiplayer
             catch (Exception exception)
             {
                 if (generation != _generation) return;
+                TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "Tournament entry stopped: " + exception.GetType().Name);
                 if (IsTournamentActive) ShowPending("La inscripción requiere confirmación del servidor. Consultá el estado antes de volver a intentar.");
-                onErrorAction?.Invoke(exception.Message);
+                else onErrorAction?.Invoke(playerError);
             }
             finally { if (generation == _generation) _joining = false; }
         }
@@ -326,6 +341,7 @@ namespace MH.Multiplayer
             if (ActiveMatch == null && !_isInTournamentMatch) return;
             GameManager.Instance?.SetCanPlayCard(false); UIMANAGER.Instance?.DisableButtons(); TurnManager.Instance?.StopAllTurnTimers();
             _isInTournamentMatch = false; _loadingTable = false; _pendingMatchRoomName = null; ActiveMatch = null; _presentedAssignment = null;
+            _connectingAssignedRoom = _joiningAssignedRoom = _retryAssignedRoom = false;
             if (SceneManager.GetActiveScene().name == "Gameplay") SceneManager.LoadScene("TempScene");
             if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom(false);
         }
@@ -339,6 +355,7 @@ namespace MH.Multiplayer
         public static void LeaveTournamentMatchmaking(Action onCompleteAction = null)
         {
             _generation++; _joining = _starting = _refreshing = _advancing = _leaving = _loadingTable = _isInTournamentMatch = _finishing = false;
+            _connectingAssignedRoom = _joiningAssignedRoom = _retryAssignedRoom = false;
             _currentTournamentRequest = null; CurrentSnapshot = null; ActiveMatch = NextMatch = null; BracketState = null;
             _pendingMatchRoomName = _presentedAssignment = _shownPayout = null;
             _multiplayerCallbacks?.DisableTournamentMode();
@@ -375,17 +392,12 @@ namespace MH.Multiplayer
             if (_presentedAssignment == table.matchId && ActiveMatch?.matchId == table.matchId)
             {
                 ValidateRoom();
-                bool idleTransport = PhotonNetwork.NetworkClientState == ClientState.Disconnected
-                    || PhotonNetwork.NetworkClientState == ClientState.PeerCreated
-                    || PhotonNetwork.IsConnectedAndReady && PhotonNetwork.Server == ServerConnection.MasterServer;
-                if (!PhotonNetwork.InRoom && !_loadingTable && !TrucoPhotonAuthentication.IsAuthenticating
-                    && idleTransport && _pendingMatchRoomName == serverTable.roomName)
-                    _ = ConnectAssignedTransportAsync(_generation, serverTable);
                 return;
             }
             if (SceneManager.GetActiveScene().name == "Gameplay") SceneManager.LoadScene("TempScene");
             ActiveMatch = serverTable; NextMatch = null; _presentedAssignment = table.matchId;
             _isInTournamentMatch = true; _loadingTable = false; _pendingMatchRoomName = table.roomName;
+            _connectingAssignedRoom = _joiningAssignedRoom = _retryAssignedRoom = false;
             TrucoMatchProgress.ResetForNewMatch();
             ValidateMultiplayerCallbacks(); _multiplayerCallbacks.EnableTournamentMode();
             PhotonNetwork.AutomaticallySyncScene = true; PhotonNetwork.NickName = ApiController.GetSessionUser?.Data?.username ?? "Jugador";
@@ -393,30 +405,70 @@ namespace MH.Multiplayer
             TrucoTournamentStatusScreen.SetPhase(TrucoTournamentPhase.LoadingTable);
             _ = ConnectAssignedTransportAsync(_generation, serverTable);
         }
+        public static void RetryAssignedRoom()
+        {
+            if (!CanRetryAssignedRoom || ActiveMatch == null || CurrentSnapshot?.localAssignment?.matchId != ActiveMatch.matchId) return;
+            _retryAssignedRoom = false;
+            TrucoTournamentStatusScreen.SetPhase(TrucoTournamentPhase.LoadingTable);
+            _ = ConnectAssignedTransportAsync(_generation, ActiveMatch);
+        }
         static async Task ConnectAssignedTransportAsync(int generation, TournamentMatch table)
         {
-            bool started = await TrucoPhotonAuthentication.ConnectUsingSettingsAsync("tournament", _currentTournamentRequest.TournamentId,
-                table.matchId, table.roomName);
-            if (generation != _generation || ActiveMatch?.matchId != table.matchId) return;
-            if (!started) { ShowPending(TrucoPhotonAuthentication.LastError); return; }
-            if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.Name == table.roomName)
-            { _pendingMatchRoomName = null; ValidateRoom(); }
-            else if (PhotonNetwork.IsConnectedAndReady && !PhotonNetwork.InRoom) JoinAssignedRoom();
+            string tournamentId = _currentTournamentRequest.TournamentId;
+            _connectingAssignedRoom = true;
+            try
+            {
+                if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.Name == table.roomName
+                    && TrucoPhotonAuthentication.IsAuthorizedForRoom("tournament", tournamentId, table.matchId, table.roomName))
+                { await OnJoinedRoom(); return; }
+                bool ready = await TrucoPhotonAuthentication.ConnectAndWaitUntilReadyAsync("tournament", tournamentId, table.matchId, table.roomName);
+                if (generation != _generation || ActiveMatch?.matchId != table.matchId) return;
+                if (ready) JoinAssignedRoom();
+                else AssignedRoomFailed("Photon authentication or Master connection");
+            }
+            finally
+            {
+                if (generation == _generation && ActiveMatch?.matchId == table.matchId) _connectingAssignedRoom = false;
+            }
         }
         static void JoinAssignedRoom()
         {
             var assignment = TrucoTournamentService.AssignedTable(CurrentSnapshot);
             if (assignment == null || ActiveMatch?.matchId != assignment.matchId || string.IsNullOrEmpty(_pendingMatchRoomName)
-                || !TrucoPhotonAuthentication.IsAuthorizedForRoom("tournament", CurrentSnapshot.tournamentId, assignment.matchId, assignment.roomName)
-                || PhotonNetwork.InRoom) return;
+                || _joiningAssignedRoom || PhotonNetwork.InRoom) return;
+            if (PhotonNetwork.Server != ServerConnection.MasterServer
+                || !TrucoPhotonAuthentication.IsAuthorizedForRoom("tournament", CurrentSnapshot.tournamentId, assignment.matchId, assignment.roomName))
+            { AssignedRoomFailed("Photon Master or room scope unavailable"); return; }
             PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable { ["userId"] = LocalId,
                 ["username"] = ApiController.GetSessionUser?.Data?.username, ["isTournamentPlayer"] = true });
             var properties = new Hashtable { ["tournamentId"] = CurrentSnapshot.tournamentId, ["backendMatchId"] = assignment.matchId,
                 ["isTournamentMatch"] = true, ["withFlor"] = CurrentSnapshot.withFlor, ["targetScore"] = CurrentSnapshot.targetScore,
                 ["tournamentRevision"] = CurrentSnapshot.revision };
-            PhotonNetwork.JoinOrCreateRoom(assignment.roomName, new RoomOptions { MaxPlayers = 2, PublishUserId = true, PlayerTtl = 60000,
+            _joiningAssignedRoom = PhotonNetwork.JoinOrCreateRoom(assignment.roomName, new RoomOptions { MaxPlayers = 2, PublishUserId = true, PlayerTtl = 60000,
                 EmptyRoomTtl = 120000, CustomRoomProperties = properties,
                 CustomRoomPropertiesForLobby = new[] { "tournamentId", "backendMatchId", "isTournamentMatch" } }, TypedLobby.Default);
+            if (!_joiningAssignedRoom) AssignedRoomFailed("Photon rejected the local room request");
+        }
+        static void AssignedRoomFailed(string reason)
+        {
+            _joiningAssignedRoom = false;
+            _retryAssignedRoom = true;
+            TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon, "Tournament assigned room failed: " + reason);
+            ShowPending("No se pudo conectar a tu mesa. Tu inscripción sigue guardada. Reintentá la conexión.");
+        }
+        public static void OnAssignedRoomFailed(string operation, short code)
+        {
+            if (_joiningAssignedRoom) AssignedRoomFailed($"{operation} code={code}");
+        }
+        public static void OnAssignedRoomDisconnected(DisconnectCause cause)
+        {
+            if (_joiningAssignedRoom) AssignedRoomFailed($"disconnected cause={cause}");
+            else if (!_connectingAssignedRoom && !_loadingTable && !_retryAssignedRoom && ActiveMatch != null
+                && CurrentSnapshot?.localAssignment?.matchId == ActiveMatch.matchId && _pendingMatchRoomName == null)
+            {
+                _pendingMatchRoomName = ActiveMatch.roomName;
+                AssignedRoomFailed($"disconnected while waiting for the other player, cause={cause}");
+            }
         }
         public static void ValidateRoom()
         {
@@ -440,13 +492,15 @@ namespace MH.Multiplayer
         public static Task OnJoinedRoom()
         {
             if (!IsTournamentActive) return Task.CompletedTask;
-            if (PhotonNetwork.CurrentRoom?.Name == ActiveMatch?.roomName) _pendingMatchRoomName = null;
+            if (PhotonNetwork.CurrentRoom?.Name == ActiveMatch?.roomName)
+            {
+                _pendingMatchRoomName = null;
+                _joiningAssignedRoom = _retryAssignedRoom = false;
+            }
             ValidateRoom(); return Task.CompletedTask;
         }
-        public static void OnLeftRoom() { if (IsTournamentActive && !string.IsNullOrEmpty(_pendingMatchRoomName)) JoinAssignedRoom(); }
         public static void OnPlayerEnteredRoom(Player player) => ValidateRoom();
         public static void OnPlayerLeftRoom(Player player) { if (IsTournamentActive && !_isInTournamentMatch) _ = RefreshAuthoritativeStateAsync(); }
-        public static void OnConnectedToMasterForTournament() { if (!string.IsNullOrEmpty(_pendingMatchRoomName)) JoinAssignedRoom(); }
         public static int CalculateBracketLevels(int count) => count == 8 ? 3 : count == 4 ? 2 : 0;
     }
 }

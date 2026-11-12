@@ -28,11 +28,11 @@ public class AppManager : SingeltonBase<AppManager>
 
     #region Notification Overlay
 
-    public void DisplayNotification(string msgStr, Action onCloseAction = null)
+    public void DisplayNotification(string msgStr, Action onCloseAction = null, string title = null)
     {
         HideLoadingUI();
         TrucoNotificationLog.Info(msgStr);
-        _notificationOverlay.DisplayNotification(msgStr, onCloseAction);
+        _notificationOverlay.DisplayNotification(msgStr, onCloseAction, title);
     }
     public void HideNotification()
     {

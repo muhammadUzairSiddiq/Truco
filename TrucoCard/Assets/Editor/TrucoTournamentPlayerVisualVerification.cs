@@ -46,7 +46,39 @@ public static class TrucoTournamentPlayerVisualVerification
             UnityEngine.Object.DestroyImmediate(bracket.gameObject);
         }
         UnityEngine.Object.DestroyImmediate(root);
+        CapturePrompts();
         Debug.Log("[PLAYER TOURNAMENT VISIBILITY] Captured production loading/error/empty/4/8 format screens. No AI or network calls.");
         EditorApplication.Exit(0);
+    }
+
+    static void CapturePrompts()
+    {
+        TrucoConfirmDialog.Show("INSCRIBIRSE AL TORNEO",
+            "Prod Smoke 701\n4 jugadores · 15 puntos\nCon Flor\nEntrada: 10 Trucoins\nPremio previsto: 40 Trucoins",
+            "VOLVER", "INSCRIBIRME", null);
+        var confirm = GameObject.Find("TrucoConfirmDialogCanvas");
+        TrucoPlayerScreenGallery.Render(confirm, "player-tournament-registration-prompt");
+        UnityEngine.Object.DestroyImmediate(confirm);
+
+        var root = new GameObject("NotificationPreview", typeof(RectTransform), typeof(Canvas));
+        var holder = TrucoClubUI.Rect("NotificationContent", root.transform, Vector2.zero, Vector2.one);
+        var notification = root.AddComponent<NotificationOverlay>();
+        var settings = new SerializedObject(notification);
+        settings.FindProperty("_contentHolder").objectReferenceValue = holder.gameObject;
+        settings.ApplyModifiedPropertiesWithoutUndo();
+        notification.DisplayNotification("No se pudieron verificar los datos del torneo. No se envió la inscripción.",
+            title: "NO SE PUDO ENTRAR AL TORNEO");
+        TrucoPlayerScreenGallery.Render(root, "player-tournament-error-prompt");
+        UnityEngine.Object.DestroyImmediate(root);
+
+        root = new GameObject("LoadingPreview", typeof(RectTransform), typeof(Canvas));
+        holder = TrucoClubUI.Rect("LoadingContent", root.transform, Vector2.zero, Vector2.one);
+        var loading = root.AddComponent<LoadingOverlay>();
+        settings = new SerializedObject(loading);
+        settings.FindProperty("_contentHolder").objectReferenceValue = holder.gameObject;
+        settings.ApplyModifiedPropertiesWithoutUndo();
+        loading.DisplayLoadingUI("Verificando la conexión multijugador…");
+        TrucoPlayerScreenGallery.Render(root, "player-matchmaking-progress-prompt");
+        UnityEngine.Object.DestroyImmediate(root);
     }
 }

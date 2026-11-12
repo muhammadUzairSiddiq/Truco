@@ -278,6 +278,27 @@ public class TrucoLobbyFlowEditModeTests
         Assert.AreEqual("Sala test", m.name);
     }
 
+    [TestCase("{\"success\":true,\"data\":{\"match\":{\"_id\":\"m1\"}}}", "m1")]
+    [TestCase("{\"success\":true,\"data\":{\"_id\":\"m1\"}}", "m1")]
+    [TestCase("{\"success\":false,\"data\":{\"match\":{\"_id\":\"m1\"}}}", null)]
+    [TestCase("{\"success\":true,\"data\":{\"ok\":false,\"match\":{\"_id\":\"m1\"}}}", null)]
+    public void MatchDetailsRequireAValidResponse(string json, string id) =>
+        Assert.AreEqual(id, ApiController.TryParseSingleMatchJson(json)?._id);
+
+    [TestCase("{\"success\":true,\"data\":{\"matches\":[{\"_id\":\"m1\"}]}}", 1)]
+    [TestCase("{\"matches\":[]}", 0)]
+    [TestCase("{\"success\":false,\"matches\":[]}", -1)]
+    [TestCase("{\"success\":true}", -1)]
+    public void RoomListDistinguishesAnEmptyResponseFromARejectedResponse(string json, int count) =>
+        Assert.AreEqual(count, ApiController.TryParsePlayerMatchListJson(json)?.Count ?? -1);
+
+    [TestCase("{\"success\":true,\"data\":{\"tournaments\":[{\"_id\":\"cup\"}]}}", 1)]
+    [TestCase("{\"tournaments\":[]}", 0)]
+    [TestCase("{\"success\":false,\"tournaments\":[]}", -1)]
+    [TestCase("{\"success\":true}", -1)]
+    public void TournamentListSupportsTheDataEnvelope(string json, int count) =>
+        Assert.AreEqual(count, ApiController.TryParseTournamentListJson(json)?.Count ?? -1);
+
     [Test]
     public void GetAllHostedMatchIds_ReturnsEveryHostedRow()
     {
