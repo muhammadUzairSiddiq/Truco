@@ -2,6 +2,44 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+
+/// <summary>Token fields accepted from login/refresh only. Never inspect arbitrary API payloads for credentials.</summary>
+public static class TrucoSessionTokens
+{
+    public static bool TryRead(string json, out string access, out string refresh)
+    {
+        access = refresh = null;
+        try
+        {
+            var root = JObject.Parse(json ?? "");
+            if (root["success"]?.Type == JTokenType.Boolean && !root["success"].Value<bool>()
+                || root["ok"]?.Type == JTokenType.Boolean && !root["ok"].Value<bool>()) return false;
+            var data = root["data"] as JObject;
+            access = Read(root, "accessToken", "access_token", "token") ?? Read(data, "accessToken", "access_token", "token");
+            refresh = Read(root, "refreshToken", "refresh_token") ?? Read(data, "refreshToken", "refresh_token");
+            return true;
+        }
+        catch (Newtonsoft.Json.JsonException) { return false; }
+    }
+
+    static string Read(JObject value, params string[] names)
+    {
+        if (value == null) return null;
+        foreach (string name in names)
+        {
+            if (value[name]?.Type != JTokenType.String) continue;
+            string token = ((string)value[name]).Trim();
+            if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) token = token.Substring(7).Trim();
+            if (token.Length == 0 || token.Length > 16384) continue;
+            bool valid = true;
+            foreach (char character in token)
+                if (char.IsWhiteSpace(character) || char.IsControl(character) || character == ';' || character == ',') { valid = false; break; }
+            if (valid) return token;
+        }
+        return null;
+    }
+}
 
 /// <summary>Name-keyed cookies for the client's single configured API session.</summary>
 public sealed class TrucoSessionCookieJar

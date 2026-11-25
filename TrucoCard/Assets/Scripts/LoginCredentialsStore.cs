@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>Remember the login email only. Passwords are never persisted in PlayerPrefs.</summary>
+/// <summary>Remember the login credentials on this device, as requested by the account owner.</summary>
 public static class LoginCredentialsStore
 {
     const string KeyEmail = "truco_auth_saved_email";
@@ -10,15 +10,14 @@ public static class LoginCredentialsStore
     {
         if (string.IsNullOrEmpty(email)) return;
         PlayerPrefs.SetString(KeyEmail, email.Trim());
-        PlayerPrefs.DeleteKey(KeyPassword);
+        PlayerPrefs.SetString(KeyPassword, password ?? string.Empty);
         PlayerPrefs.Save();
     }
 
     public static void Load(out string email, out string password)
     {
         email = PlayerPrefs.GetString(KeyEmail, string.Empty);
-        password = string.Empty;
-        if (PlayerPrefs.HasKey(KeyPassword)) { PlayerPrefs.DeleteKey(KeyPassword); PlayerPrefs.Save(); }
+        password = PlayerPrefs.GetString(KeyPassword, string.Empty);
     }
 
     public static bool HasEmailSaved() => !string.IsNullOrEmpty(PlayerPrefs.GetString(KeyEmail, string.Empty));

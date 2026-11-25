@@ -118,8 +118,7 @@ public class MainMenuManager : MonoBehaviour
                 return;
             }
         }
-        if (MultiplayerController.IsTournamentActive)
-            await MultiplayerController.LeaveTournamentByPlayerAsync();
+        // A fresh login can recover the account's tournament entry. Withdrawal is a separate action.
         if (PhotonNetwork.IsConnected) PhotonNetwork.Disconnect();
         TrucoActiveHostMatchStore.Clear();
         ApiController.ClearClientSessionState();

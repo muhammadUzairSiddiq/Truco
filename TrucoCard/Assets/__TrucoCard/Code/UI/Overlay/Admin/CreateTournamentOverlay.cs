@@ -27,6 +27,7 @@ public class CreateTournamentOverlay : MonoBehaviour
     private void Start()
     {
         EnsureExtraFields();
+        ArrangeForm();
         _createTournamentBtn.onClick.RemoveAllListeners();
         _createTournamentBtn.onClick.AddListener(CreateTournamentBtn_fn);
         _closeOverlayBtn.onClick.RemoveAllListeners();
@@ -50,19 +51,83 @@ public class CreateTournamentOverlay : MonoBehaviour
             go.transform.SetParent(host, false);
             _withFlorToggle = go.GetComponent<Toggle>();
             _withFlorToggle.isOn = true;
-            var label = new GameObject("L", typeof(RectTransform), typeof(TextMeshProUGUI));
-            label.transform.SetParent(go.transform, false);
-            var tmp = label.GetComponent<TextMeshProUGUI>();
-            tmp.text = "Con Flor";
-            tmp.fontSize = 22f;
-            tmp.color = Color.white;
-            _withFlorToggle.onValueChanged.AddListener(on => { tmp.text = on ? "Con Flor" : "Sin Flor"; });
         }
-        if (_maxPlayersInput != null && (_maxPlayersInput.options == null || _maxPlayersInput.options.Count < 2))
+        if (_maxPlayersInput != null)
         {
             _maxPlayersInput.ClearOptions();
-            _maxPlayersInput.AddOptions(new System.Collections.Generic.List<string> { "8 jugadores", "4 jugadores" });
+            _maxPlayersInput.AddOptions(new System.Collections.Generic.List<string> { "4 jugadores", "8 jugadores" });
+            _maxPlayersInput.value = 0;
         }
+    }
+
+    void ArrangeForm()
+    {
+        // Legacy scene fields and dynamically cloned fields otherwise share anchored positions.
+        // Put every control into a labelled, scrollable form on both phone and desktop screens.
+        var oldChildren = new System.Collections.Generic.List<GameObject>();
+        foreach (Transform child in transform) oldChildren.Add(child.gameObject);
+        var root = (RectTransform)transform;
+        root.anchorMin = Vector2.zero; root.anchorMax = Vector2.one;
+        root.offsetMin = root.offsetMax = Vector2.zero; root.localScale = Vector3.one;
+        var canvas = GetComponent<Canvas>();
+        if (canvas == null) canvas = gameObject.AddComponent<Canvas>();
+        canvas.overrideSorting = true; canvas.sortingOrder = TrucoCanvasOrder.Screen;
+        if (GetComponent<GraphicRaycaster>() == null) gameObject.AddComponent<GraphicRaycaster>();
+        var form = TrucoClubUI.Panel("TournamentForm", transform, TrucoClubUI.Ink, Vector2.zero, Vector2.one).rectTransform;
+        var safe = TrucoClubUI.Rect("SafeArea", form, Vector2.zero, Vector2.one);
+        safe.gameObject.AddComponent<TrucoSafeArea>();
+        TrucoClubUI.Text(safe, "CREAR TORNEO", 42, TrucoClubUI.Gold, new Vector2(.04f, .9f), new Vector2(.96f, .98f), true);
+        var scrollArea = TrucoClubUI.Rect("Fields", safe, new Vector2(.05f, .12f), new Vector2(.95f, .9f));
+        var scroll = scrollArea.gameObject.AddComponent<ScrollRect>();
+        scrollArea.gameObject.AddComponent<RectMask2D>();
+        scroll.viewport = scrollArea; scroll.horizontal = false;
+        var content = TrucoClubUI.Rect("Content", scrollArea, new Vector2(0, 1), Vector2.one);
+        content.pivot = new Vector2(.5f, 1);
+        content.sizeDelta = new Vector2(0, 1420);
+        scroll.content = content;
+        int row = 0;
+        AddFormField(content, _tournamentNameInput, "Nombre del torneo", row++);
+        AddFormField(content, _tournamentDescriptionInput, "Descripción", row++);
+        AddFormField(content, _maxPlayersInput, "Cantidad de jugadores", row++);
+        AddFormField(content, _pointsInput, "Puntos para ganar", row++);
+        AddFormField(content, _withFlorToggle, "Modo Flor", row++);
+        AddFormField(content, _tournamentEntryFeeInput, "Entrada en Trucoins", row++);
+        AddFormField(content, _prizeInput, "Premio en Trucoins", row++);
+        AddFormField(content, _typeInput, "Visibilidad", row++);
+        AddFormField(content, _passwordInput, "Contraseña para torneo privado", row++);
+        AddFormField(content, _tournamentStartDateInput, "Inicio (fecha ISO)", row++);
+        AddFormField(content, _tournamentEndDateInput, "Fin (fecha ISO)", row++);
+        if (_tournamentEntryFeeInput != null) _tournamentEntryFeeInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+        if (_prizeInput != null) _prizeInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+        if (_passwordInput != null) _passwordInput.contentType = TMP_InputField.ContentType.Password;
+        if (_withFlorToggle != null)
+        {
+            var image = _withFlorToggle.GetComponent<Image>();
+            image.color = TrucoClubUI.Raised;
+            _withFlorToggle.targetGraphic = image;
+            var check = TrucoClubUI.Panel("Selected", _withFlorToggle.transform, TrucoClubUI.Green,
+                new Vector2(.02f, .2f), new Vector2(.11f, .8f));
+            _withFlorToggle.graphic = check;
+            var label = TrucoClubUI.Text(_withFlorToggle.transform, "Con Flor", 27, TrucoClubUI.Cream,
+                new Vector2(.12f, 0), Vector2.one, true);
+            _withFlorToggle.onValueChanged.AddListener(on => label.text = on ? "Con Flor" : "Sin Flor");
+        }
+        _closeOverlayBtn = TrucoClubUI.Button(safe, "VOLVER", null, new Vector2(.05f, .025f), new Vector2(.46f, .105f), true);
+        _createTournamentBtn = TrucoClubUI.Button(safe, "CREAR TORNEO", null, new Vector2(.48f, .025f), new Vector2(.95f, .105f));
+        foreach (var child in oldChildren)
+            if (child.transform.parent == transform) child.SetActive(false);
+    }
+
+    static void AddFormField(RectTransform parent, Component field, string caption, int index)
+    {
+        if (field == null) return;
+        var row = TrucoClubUI.Rect(caption, parent, new Vector2(0, 1), Vector2.one);
+        row.pivot = new Vector2(.5f, 1); row.sizeDelta = new Vector2(0, 124); row.anchoredPosition = new Vector2(0, -index * 128);
+        TrucoClubUI.Text(row, caption, 25, TrucoClubUI.Gold, new Vector2(0, .6f), Vector2.one, true);
+        var rt = (RectTransform)field.transform;
+        rt.SetParent(row, false); rt.anchorMin = new Vector2(.015f, .03f); rt.anchorMax = new Vector2(.985f, .61f);
+        rt.offsetMin = rt.offsetMax = Vector2.zero; rt.localScale = Vector3.one;
+        field.gameObject.SetActive(true);
     }
 
     static TMP_InputField CloneInput(TMP_InputField template, Transform host, string name, string placeholder)
@@ -124,10 +189,10 @@ public class CreateTournamentOverlay : MonoBehaviour
             AppManager.Instance.DisplayNotification("Ingreso inválido: usá un número entero.");
             return;
         }
-        int maxPlayersVal = _maxPlayersInput != null && _maxPlayersInput.value == 1 ? 4 : 8;
+        int maxPlayersVal = _maxPlayersInput != null && _maxPlayersInput.value == 1 ? 8 : 4;
         int prizeVal = 0;
         if (_prizeInput != null) int.TryParse(_prizeInput.text, out prizeVal);
-        int pointsVal = _pointsInput != null && _pointsInput.value == 0 ? 15 : 30;
+        int pointsVal = _pointsInput != null && _pointsInput.value == 1 ? 30 : 15;
         bool withFlor = _withFlorToggle == null || _withFlorToggle.isOn;
         bool isPrivate = _typeInput != null && _typeInput.value == 1;
         string password = _passwordInput != null ? _passwordInput.text : "";
@@ -184,7 +249,7 @@ public class CreateTournamentOverlay : MonoBehaviour
         if (_prizeInput != null) _prizeInput.text = "";
         if (_passwordInput != null) _passwordInput.text = "";
         if (_maxPlayersInput != null) _maxPlayersInput.value = 0;
-        if (_pointsInput != null) _pointsInput.value = 1;
+        if (_pointsInput != null) _pointsInput.value = 0;
         if (_typeInput != null) _typeInput.value = 0;
         if (_withFlorToggle != null) _withFlorToggle.isOn = true;
         gameObject.SetActive(false);

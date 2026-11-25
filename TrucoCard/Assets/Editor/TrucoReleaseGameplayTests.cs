@@ -176,6 +176,68 @@ public sealed class TrucoReleaseGameplayTests
         bool dealt, bool started, bool locked, bool expected) =>
         Assert.AreEqual(expected, TurnManager.ShouldResumePreparedTournamentHand(tournament, localMaster, dealt, started, locked));
 
+    [Test]
+    public void ASlowTournamentPeerCannotStartTheClockWithPreviousRoundCards()
+    {
+        const string currentHand = "semifinal:2";
+        var host = new Dictionary<object, object>
+        {
+            [TrucoTournamentHandReady.SceneProperty] = currentHand,
+            [TrucoTournamentHandReady.Property] = currentHand
+        };
+        var guest = new Dictionary<object, object>
+        {
+            [TrucoTournamentHandReady.SceneProperty] = currentHand,
+            [TrucoTournamentHandReady.Property] = "semifinal:1"
+        };
+
+        bool bothPrepared = TrucoTournamentHandReady.HasPreparedCurrentHand(false, host, currentHand)
+            && TrucoTournamentHandReady.HasPreparedCurrentHand(false, guest, currentHand);
+        Assert.IsFalse(TurnManager.CanAcceptTournamentTurn(2, 2, bothPrepared));
+
+        guest[TrucoTournamentHandReady.Property] = currentHand;
+        Assert.IsFalse(TrucoTournamentHandReady.HasPreparedCurrentHand(true, guest, currentHand));
+        bothPrepared = TrucoTournamentHandReady.HasPreparedCurrentHand(false, host, currentHand)
+            && TrucoTournamentHandReady.HasPreparedCurrentHand(false, guest, currentHand);
+        Assert.IsTrue(TurnManager.CanAcceptTournamentTurn(2, 2, bothPrepared));
+        Assert.IsFalse(TurnManager.CanAcceptTournamentTurn(1, 2, bothPrepared));
+    }
+
+    [Test]
+    public void RenderingCardsWithoutTheCurrentGameplaySceneCannotAcknowledgeTheHand()
+    {
+        const string currentHand = "semifinal:1";
+        var props = new Dictionary<object, object> { [TrucoTournamentHandReady.Property] = currentHand };
+        Assert.IsFalse(TrucoTournamentHandReady.HasPreparedCurrentHand(false, props, currentHand));
+        props[TrucoTournamentHandReady.SceneProperty] = "final:1";
+        Assert.IsFalse(TrucoTournamentHandReady.HasPreparedCurrentHand(false, props, currentHand));
+        props[TrucoTournamentHandReady.SceneProperty] = currentHand;
+        Assert.IsTrue(TrucoTournamentHandReady.HasPreparedCurrentHand(false, props, currentHand));
+    }
+
+    [Test]
+    public void TournamentRegistrationOrAHangingOldTurnCannotStartAnyTimerOutsideItsTable()
+    {
+        const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static;
+        var request = typeof(MH.Multiplayer.MultiplayerController).GetField("_currentTournamentRequest", flags);
+        object previous = request.GetValue(null);
+        var root = new GameObject("TournamentTurnGateRegression");
+        root.SetActive(false);
+        try
+        {
+            request.SetValue(null, new MH.Multiplayer.TournamentRequest("cup", 4, 0, "Cup", 10));
+            var turns = root.AddComponent<TurnManager>();
+            Assert.IsFalse(turns.CanRunCurrentTournamentTurn());
+            typeof(TurnManager).GetField("_hasStartedHand", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(turns, true);
+            Assert.IsFalse(turns.CanRunCurrentTournamentTurn());
+        }
+        finally
+        {
+            request.SetValue(null, previous);
+            Object.DestroyImmediate(root);
+        }
+    }
+
     [TestCase(2, 0, 15, 2)]
     [TestCase(3, 14, 15, 1)]
     [TestCase(2, 29, 30, 1)]

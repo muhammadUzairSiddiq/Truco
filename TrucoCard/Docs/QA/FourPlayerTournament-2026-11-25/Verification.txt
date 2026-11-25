@@ -1,0 +1,19 @@
+Four-player tournament verification, Truco 1.1.6
+
+Client behavior
+
+The client waits for four distinct confirmed paid entries and two server-published semifinal tables. It keeps in-progress tournaments in the list, reads the live API's players field, and preserves registration through sign-out. An authenticated player can recover a seat from the unique ready server match that includes them. Photon still has to grant access to that room.
+
+The two assigned Photon players confirm the same room, then confirm that they loaded the same gameplay scene and rendered their own cards. The turn clock waits for both devices. The client synchronizes subsequent hand numbers and lets a slower device recover the existing deal.
+
+Evidence
+
+The four PNGs were rendered by Unity 6000.0.80f1 from the tournament UI using offline test data. They show 3/4 waiting, 4/4 split into both semifinals, the semifinal winners in the final, and the tournament list with both entry and re-entry options. The companion four-player-evidence.txt records the automated scenario checks, including distinct three-card hands and readiness on both simulated seats.
+
+The full Unity EditMode suite ran 400 cases with 397 passed, zero failed, and three skipped. The skipped cases require a dedicated staging Photon app. See unity-editmode-results.xml. Android C# compilation and 53 standalone contract tests also passed.
+
+The live API returned the Nuevo 2 bracket, and the updated parser accepted it. Four paid registration records were present when checked, including one withdrawal. One semifinal was ready and the other had finished. This snapshot does not establish the original order of the joins. A separate live check reached Photon Master in South America using the available authenticated account.
+
+Live acceptance
+
+Four concurrent production accounts were unavailable, and no Android devices were connected. A live end-to-end tournament on four devices remains unverified. The test screenshots are labeled PRUEBA LOCAL. Use the same 1.1.6 build on all four devices because matchmaking relies on the new readiness messages.

@@ -2,7 +2,7 @@ using MH.Multiplayer;
 using TMPro;
 using UnityEngine;
 
-public enum TrucoTournamentPhase { None, Filling, CreatingMatches, LoadingTable, Playing, WaitingNextRound, Completed, Failed, Cancelled, Reconciling }
+public enum TrucoTournamentPhase { None, Filling, CreatingMatches, LoadingTable, Playing, WaitingNextRound, Completed, Failed, Cancelled, Reconciling, AwaitingAssignment }
 
 /// <summary>Lifecycle presentation driven by actual controller callbacks, never by a success timer.</summary>
 public sealed class TrucoTournamentStatusScreen : MonoBehaviour
@@ -35,7 +35,7 @@ public sealed class TrucoTournamentStatusScreen : MonoBehaviour
         _seats = TrucoClubUI.Text(status.transform, "", 28, TrucoClubUI.Cream, new Vector2(.02f, .03f), new Vector2(.98f, .43f));
         TrucoClubUI.Button(safe, "VER CUADRO", () => { if (MultiplayerController.BracketState != null) TournamentBracketOverlay.Show(false); }, new Vector2(.06f, .1f), new Vector2(.94f, .17f), true);
         _retry = TrucoClubUI.Button(safe, "REINTENTAR MESA", MultiplayerController.RetryAssignedRoom, new Vector2(.06f, .18f), new Vector2(.94f, .25f), true);
-        TrucoClubUI.Button(safe, "VOLVER AL INICIO", () => TrucoConfirmDialog.Show("SALIR DEL TORNEO", "Podés volver al inicio. El servidor debe confirmar cualquier cancelación o reembolso.", "SEGUIR AQUÍ", "VOLVER",
+        TrucoClubUI.Button(safe, "SALIR DEL TORNEO", () => TrucoConfirmDialog.Show("¿ABANDONAR EL TORNEO?", "Si salís, podés perder tu lugar. El servidor confirma la salida y si corresponde un reembolso.", "SEGUIR AQUÍ", "ABANDONAR",
             () => { _ = MultiplayerController.LeaveTournamentByPlayerAsync(() => { Hide(); TrucoSceneTransition.Go("MainMenu"); }); }, () => { }), new Vector2(.06f, .02f), new Vector2(.94f, .09f));
         if (Application.isPlaying) InvokeRepeating(nameof(Refresh), 0, .5f);
     }
@@ -46,8 +46,9 @@ public sealed class TrucoTournamentStatusScreen : MonoBehaviour
         switch (Phase)
         {
             case TrucoTournamentPhase.Filling: _body.text = "INSCRIPCIÓN CONFIRMADA\nEsperando a los demás jugadores…"; break;
-            case TrucoTournamentPhase.CreatingMatches: _body.text = "PREPARANDO LAS MESAS\nConfirmando las partidas con el servidor…"; break;
-            case TrucoTournamentPhase.LoadingTable: _body.text = "TU MESA ESTÁ EN CAMINO\nEsperando que ambos jugadores estén listos…"; break;
+            case TrucoTournamentPhase.CreatingMatches: _body.text = "PREPARANDO LAS MESAS\nEsperando que el servidor confirme todos los cruces…"; break;
+            case TrucoTournamentPhase.AwaitingAssignment: _body.text = "MESA POR CONFIRMAR\nLa inscripción está confirmada. Esperando tu mesa del servidor…"; break;
+            case TrucoTournamentPhase.LoadingTable: _body.text = "TU MESA ESTÁ EN CAMINO\n" + (Detail ?? "Esperando que ambos jugadores estén listos…"); break;
             case TrucoTournamentPhase.WaitingNextRound: _body.text = "CLASIFICASTE\nEsperando al ganador de la otra partida…"; break;
             case TrucoTournamentPhase.Failed: _body.text = "NO SE PUDO INICIAR\n" + Detail; break;
             case TrucoTournamentPhase.Cancelled: _body.text = "TORNEO CANCELADO\n" + Detail; break;
@@ -56,7 +57,7 @@ public sealed class TrucoTournamentStatusScreen : MonoBehaviour
         var request = MultiplayerController.CurrentTournamentRequest;
         _seats.text = request == null ? "La inscripción y el reembolso requieren confirmación del servidor." :
             $"{(request.WithFlor ? "Con Flor" : "Sin Flor")}  ·  {request.TargetScore} puntos\n{request.MaxPlayerCount} jugadores  ·  Premio previsto: {request.Prize} Trucoins";
-        if (Phase == TrucoTournamentPhase.Filling && MultiplayerController.CurrentSnapshot is { } snapshot)
+        if ((Phase == TrucoTournamentPhase.Filling || Phase == TrucoTournamentPhase.CreatingMatches) && MultiplayerController.CurrentSnapshot is { } snapshot)
         {
             int confirmed = snapshot.participants.FindAll(player => player.entryPaid && player.status == "registered").Count;
             _seats.text = $"{confirmed}/{snapshot.maxPlayers} inscriptos\n" + _seats.text;

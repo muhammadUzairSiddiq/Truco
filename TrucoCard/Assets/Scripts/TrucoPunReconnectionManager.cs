@@ -1,4 +1,5 @@
 using System.Collections;
+using MH.Multiplayer;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -33,6 +34,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
 
     float _localDisconnectAt = -1f;
     bool _hadPlayableTable;
+    bool CanRecoverTable => _hadPlayableTable || MultiplayerController.IsTournamentActive && MultiplayerController.ActiveMatch != null;
     /// <summary>Seconds since this client lost its Photon connection (0 when not tracking).</summary>
     public static float SecondsSinceLocalDisconnect =>
         Instance != null && Instance._localDisconnectAt >= 0f
@@ -48,12 +50,12 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
 
     void Update()
     {
-        if (TrucoMatchPlayGate.IsLiveTable() && TrucoTournamentHandReady.BothPrepared()) _hadPlayableTable = true;
+        if (!_hadPlayableTable && TrucoMatchPlayGate.IsLiveTable()) _hadPlayableTable = true;
         if (_opponentWatch != null) return;
         if (!IsGameplayScene() || SpectatorContext.IsSpectator) return;
         if (GameManager.Instance != null && GameManager.Instance._gameEnded) return;
         if (!PhotonNetwork.InRoom) return;
-        if (!TrucoMatchPlayGate.IsLiveTable() || !_hadPlayableTable) return;
+        if (!CanRecoverTable) return;
         if (IsOpponentInactiveOrGone())
             TryStartOpponentWatch();
     }
@@ -61,7 +63,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
     public override void OnDisconnected(DisconnectCause cause)
     {
         base.OnDisconnected(cause);
-        if (!IsGameplayScene() || _routine != null || !_hadPlayableTable || SpectatorContext.IsSpectator) return;
+        if (!IsGameplayScene() || _routine != null || !CanRecoverTable || SpectatorContext.IsSpectator) return;
         if (GameManager.Instance == null || GameManager.Instance._gameEnded) return;
         if (cause == DisconnectCause.DisconnectByClientLogic
             || cause == DisconnectCause.DisconnectByDisconnectMessage
@@ -79,7 +81,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
     {
         if (!PhotonNetwork.InRoom) return false;
         var others = PhotonNetwork.PlayerListOthers;
-        if (others == null || others.Length == 0) return false;
+        if (others == null || others.Length == 0) return true;
         foreach (var p in others)
             if (p != null && !p.IsInactive) return false;
         return true;
@@ -90,7 +92,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
         base.OnPlayerLeftRoom(otherPlayer);
-        if (!IsGameplayScene() || !_hadPlayableTable) return;
+        if (!IsGameplayScene() || !CanRecoverTable) return;
         if (SpectatorContext.IsSpectator) return;
         if (GameManager.Instance != null && GameManager.Instance._gameEnded) return;
         if (otherPlayer == null || otherPlayer.IsLocal) return;
@@ -107,7 +109,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
             _routine = null;
         }
         _ui?.Hide();
-        if ((OneVsOneMatchSession.GameStarted || _hadPlayableTable) && GameManager.Instance != null)
+        if ((OneVsOneMatchSession.GameStarted || CanRecoverTable) && GameManager.Instance != null)
         {
             // Timers resume only after SyncMatchState — early restart freezes stale mano state.
             GameManager.Instance.RequestStateSyncAfterReconnect();
@@ -140,6 +142,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
             _opponentReconnectSecondsRemaining = 0;
             _ui?.Hide();
             AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
+            GameManager.Instance?.RequestStateSyncAfterReconnect();
         }
     }
 
@@ -281,7 +284,7 @@ public class TrucoPunReconnectionManager : MonoBehaviourPunCallbacks
         _ui?.Hide();
         AppManager.Instance?.DisplayNotification(TrucoTextosClient.ReconexOk);
         _routine = null;
-        if (OneVsOneMatchSession.GameStarted || _hadPlayableTable)
+        if (OneVsOneMatchSession.GameStarted || CanRecoverTable)
         {
             // Do not RestartTurnTimers here — wait for SyncMatchState (hand may already be over).
             GameManager.Instance?.RequestStateSyncAfterReconnect();

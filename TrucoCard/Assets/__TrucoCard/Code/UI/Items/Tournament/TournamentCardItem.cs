@@ -16,6 +16,7 @@ public class TournamentCardItem : MonoBehaviour
     TMP_InputField _passwordField;
     Transform _visualRoot;
     bool _built;
+    bool _checkingRegistration;
 
     public void Init(Tournament tournament, Sprite woodPanelSprite = null)
     {
@@ -133,10 +134,11 @@ public class TournamentCardItem : MonoBehaviour
         var background = GetComponent<Image>();
         if (background != null) TrucoMenuTheme.Surface(background, TrucoMenuTheme.Brown);
         bool registered = _iTournamentData.IsCurrentUserRegistered();
+        bool open = _iTournamentData.status == "registration";
         int n = _iTournamentData.participants != null ? _iTournamentData.participants.Count : 0;
         int max = Mathf.Max(1, _iTournamentData.maxPlayers);
         int score = TrucoMatchRules.NormalizeTargetScore(_iTournamentData.targetScore);
-        string flor = _iTournamentData.withFlor ? "Con Flor" : "Sin Flor";
+        string flor = _iTournamentData.rulesConfirmed ? (_iTournamentData.withFlor ? "Con Flor" : "Sin Flor") : "Reglas por confirmar";
 
         if (_titleText != null) _titleText.text = _iTournamentData.name ?? "";
 
@@ -152,7 +154,7 @@ public class TournamentCardItem : MonoBehaviour
         SetIconLine("Meta1", TrucoGameplayUiSprites.IconPlayers, max + " Jugadores",
             _iTournamentData.withFlor ? TrucoGameplayUiSprites.IconFlor : TrucoGameplayUiSprites.IconCards,
             flor,
-            TrucoGameplayUiSprites.IconCards, score + " Puntos");
+            TrucoGameplayUiSprites.IconCards, _iTournamentData.rulesConfirmed ? score + " Puntos" : null);
         SetIconLine("Meta2", TrucoGameplayUiSprites.IconCoins, "Ingreso  " + _iTournamentData.entryFee + " Trucoins",
             TrucoGameplayUiSprites.IconTrophy, "Premio  " + _iTournamentData.prizePool + " Trucoins",
             null, null);
@@ -160,12 +162,12 @@ public class TournamentCardItem : MonoBehaviour
             null, null, null, null);
 
         var passRow = transform.Find("PasswordRow");
-        if (passRow != null) passRow.gameObject.SetActive(priv && !registered);
+        if (passRow != null) passRow.gameObject.SetActive(priv && open && !registered);
         if (_joinTournamentBtn != null)
         {
-            _joinTournamentBtn.gameObject.SetActive(!priv || registered);
+            _joinTournamentBtn.gameObject.SetActive(!priv || registered || !open);
             var cap = _joinTournamentBtn.GetComponentInChildren<TextMeshProUGUI>(true);
-            if (cap != null) cap.text = registered ? "ENTRAR" : "INSCRIBIRSE";
+            if (cap != null) cap.text = registered ? "ENTRAR" : open ? "INSCRIBIRSE" : "VER ESTADO";
             _joinTournamentBtn.onClick.RemoveAllListeners();
             _joinTournamentBtn.onClick.AddListener(JoinTournamentBtn_fn);
         }
@@ -327,25 +329,6 @@ public class TournamentCardItem : MonoBehaviour
             AppManager.Instance?.DisplayNotification("Volvé a iniciar sesión para inscribirte.");
             return;
         }
-        if (player.wallet != null && player.wallet.balance < _iTournamentData.entryFee
-            && !_iTournamentData.IsCurrentUserRegistered())
-        {
-            AppManager.Instance.DisplayNotification("No tenés Trucoins suficientes para inscribirte.");
-            return;
-        }
-
-        if (_iTournamentData.IsPrivateTournament() && !_iTournamentData.IsCurrentUserRegistered())
-        {
-            string pw = _passwordField != null ? _passwordField.text : string.Empty;
-            if (string.IsNullOrWhiteSpace(pw))
-            {
-                TournamentManager.Instance.DisplayTournamentPasswordInputOverlay(_iTournamentData._id, ConfirmRegistration);
-                return;
-            }
-            ValidateThenJoin(pw);
-            return;
-        }
-
         ConfirmRegistration();
     }
 
@@ -356,13 +339,60 @@ public class TournamentCardItem : MonoBehaviour
         try { ok = await ApiController.ValidatePrivateTournament(_iTournamentData._id, password); }
         catch (System.Exception) { }
         AppManager.Instance.HideLoadingUI();
-        if (ok) ConfirmRegistration();
+        if (ok) ConfirmRegistration(passwordVerified: true);
         else AppManager.Instance.DisplayNotification(TrucoTextosClient.ContrasenaIncorrecta);
     }
 
-    void ConfirmRegistration()
+    async void ConfirmRegistration(bool passwordVerified = false)
     {
-        if (_iTournamentData.IsCurrentUserRegistered()) { DoMatchMaking(); return; }
+        if (_checkingRegistration) return;
+        _checkingRegistration = true;
+        TrucoTournamentService.Snapshot snapshot;
+        try
+        {
+            // Confirm the actual rules and fee from the same contract used for registration.
+            snapshot = await TrucoTournamentService.Get(_iTournamentData._id);
+            if (this == null) return;
+            bool isPrivate = _iTournamentData.IsPrivateTournament();
+            _iTournamentData = TrucoTournamentService.ToLegacyTournament(snapshot);
+            _iTournamentData.passwordRequired = isPrivate;
+            Bind();
+        }
+        catch (HttpApiClient.RequestException exception) when (exception.StatusCode == 401)
+        {
+            if (this != null) ApiController.ShowExpiredSession();
+            return;
+        }
+        catch (System.Exception)
+        {
+            if (this != null) AppManager.Instance?.DisplayNotification("No se pudieron confirmar las reglas del torneo. Volvé a intentar.");
+            return;
+        }
+        finally { _checkingRegistration = false; }
+        if (TrucoTournamentService.HasConfirmedEntry(snapshot, ApiController.GetSessionUser?.Data?._id)) { DoMatchMaking(); return; }
+        if (snapshot.status != "registration")
+        {
+            AppManager.Instance?.DisplayNotification("Las inscripciones ya cerraron y tu cuenta no tiene una inscripción confirmada en este torneo.");
+            return;
+        }
+        if (snapshot.participants.Count >= snapshot.maxPlayers)
+        {
+            AppManager.Instance?.DisplayNotification("Todos los lugares del torneo están ocupados.");
+            return;
+        }
+        if (snapshot.wallet.available < snapshot.entryFee)
+        {
+            AppManager.Instance?.DisplayNotification("No tenés Trucoins suficientes para inscribirte.");
+            return;
+        }
+        if (_iTournamentData.IsPrivateTournament() && !passwordVerified)
+        {
+            string password = _passwordField != null ? _passwordField.text : string.Empty;
+            if (string.IsNullOrWhiteSpace(password))
+                TournamentManager.Instance.DisplayTournamentPasswordInputOverlay(_iTournamentData._id, () => ConfirmRegistration(passwordVerified: true));
+            else ValidateThenJoin(password);
+            return;
+        }
         TrucoConfirmDialog.Show("INSCRIBIRSE AL TORNEO", _iTournamentData.name + "\n"
             + _iTournamentData.maxPlayers + " jugadores · " + _iTournamentData.targetScore + " puntos\n"
             + (_iTournamentData.withFlor ? "Con Flor" : "Sin Flor") + "\nEntrada: " + _iTournamentData.entryFee
@@ -398,13 +428,17 @@ public static class TournamentClientExtensions
 
     public static bool IsCurrentUserRegistered(this Tournament t)
     {
-        var uid = ApiController.GetSessionUser?.Data?._id;
-        if (t == null || string.IsNullOrEmpty(uid) || t.participants == null) return false;
+        return t.HasPlayer(ApiController.GetSessionUser?.Data?._id);
+    }
+
+    public static bool HasPlayer(this Tournament t, string playerId)
+    {
+        if (t == null || string.IsNullOrEmpty(playerId) || t.participants == null) return false;
         for (int i = 0; i < t.participants.Count; i++)
         {
             var p = t.participants[i];
             if (p == null) continue;
-            if (p._id == uid || p.id == uid) return true;
+            if (p._id == playerId || p.id == playerId) return true;
         }
         return false;
     }

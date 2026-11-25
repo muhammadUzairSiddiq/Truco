@@ -1,0 +1,13 @@
+Offline Unity 4-player scenario with synthetic snapshots and Photon actor properties.
+PASS: 0–3 confirmed registrations cannot start or assign a match.
+PASS: Transitioning events remain visible to the fourth player and existing entrants remain recoverable.
+PASS: One published semifinal never unlocks a four-player bracket.
+PASS: Four confirmed registrations can start, then all four perspectives resolve to exactly two semifinals.
+PASS: The fourth perspective can recover its table from the confirmed match row even without localAssignment.
+PASS: Each simulated table rejects missing, inactive, foreign and stale-readiness peers.
+PASS: Neither simulated seat loads until the master publishes its current match launch.
+PASS: Both simulated seats recover a distinct three-card hand from the same valid packet.
+PASS: Both simulated seats require current scene and hand readiness tokens.
+PASS: Only the semifinal winners receive the final.
+Production V1 parser, client validation, Photon property gates and UI were exercised.
+No API request, Photon cloud connection, live card deal or live player was used.

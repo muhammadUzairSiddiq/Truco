@@ -20,8 +20,6 @@ public static class TrucoMatchPlayGate
                     OneVsOneMatchSession.CurrentMatchId, OneVsOneMatchSession.PhotonRoomName)
                 && PhotonPlayerHelper.HasMatchingAuthenticatedPair(PhotonNetwork.PlayerList,
                     OneVsOneMatchSession.AuthenticatedParticipants, ApiController.GetSessionUser?.Data?._id);
-        return TournamentStartupValidation.HasMatchingTableIdentity(MultiplayerController.ActiveMatch,
-            MultiplayerController.CurrentTournamentRequest.TournamentId,
-            PhotonNetwork.CurrentRoom.Name, PhotonNetwork.CurrentRoom.CustomProperties);
+        return MultiplayerController.HasLiveAssignedTable();
     }
 }

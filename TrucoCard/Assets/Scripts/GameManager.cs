@@ -101,6 +101,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     // Tournament-specific variables
     private bool _isInTournament = false;
+    private bool _tournamentDealRendered;
     private bool _tournamentMatchFinalized = false;
     private bool _1v1ResultPosted;
     private bool _1v1SettlementBusy;
@@ -469,6 +470,11 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     /// <summary>NuevaMano scene reload already queued â€” do not deal/start another hand.</summary>
     public bool IsRestartScheduled() => _restartScheduled;
 
+    public bool HasCurrentTournamentDeal() => _tournamentDealRendered && _handSeats.IsValid
+        && DataHandler.Instance != null && _handSeats.Round == DataHandler.Instance.roundNumber
+        && PhotonNetwork.LocalPlayer != null && _handSeats.SeatForActor(PhotonNetwork.LocalPlayer.ActorNumber) != 0
+        && _player1Cards?.Count == 3 && _player2Cards?.Count == 3;
+
     /// <summary>True once this mano has cards â€” used to block mid-hand re-deal on master rotate.</summary>
     public bool HasHandBeenDealt()
     {
@@ -539,6 +545,21 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         BroadcastMatchState();
     }
 
+    public void RequestTournamentHandSync()
+    {
+        if (PhotonNetwork.IsMasterClient || !TrucoTournamentHandReady.BothScenesLoaded() || photonView == null) return;
+        photonView.RPC(nameof(RequestTournamentHandFromMaster), RpcTarget.MasterClient, DataHandler.Instance.roundNumber);
+    }
+
+    [PunRPC]
+    void RequestTournamentHandFromMaster(int round, PhotonMessageInfo info)
+    {
+        if (!MultiplayerController.IsTournamentActive || !PhotonNetwork.IsMasterClient || !HasCurrentTournamentDeal()
+            || !TrucoTournamentHandReady.BothScenesLoaded() || _gameEnded || round != DataHandler.Instance.roundNumber
+            || info.Sender == null || info.Sender.IsInactive || _handSeats.SeatForActor(info.Sender.ActorNumber) == 0) return;
+        BroadcastMatchState(info.Sender);
+    }
+
     [PunRPC]
     void RequestChallengeSnapshot()
     {
@@ -594,7 +615,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
     }
 
-    void BroadcastMatchState()
+    void BroadcastMatchState(Player target = null)
     {
         if (!PhotonNetwork.IsMasterClient) return;
         if (!TryGetOrderedTrucoActors(out int lowActor, out int highActor)) return;
@@ -613,10 +634,12 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         double chDeadline = UIMANAGER.Instance != null
             ? UIMANAGER.Instance.GetChallengeDeadlinePhoton()
             : -1;
-        photonView.RPC(nameof(SyncMatchState), RpcTarget.Others,
+        object[] state = {
             scoreLow, scoreHigh, turnActor, DataHandler.Instance.roundNumber, HandResolved ? 1 : 0,
             type, chPts, mzPts, pendingFlag, raiser, responder, trucoLv, envidoFlag, lastRaise,
-            turnStartedAt, chDeadline, handJson ?? "", trickJson ?? "");
+            turnStartedAt, chDeadline, handJson ?? "", trickJson ?? "" };
+        if (target == null) photonView.RPC(nameof(SyncMatchState), RpcTarget.Others, state);
+        else photonView.RPC(nameof(SyncTournamentLoadingHand), target, state);
         TrucoRulesScenarioLog.Ok("BroadcastMatchState by actor",
             "a" + lowActor + "=" + scoreLow + " a" + highActor + "=" + scoreHigh
             + " turn=" + turnActor + " round=" + DataHandler.Instance.roundNumber
@@ -676,18 +699,35 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         List<DeckCards> localDeal = IsLocalSeatOne ? _player1Cards : _player2Cards;
         List<ScoreClass> myPlayed = IsLocalSeatOne ? player1Score : player2Score;
         List<ScoreClass> oppPlayed = IsLocalSeatOne ? player2Score : player1Score;
-        UIMANAGER.Instance?.RebuildHandAndTricksFromSync(localDeal, myPlayed, oppPlayed);
+        if (UIMANAGER.Instance == null) return false;
+        UIMANAGER.Instance.RebuildHandAndTricksFromSync(localDeal, myPlayed, oppPlayed);
+        if (MultiplayerController.IsTournamentActive) _tournamentDealRendered = true;
         TrucoTournamentHandReady.MarkPrepared();
         return true;
     }
 
     [PunRPC]
+    void SyncTournamentLoadingHand(int scoreLowActor, int scoreHighActor, int turnActor, int roundNum, int handResolvedFlag,
+        int challengeType, int challengePts, int mazoPts, int pendingFlag,
+        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag, int lastTrucoRaiseActor,
+        double turnStartedAt, double challengeDeadline, string handJson, string trickJson, PhotonMessageInfo info)
+    {
+        if (!MultiplayerController.IsTournamentActive || TurnManager.Instance == null || TurnManager.Instance.HasStartedHand) return;
+        SyncMatchState(scoreLowActor, scoreHighActor, turnActor, roundNum, handResolvedFlag, challengeType, challengePts, mazoPts,
+            pendingFlag, raiserActor, responderActor, trucoLevel, envidoPlayedFlag, lastTrucoRaiseActor,
+            turnStartedAt, challengeDeadline, handJson, trickJson, info);
+    }
+
+    [PunRPC]
     void SyncMatchState(int scoreLowActor, int scoreHighActor, int turnActor, int roundNum, int handResolvedFlag,
         int challengeType, int challengePts, int mazoPts, int pendingFlag,
-        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag, int lastTrucoRaiseActor = 0,
-        double turnStartedAt = -1, double challengeDeadline = -1, string handJson = "", string trickJson = "")
+        int raiserActor, int responderActor, int trucoLevel, int envidoPlayedFlag, int lastTrucoRaiseActor,
+        double turnStartedAt, double challengeDeadline, string handJson, string trickJson, PhotonMessageInfo info)
     {
         if (_isSpectator || _gameEnded) return;
+        bool tournament = MultiplayerController.IsTournamentActive;
+        if (tournament && (info.Sender == null || !info.Sender.IsMasterClient || !TrucoTournamentHandReady.IsActiveTable()
+            || roundNum != DataHandler.Instance.roundNumber)) return;
         if (!CanApplyHandSnapshot(_handSeats, roundNum)) return;
         ApplyAuthoritativeScores(scoreLowActor, scoreHighActor);
         DataHandler.Instance.roundNumber = roundNum;
@@ -725,15 +765,15 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             TrucoDebugLog.Warn(TrucoDebugLog.Category.Photon, "Hand snapshot rejected: missing or stale actor ownership.");
             return;
         }
-        ApplyChallengeSnapshot(challengeType, challengePts, mazoPts, pendingFlag,
-            raiserActor, responderActor, trucoLevel, envidoPlayedFlag, lastTrucoRaiseActor);
-        TurnManager.Instance?.RestoreHandStartFromSync(turnActor, turnStartedAt);
-        if (MultiplayerController.IsTournamentActive && (turnActor <= 0 || turnStartedAt <= 0))
+        if (tournament && (turnActor <= 0 || turnStartedAt <= 0 || !TrucoTournamentHandReady.BothPrepared()))
         {
             SetMyTurn(false); SetCanPlayCard(false); UIMANAGER.Instance?.DisableButtons();
             TurnManager.Instance?.TryResumePreparedTournamentHand();
             return;
         }
+        TurnManager.Instance?.RestoreHandStartFromSync(turnActor, turnStartedAt);
+        ApplyChallengeSnapshot(challengeType, challengePts, mazoPts, pendingFlag,
+            raiserActor, responderActor, trucoLevel, envidoPlayedFlag, lastTrucoRaiseActor);
         if (challengeDeadline > 0)
             UIMANAGER.Instance?.ApplySharedChallengeDeadline(challengeDeadline);
         if (pendingFlag == 1
@@ -980,6 +1020,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         if (PhotonNetwork.IsMasterClient)
         {
+            if (MultiplayerController.IsTournamentActive && (!TrucoTournamentHandReady.BothScenesLoaded() || HasCurrentTournamentDeal())) return;
             var players = PhotonPlayerHelper.GetTrucoPlayers();
             if (players.Count != 2) return;
             _handSeats = new TrucoHandSeats(PhotonNetwork.LocalPlayer.ActorNumber,
@@ -995,6 +1036,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 cards[i].SetupCard(_card.suit, _card.rank);
             }
             UIMANAGER.Instance?.ShowDealtHandCards();
+            if (MultiplayerController.IsTournamentActive) _tournamentDealRendered = UIMANAGER.Instance != null;
             List<DeckCards> player2Cards = new List<DeckCards>();
             for (int i = 0; i < 3; i++)
             {
@@ -1008,7 +1050,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             RaiseEventOptions options = new RaiseEventOptions
             {
                 Receivers = ReceiverGroup.Others,
-                CachingOption = EventCaching.AddToRoomCache
+                CachingOption = MultiplayerController.IsTournamentActive ? EventCaching.DoNotCache : EventCaching.AddToRoomCache
             };
             PhotonNetwork.RaiseEvent(_cardSendEvent, jsonString, options, SendOptions.SendReliable);
             TrucoTournamentHandReady.MarkPrepared();
@@ -1034,6 +1076,9 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         // "Sin Flor" table.  Normal Truco/Envido processing is untouched.
         if (!OneVsOneMatchSession.WithFlor && IsFlorNetworkEvent(photonEvent.Code))
             return;
+        if (!_isSpectator && MultiplayerController.IsTournamentActive && photonEvent.Code != _cardSendEvent
+            && (TrucoPunChallenges.IsChallengeEventCode(photonEvent.Code) || photonEvent.Code == UIMANAGER.MAZO_CHALLENGE)
+            && (TurnManager.Instance == null || !TurnManager.Instance.CanRunCurrentTournamentTurn())) return;
         if (TrucoPunChallenges.IsChallengeEventCode(photonEvent.Code) && !IsFlorAutoAwardEcho(photonEvent))
             TrucoGameplayAudio.PlayFromPhotonEvent(photonEvent);
         if (_isSpectator) return;
@@ -1041,6 +1086,8 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             TrucoDebugLog.Log(TrucoDebugLog.Category.Rules, "EventReceived: " + photonEvent.Code);
         if (photonEvent.Code == _cardSendEvent)
         {
+            if (MultiplayerController.IsTournamentActive && (!TrucoTournamentHandReady.IsActiveTable()
+                || photonEvent.Sender != PhotonNetwork.MasterClient?.ActorNumber)) return;
             string jsonString = photonEvent.CustomData as string;
             if (string.IsNullOrEmpty(jsonString) || jsonString.Split('!').Length != 2) return;
             string player1Cards = jsonString.Split("!")[0];
@@ -1068,6 +1115,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 }
             }
             UIMANAGER.Instance?.ShowDealtHandCards();
+            if (MultiplayerController.IsTournamentActive) _tournamentDealRendered = UIMANAGER.Instance != null;
             if (OneVsOneMatchSession.WithFlor && !PlayerHasFlor())
             {
                 deniedFlor = true;
@@ -2327,6 +2375,7 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public bool CanPlayCard()
     {
         return _canPlayCard && !_gameEnded && !_matchEndPending && !HandResolved
+               && (!MultiplayerController.IsTournamentActive || TurnManager.Instance != null && TurnManager.Instance.CanRunCurrentTournamentTurn())
                && !AwaitingRivalFlorResponse() && !AwaitingChallengeResponse();
     }
 
@@ -2886,7 +2935,22 @@ public class GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             TrucoRulesScenarioLog.Ok("NuevaMano reload aborted (match ended)");
             yield break;
         }
-        PhotonNetwork.AutomaticallySyncScene = true;
+        if (_isInTournament)
+        {
+            // PUN does not synchronize reloads of the currently loaded scene. The room hand
+            // number is the durable transition signal and both seats load the new scene locally.
+            int finishedRound = DataHandler.Instance.roundNumber;
+            string matchId = MultiplayerController.ActiveMatch?.matchId;
+            while (!_gameEnded && matchId != null && matchId == MultiplayerController.ActiveMatch?.matchId
+                && (!PhotonNetwork.InRoom || TrucoTournamentHandReady.RoomRound == finishedRound))
+            {
+                TrucoTournamentHandReady.AdvanceRound(finishedRound);
+                yield return new WaitForSecondsRealtime(.5f);
+            }
+            if (_gameEnded || matchId == null || matchId != MultiplayerController.ActiveMatch?.matchId
+                || !PhotonNetwork.InRoom || TrucoTournamentHandReady.RoomRound != finishedRound + 1) yield break;
+        }
+        else PhotonNetwork.AutomaticallySyncScene = true;
         bool covered = false;
         TrucoSceneTransition.FadeOutThen(() => covered = true, 0.4f);
         float wait = 0f;

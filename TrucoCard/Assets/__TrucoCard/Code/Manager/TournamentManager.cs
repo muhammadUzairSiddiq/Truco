@@ -18,21 +18,6 @@ public class TournamentManager : SingeltonBase<TournamentManager>
 
     #endregion
 
-    #region Unity Methods
-
-    private void OnEnable()
-    {
-        MultiplayerController.OnTournamentBrackedMatch += HandleTournamentMatchCreated;
-        MultiplayerController.OnTournamentMatchFinalized += HandleTournamentMatchFinalized;
-    }
-    private void OnDisable()
-    {
-        MultiplayerController.OnTournamentBrackedMatch -= HandleTournamentMatchCreated;
-        MultiplayerController.OnTournamentMatchFinalized -= HandleTournamentMatchFinalized;
-    }
-
-    #endregion
-
     #region Tournament Selection Overlay
 
     /// <summary>Present the player screen immediately, before any resume/list network request.</summary>
@@ -129,17 +114,5 @@ public class TournamentManager : SingeltonBase<TournamentManager>
     }
 
     #endregion
-
-    private void HandleTournamentMatchCreated()
-    {
-        _tournamentMatchmakingOverlay.HideTournamentMatchmakingUI();
-        _tournamentsSelectionOverlay.HideTournamentSelectionUI();
-        _tournamentWaitingRoomOverlay.DisplayTournamentWaitingRoomUI();
-    }
-    private void HandleTournamentMatchFinalized(string tournamentId)
-    {
-
-
-    }
 
 }

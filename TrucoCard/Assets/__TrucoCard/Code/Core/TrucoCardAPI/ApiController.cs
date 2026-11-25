@@ -21,6 +21,21 @@ public static class ApiController
 
     public static SessionTournament GetActiveTournaments { private set; get; }
     public static SessionUser GetSessionUser { private set; get; }
+    static bool _showingExpiredSession;
+
+    public static void ShowExpiredSession()
+    {
+        if (_showingExpiredSession) return;
+        _showingExpiredSession = true;
+        TrucoConfirmDialog.Show("SESIÓN VENCIDA",
+            "Tu sesión venció o no es válida. Iniciá sesión de nuevo. La inscripción guardada se recuperará sin volver a cobrar la entrada.",
+            "VOLVER", "INICIAR SESIÓN", () =>
+            {
+                _showingExpiredSession = false;
+                ClearClientSessionState();
+                TrucoSceneTransition.Go("LoginScreen");
+            }, () => _showingExpiredSession = false);
+    }
 
     #endregion
 
@@ -72,23 +87,8 @@ public static class ApiController
 
             string resp = await HttpApiClient.PostAsync(ApiConfig.Login, json);
 
-            LoginResponse loginResp;
-            try
-            {
-                loginResp = JsonUtility.FromJson<LoginResponse>(resp);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("El servidor devolvió una respuesta de inicio de sesión inválida.", ex);
-            }
-
-            string token = !string.IsNullOrEmpty(loginResp?.accessToken)
-                ? loginResp.accessToken
-                : loginResp?.token;
-            if (string.IsNullOrWhiteSpace(token))
+            if (!HttpApiClient.AcceptAuthenticationResponse(resp))
                 throw new Exception("El servidor no devolvió un token de sesión válido.");
-
-            HttpApiClient.SetAuthToken(token.Trim());
             Debug.Log("[ApiController] - Token saved from Login Response.");
 
             onCompleteAction?.Invoke();
@@ -96,6 +96,7 @@ public static class ApiController
         }
         catch (Exception ex)
         {
+            HttpApiClient.ClearAuthSession();
             onErrorAction?.Invoke(ex.Message);
             Debug.Log("[ApiController] - Login failed: " + ex.GetType().Name);
 
@@ -139,6 +140,7 @@ public static class ApiController
     /// <summary>Local logout: clear HTTP session, destroy DDOL session holders. Call before loading the login scene.</summary>
     public static void ClearClientSessionState()
     {
+        _showingExpiredSession = false;
         if (OneVsOnePhotonFlow.Instance != null) OneVsOnePhotonFlow.Instance.ResetPurpose();
         MH.Multiplayer.MultiplayerController.ClearLocalSession();
         TrucoPhotonAuthentication.ClearSession();
@@ -313,6 +315,18 @@ public static class ApiController
                 GameObject sessionObj = new GameObject("[SessionTournaments]");
                 Object.DontDestroyOnLoad(sessionObj);
                 GetActiveTournaments = sessionObj.AddComponent<SessionTournament>();
+            }
+            var current = MultiplayerController.CurrentSnapshot;
+            if (current != null && TrucoTournamentService.HasConfirmedEntry(current, GetSessionUser?.Data?._id))
+            {
+                var confirmed = TrucoTournamentService.ToLegacyTournament(current);
+                int index = tournaments.FindIndex(t => t._id == current.tournamentId);
+                if (index < 0) tournaments.Insert(0, confirmed);
+                else
+                {
+                    confirmed.passwordRequired = tournaments[index].IsPrivateTournament();
+                    tournaments[index] = confirmed;
+                }
             }
             GetActiveTournaments.UpdateTournaments(tournaments);
             Debug.Log("[ApiController] - Active tournaments: " + tournaments.Count);
@@ -716,10 +730,49 @@ public static class ApiController
                 if (TrucoServerAcknowledgement.Rejected(envelope) || TrucoServerAcknowledgement.Rejected(data)) return null;
                 raw = envelope[listKey] ?? data?[listKey] ?? envelope["data"];
             }
-            return raw is JArray list && list.All(item => item is JObject)
-                ? JsonHelper.FromJson<T>(list.ToString(Formatting.None))?.ToList() : null;
+            if (!(raw is JArray list) || !list.All(item => item is JObject)) return null;
+            if (typeof(T) == typeof(Tournament))
+                return list.Cast<JObject>().Select(row => (T)(object)ReadTournamentListRow(row)).ToList();
+            return JsonHelper.FromJson<T>(list.ToString(Formatting.None))?.ToList();
         }
         catch (Exception exception) when (exception is JsonException || exception is ArgumentException) { return null; }
+    }
+
+    static Tournament ReadTournamentListRow(JObject row)
+    {
+        var dto = (JObject)row.DeepClone();
+        // The list may carry bare IDs or full account objects. Keep only the public fields in either case.
+        dto.Remove("participants");
+        dto.Remove("players");
+        bool hasRules = row["withFlor"]?.Type == JTokenType.Boolean
+            && row["targetScore"]?.Type == JTokenType.Integer
+            && (row["targetScore"].Value<int>() == 15 || row["targetScore"].Value<int>() == 30);
+        if (!hasRules)
+        {
+            dto.Remove("withFlor");
+            dto.Remove("targetScore");
+        }
+        var tournament = dto.ToObject<Tournament>();
+        tournament.rulesConfirmed = hasRules;
+        if ((row["participants"] as JArray ?? row["players"] as JArray) is JArray players)
+            tournament.participants = ReadTournamentListPlayers(players);
+        return tournament;
+    }
+
+    static List<User> ReadTournamentListPlayers(JArray rows)
+    {
+        var players = new List<User>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in rows)
+        {
+            var player = row as JObject;
+            var identity = player?["playerId"] ?? player?["_id"] ?? player?["id"] ?? row;
+            if (identity.Type != JTokenType.String) continue;
+            string id = identity.Value<string>();
+            if (string.IsNullOrWhiteSpace(id) || !seen.Add(id)) continue;
+            players.Add(new User { _id = id, username = (string)(player?["username"] ?? player?["name"]) });
+        }
+        return players;
     }
 
     /// <summary>

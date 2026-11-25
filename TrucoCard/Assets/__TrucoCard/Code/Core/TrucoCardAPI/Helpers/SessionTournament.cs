@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class SessionTournament : MonoBehaviour
@@ -15,12 +15,12 @@ public class SessionTournament : MonoBehaviour
 
         _activeTournaments.Clear();
 
-        foreach (Tournament tournament in tournamentDtos)
-        {
-            if (tournament.status == "registration")
-            {
-                _activeTournaments.Add(tournament);
-            }
-        }
+        string playerId = ApiController.GetSessionUser?.Data?._id;
+        _activeTournaments.AddRange(tournamentDtos.Where(t => IsBrowsable(t, playerId))
+            .OrderByDescending(t => t.HasPlayer(playerId)));
     }
+
+    public static bool IsBrowsable(Tournament tournament, string playerId) => tournament != null
+        && (tournament.status == "registration" || tournament.status == "starting" || tournament.status == "playing"
+            || (tournament.status == "active" || tournament.status == "reconciliation_required") && tournament.HasPlayer(playerId));
 }

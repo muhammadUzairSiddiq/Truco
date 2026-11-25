@@ -1,0 +1,39 @@
+TOURNAMENT REPAIR AND VERIFICATION - 2026-11-24
+
+Implemented
+- Login/refresh accepts root or data-wrapped accessToken/access_token/token and refresh tokens.
+- Cookie renewal remains supported, including native-cookie refresh fallback; one refresh is shared by concurrent requests.
+- Final tournament HTTP 401 offers fresh login while preserving saved tournament recovery.
+- Email and password are remembered in PlayerPrefs as explicitly requested. No real password is embedded in source/builds.
+- The Unity admin form displays Flor, 15/30 points, and 4/8 players in a scrollable labelled form.
+- Creation/reset defaults: Con Flor, 15 points, 4 players. Explicit per-tournament server rules are preserved.
+- Confirmed not_registered/withdrawn exits clear old join AND leave operation keys.
+- Older cached mutation receipts are reconciled through a fresh snapshot before being applied.
+- Historical refund rows for repeated entries no longer invalidate the whole tournament. Receipt IDs remain unique/immutable; pending refunds take priority.
+- Full paid lobbies automatically request start; unchanged polls retry, start conflicts refresh state, and unchanged assignments recheck table readiness.
+- Final settlement retries remain possible after an unchanged server snapshot.
+
+Live production checks (authorized existing account; Nuevo 6b02d01e0b1a7320b5adc007)
+- Fresh login, authenticated profile, tournament list/detail, session refresh and Photon ticket endpoint: HTTP 200.
+- Unity's actual updated snapshot parser accepted the production JSON.
+- Cycle 1: revision 7 not_registered, balance 132 -> revision 8 registered, balance 127 -> revision 9 not_registered, balance 132.
+- Repeated original join key caused no additional debit; production replayed the old revision 8 receipt while current GET remained revision 9. Client now handles this case.
+- Cycle 2 with a fresh operation key: revision 10 registered, balance 127 -> revision 11 not_registered, balance 132.
+- Both 5-coin refunds had durable receipts. The second exit added another historical refund row for the same account, reproducing the prior Unity validation failure.
+- Updated parser accepted the entire five-snapshot sequence, including the second refund.
+- Account final observed balance: 132. No test account left registered by this work. Original other participant retained.
+
+Automated/build verification
+- Native Unity EditMode suite: 100 passed, 0 failed (includes real UnityWebRequest loopback 401/refresh/retry and 4-player semifinal/final projection).
+- Final contract suite after replay/refund fixes: 49 passed, 0 failed.
+- Current Editor runtime C# compilation: exit 0.
+- Current Android runtime C# compilation (UNITY_ANDROID, no UNITY_EDITOR): exit 0.
+- APK not built; user is building and distributing.
+- Native suite XML: Temp/TrucoTournamentVerification.xml.
+- Reproducible menu: Truco / Run Tournament Release Checks.
+
+Remaining external verification
+- Four simultaneous authenticated Photon players and real semifinal/final gameplay have NOT been verified here. One usable player account was available; it is not an admin. Additional account creation attempts were rejected by production.
+- Photon ticket issuance passed; Photon CustomAuth acceptance and assigned-room admission still need the real multi-account run.
+- The live API currently returns Sin Flor / 30 for every listed tournament, including Nuevo. Changing existing saved backend rules or the external web admin panel requires backend/admin access. The Unity build sends/selects Con Flor / 15 defaults for new tournaments and displays each explicit server record accurately.
+- Backend should bind refund history to registrationId and ideally return current snapshots with replayed operation receipts; Unity includes compatibility handling for observed production behavior.

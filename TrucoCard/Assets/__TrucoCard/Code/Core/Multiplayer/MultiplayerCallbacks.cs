@@ -9,6 +9,7 @@ namespace MH.Multiplayer
         #region Private Variables
 
         private bool _isTournamentModeActive = false;
+        private double _nextTransportTick;
 
         #endregion
 
@@ -22,6 +23,13 @@ namespace MH.Multiplayer
         public void DisableTournamentMode()
         {
             _isTournamentModeActive = false;
+        }
+
+        void Update()
+        {
+            if (!_isTournamentModeActive || Time.realtimeSinceStartupAsDouble < _nextTransportTick) return;
+            _nextTransportTick = Time.realtimeSinceStartupAsDouble + 0.5;
+            MultiplayerController.TickAssignedTransport();
         }
 
         #endregion

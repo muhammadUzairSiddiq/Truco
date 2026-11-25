@@ -288,7 +288,7 @@ public class UIMANAGER : MonoBehaviour
     /// <summary>Start the 30 s response countdown on the player who received a canto. Auto-declines on timeout (anti-freeze).</summary>
     public void BeginChallengeResponseCountdown(double sharedDeadlinePhoton = -1)
     {
-        if (SpectatorContext.IsSpectator) return;
+        if (SpectatorContext.IsSpectator || !CanRunTournamentClock()) return;
         ApplySharedChallengeDeadline(sharedDeadlinePhoton);
         _iOweChallengeResponse = true;
         if (_challengeResponseRoutine != null) StopCoroutine(_challengeResponseRoutine);
@@ -343,6 +343,7 @@ public class UIMANAGER : MonoBehaviour
     {
         while (true)
         {
+            if (!CanRunTournamentClock()) { _challengeResponseRoutine = null; yield break; }
             if (!_iOweChallengeResponse) { _challengeResponseRoutine = null; yield break; }
             if (GameManager.Instance != null && GameManager.Instance._gameEnded) { _challengeResponseRoutine = null; yield break; }
             int sec = GetChallengeResponseSecondsRemaining();
@@ -362,6 +363,9 @@ public class UIMANAGER : MonoBehaviour
         // Safe auto-resolution: decline the canto so the hand never freezes.
         ChallengeNoQueiro();
     }
+
+    static bool CanRunTournamentClock() => !MH.Multiplayer.MultiplayerController.IsTournamentActive
+        || TurnManager.Instance != null && TurnManager.Instance.CanRunCurrentTournamentTurn();
 
     // â”€â”€â”€â”€â”€â”€â”€â”€â”€ Visual callout banner: canto/declaration â€” sits BELOW the turn status lane â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private GameObject _calloutGo;
@@ -588,6 +592,7 @@ public class UIMANAGER : MonoBehaviour
             for (int i = 0; i < otherPlayersCards.Count; i++)
             {
                 if (otherPlayersCards[i] == null) continue;
+                otherPlayersCards[i].SetActive(true);
                 if (i < otherPlayersCardsInitialPositions.Count)
                     otherPlayersCards[i].transform.position = otherPlayersCardsInitialPositions[i];
                 var oppCard = otherPlayersCards[i].GetComponent<Card>();
@@ -679,6 +684,7 @@ public class UIMANAGER : MonoBehaviour
         }
 
         EnsureLocalHandSpritesVisible();
+        TrucoSceneTransition.ReleaseCover();
         TrucoRulesScenarioLog.Ok("RebuildHandAndTricksFromSync",
             "remain=" + remaining.Count
             + " myPlayed=" + (myPlayed != null ? myPlayed.Count : 0)
@@ -799,7 +805,7 @@ public class UIMANAGER : MonoBehaviour
     /// <summary>True when local may raise a canto: own turn, or answering a received challenge (Envido over Truco, etc.).</summary>
     bool CanRaiseChallengeNow()
     {
-        if (SpectatorContext.IsSpectator) return false;
+        if (SpectatorContext.IsSpectator || !CanRunTournamentClock()) return false;
         if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved
             || GameManager.Instance.IsMatchEndPending())
             return false;

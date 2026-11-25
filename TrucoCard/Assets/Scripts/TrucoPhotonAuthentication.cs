@@ -119,6 +119,8 @@ public static class TrucoPhotonAuthentication
             // PUN overwrites GameVersion from AppSettings inside ConnectUsingSettings.
             var settings = PhotonNetwork.PhotonServerSettings.AppSettings.CopyTo(new AppSettings());
             settings.AppVersion = ticket.appVersion;
+            settings.FixedRegion = ResolveConnectionRegion(mode, roomName, settings.FixedRegion,
+                TrucoPhotonRegionSettings.Instance.RegionCode);
             bool connected = PhotonNetwork.ConnectUsingSettings(settings);
             if (!connected)
             {
@@ -136,6 +138,13 @@ public static class TrucoPhotonAuthentication
             return false;
         }
     }
+
+    // Room names are scoped to a Photon region. Every client in a tournament uses the
+    // region shipped in the same build, even when a device has a 1v1 region override.
+    public static string ResolveConnectionRegion(string mode, string roomName, string userRegion, string tournamentRegion) =>
+        mode == "tournament" || mode == "spectator" && roomName?.StartsWith("TMatch_", StringComparison.Ordinal) == true
+            ? tournamentRegion : userRegion;
+
     static DateTimeOffset ValidUntil(string value)
     {
         if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var result))

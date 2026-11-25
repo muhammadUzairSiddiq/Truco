@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using MH.Multiplayer;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -17,8 +18,10 @@ public class TurnManager : MonoBehaviourPunCallbacks
     private Coroutine _opponentTurnDisplayRoutine;
     private double _currentTurnStartedAt;
     private bool _hasStartedHand;
+    public bool HasStartedHand => _hasStartedHand;
     private Coroutine _preparationStartRoutine;
     const float TurnTimeoutSeconds = 30f;
+    const float TournamentPreparationRetrySeconds = .75f;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     // This script is use to manage the turns of the players in the game.
@@ -27,6 +30,12 @@ public class TurnManager : MonoBehaviourPunCallbacks
         Instance = this;
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator)
         {
+            return;
+        }
+        if (MultiplayerController.IsTournamentActive)
+        {
+            // Every device reads the same round when the scene loads, including a slower peer.
+            DataHandler.Instance.roundNumber = TrucoTournamentHandReady.RoomRound;
             return;
         }
         DataHandler.Instance.roundNumber++;
@@ -50,6 +59,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
     }
 
+    void Start()
+    {
+        if (MultiplayerController.IsTournamentActive && !SpectatorContext.IsSpectator
+            && !PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer))
+            _preparationStartRoutine = StartCoroutine(PrepareTournamentHand());
+    }
+
     /// <summary>
     /// Mano / first to play alternates each hand. Players are ordered by ActorNumber;
     /// odd round → lower actor (usually host), even round → higher actor (usually guest).
@@ -64,7 +80,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator) return;
-        if (TryResumePreparedTournamentHand(newMasterClient != null && newMasterClient.Equals(PhotonNetwork.LocalPlayer))) return;
+        // Tournament preparation polls the new master and both scene/hand acknowledgments.
+        if (MultiplayerController.IsTournamentActive) return;
         // Never re-deal mid-hand (disconnect → master rotate). That blanks cards and desyncs the mano.
         if (GameManager.Instance != null &&
             (GameManager.Instance._gameEnded
@@ -94,11 +111,43 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public bool TryResumePreparedTournamentHand(bool localMaster = true)
     {
         var game = GameManager.Instance;
-        if (game == null || !ShouldResumePreparedTournamentHand(MH.Multiplayer.MultiplayerController.IsTournamentActive,
-            localMaster && PhotonNetwork.IsMasterClient, game.HasHandBeenDealt(), _hasStartedHand, game.IsHandOutcomeLocked() || game.IsMatchEndPending())) return false;
-        // Dealt cards retain their actor ownership across migration. Only resume the barrier.
-        StartTheTurn();
+        if (game == null || !ShouldResumePreparedTournamentHand(MultiplayerController.IsTournamentActive,
+            localMaster && PhotonNetwork.IsMasterClient, game.HasCurrentTournamentDeal(), _hasStartedHand,
+            game.IsHandOutcomeLocked() || game.IsMatchEndPending())) return false;
+        if (_preparationStartRoutine == null) _preparationStartRoutine = StartCoroutine(PrepareTournamentHand());
         return true;
+    }
+
+    IEnumerator PrepareTournamentHand()
+    {
+        while (!_hasStartedHand && MultiplayerController.IsTournamentActive && GameManager.Instance != null
+            && !GameManager.Instance.IsHandOutcomeLocked() && !GameManager.Instance.IsMatchEndPending())
+        {
+            TrucoTournamentHandReady.MarkSceneLoaded();
+            if (TrucoTournamentHandReady.BothScenesLoaded())
+            {
+                var game = GameManager.Instance;
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    if (!game.HasCurrentTournamentDeal())
+                    {
+                        var mano = GetManoPlayerForRound(PhotonPlayerHelper.GetTrucoPlayers(), DataHandler.Instance.roundNumber);
+                        if (mano != null && mano.IsLocal) game.SetCards();
+                        else if (mano != null) PhotonNetwork.SetMasterClient(mano);
+                    }
+                    TrucoTournamentHandReady.MarkPrepared();
+                    if (TrucoTournamentHandReady.BothPrepared()) StartTheTurn();
+                }
+                else
+                {
+                    TrucoTournamentHandReady.MarkPrepared();
+                    // A slow peer may miss the scene RPC or deal event. Request the existing hand without redealing.
+                    game.RequestTournamentHandSync();
+                }
+            }
+            yield return new WaitForSecondsRealtime(TournamentPreparationRetrySeconds);
+        }
+        _preparationStartRoutine = null;
     }
 
     // This function is called to start the turn of the players
@@ -129,27 +178,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
             + " firstActor=" + turnNumber
             + " turnIndex=" + currentTurnIndex
             + " order=" + string.Join(",", _turnOrder));
-        if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
-        {
-            if (_preparationStartRoutine != null) StopCoroutine(_preparationStartRoutine);
-            _preparationStartRoutine = StartCoroutine(StartPreparedTournamentHand(turnNumber));
-        }
-        else StartTurn(turnNumber);
-    }
-
-    IEnumerator StartPreparedTournamentHand(string turnNumber)
-    {
-        GameManager.Instance.SetCanPlayCard(false);
-        UIMANAGER.Instance.DisableButtons();
-        while (!TrucoTournamentHandReady.BothPrepared())
-        {
-            if (!MH.Multiplayer.MultiplayerController.IsTournamentActive || !PhotonNetwork.InRoom
-                || !PhotonNetwork.IsMasterClient || GameManager.Instance == null || GameManager.Instance.IsHandOutcomeLocked()
-                || GameManager.Instance.IsMatchEndPending()) yield break;
-            yield return null;
-        }
-        if (!_hasStartedHand) StartTurn(turnNumber);
-        _preparationStartRoutine = null;
+        StartTurn(turnNumber);
     }
     
     // This function is called to start the turn of the players over network
@@ -157,29 +186,46 @@ public class TurnManager : MonoBehaviourPunCallbacks
     {
         if (!PhotonNetwork.IsMasterClient || string.IsNullOrEmpty(turnNumber)) return;
         double startedAt = PhotonNetwork.Time;
-        photonView.RPC(nameof(Turn), RpcTarget.All, turnNumber, startedAt);
+        if (MultiplayerController.IsTournamentActive)
+        {
+            if (!TrucoTournamentHandReady.BothPrepared()) return;
+            photonView.RPC(nameof(TournamentTurn), RpcTarget.All, DataHandler.Instance.roundNumber, turnNumber, startedAt);
+        }
+        else photonView.RPC(nameof(Turn), RpcTarget.All, turnNumber, startedAt);
     }
 
     [PunRPC]
     private void Turn(string turnNumber, double startedAt)
     {
+        if (MultiplayerController.IsTournamentActive && !SpectatorContext.IsSpectator) return;
+        ApplyTurn(turnNumber, startedAt);
+    }
+
+    [PunRPC]
+    private void TournamentTurn(int round, string turnNumber, double startedAt, PhotonMessageInfo info)
+    {
+        if (!MultiplayerController.IsTournamentActive || info.Sender == null || !info.Sender.IsMasterClient
+            || DataHandler.Instance == null || !CanAcceptTournamentTurn(round, DataHandler.Instance.roundNumber,
+                TrucoTournamentHandReady.BothPrepared())) return;
+        ApplyTurn(turnNumber, startedAt);
+    }
+
+    public static bool CanAcceptTournamentTurn(int announcedRound, int currentRound, bool bothPrepared) =>
+        announcedRound > 0 && announcedRound == currentRound && bothPrepared;
+
+    private void ApplyTurn(string turnNumber, double startedAt)
+    {
         if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved) return;
-        _currentTurnStartedAt = startedAt;
-        if (_turnOrder.Count == 0)
-        {
-            var truco = PhotonPlayerHelper.GetTrucoPlayers();
-            for (int i = 0; i < truco.Count; i++)
-                _turnOrder.Add(truco[i].ActorNumber.ToString());
-        }
         if (PhotonPlayerHelper.IsSpectatorPlayer(PhotonNetwork.LocalPlayer) || SpectatorContext.IsSpectator)
         {
             if (UIMANAGER.Instance != null)
                 UIMANAGER.Instance.UpdateTurnText(TrucoTextosClient.EspectandoAdmin, 4.5f);
             return;
         }
-        if (!TrucoMatchPlayGate.IsLiveTable()) return;
+        if (!TrucoMatchPlayGate.IsLiveTable() || UIMANAGER.Instance == null || !SetCurrentTurnActor(turnNumber)) return;
+        _currentTurnStartedAt = startedAt;
         _hasStartedHand = true;
-        if (MH.Multiplayer.MultiplayerController.IsTournamentActive)
+        if (MultiplayerController.IsTournamentActive)
             TrucoTournamentStatusScreen.SetPhase(TrucoTournamentPhase.Playing);
         if (_turnTimeoutRoutine != null)
         {
@@ -290,6 +336,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
         while (true)
         {
             if (GameManager.Instance != null && (GameManager.Instance._gameEnded || GameManager.Instance.HandResolved)) yield break;
+            if (!CanRunCurrentTournamentTurn()) yield break;
             if (UIMANAGER.Instance != null &&
                 (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
             {
@@ -333,14 +380,15 @@ public class TurnManager : MonoBehaviourPunCallbacks
         TrucoRulesScenarioLog.Ok("TurnTimeout → Mazo (no play in " + TurnTimeoutSeconds + "s)",
             "actor=" + turnForActor);
         GameManager.Instance?.PlayFirstHandCardOnTimeout();
-        StartCoroutine(EnsureMazoResolvedAfterTimeout(turnForActor));
+        StartCoroutine(EnsureMazoResolvedAfterTimeout(turnForActor, startedAt));
     }
 
-    IEnumerator EnsureMazoResolvedAfterTimeout(string turnForActor)
+    IEnumerator EnsureMazoResolvedAfterTimeout(string turnForActor, double startedAt)
     {
         yield return new WaitForSeconds(2.5f);
-        if (GameManager.Instance == null || GameManager.Instance._gameEnded) yield break;
-        if (PhotonNetwork.LocalPlayer.ActorNumber.ToString() != turnForActor) yield break;
+        if (GameManager.Instance == null || GameManager.Instance._gameEnded || !CanRunCurrentTournamentTurn()) yield break;
+        if (PhotonNetwork.LocalPlayer?.ActorNumber.ToString() != turnForActor
+            || startedAt != _currentTurnStartedAt || !GameManager.Instance.IsMyTurn()) yield break;
         if (GameManager.Instance.HandResolved || GameManager.Instance.IsHandOutcomeLocked())
         {
             TrucoRulesScenarioLog.Ok("Timeout ensure: hand already resolved → no second Mazo",
@@ -408,7 +456,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void SwitchTurn()
     {
-        if (GameManager.Instance != null && GameManager.Instance.HandResolved) return;
+        if (GameManager.Instance == null || GameManager.Instance.HandResolved || !CanRunCurrentTournamentTurn()) return;
         bool trickJustCompleted = GameManager.Instance != null && GameManager.Instance.IsCurrentTrickComplete();
         GameManager.Instance.CheckAfterTurn();
         if (GameManager.Instance != null && (GameManager.Instance.HandResolved || GameManager.Instance._gameEnded))
@@ -441,7 +489,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public void RestartTurnTimersIfActive(bool force = false, double startedAt = -1)
     {
         if (GameManager.Instance == null || GameManager.Instance._gameEnded || GameManager.Instance.HandResolved
-            || GameManager.Instance.IsMatchEndPending()) return;
+            || GameManager.Instance.IsMatchEndPending() || !CanRunCurrentTournamentTurn()) return;
         if (!force && UIMANAGER.Instance != null &&
             (UIMANAGER.Instance._isChallengepPending || UIMANAGER.Instance.unAnsweredChallenges.Count > 0))
         {
@@ -502,21 +550,36 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
     public void RestoreHandStartFromSync(int actor, double startedAt)
     {
-        _hasStartedHand = actor > 0 && startedAt > 0;
+        _hasStartedHand = actor > 0 && startedAt > 0 && SetCurrentTurnActor(actor.ToString());
         if (_hasStartedHand) _currentTurnStartedAt = startedAt;
+        if (_hasStartedHand && MultiplayerController.IsTournamentActive)
+            TrucoTournamentStatusScreen.SetPhase(TrucoTournamentPhase.Playing);
     }
 
     public void ResumeTurnAfterSync(int turnActor)
     {
         if (GameManager.Instance == null || GameManager.Instance._gameEnded) return;
-        if (GameManager.Instance.IsHandOutcomeLocked()) return;
-        int idx = _turnOrder.IndexOf(turnActor.ToString());
-        if (idx >= 0) currentTurnIndex = idx;
+        if (GameManager.Instance.IsHandOutcomeLocked() || !CanRunCurrentTournamentTurn()
+            || !SetCurrentTurnActor(turnActor.ToString())) return;
         bool mine = PhotonNetwork.LocalPlayer.ActorNumber == turnActor;
         GameManager.Instance.SetMyTurn(mine);
         GameManager.Instance.SetCanPlayCard(mine);
         if (mine) UIMANAGER.Instance?.EnableButtons();
         else UIMANAGER.Instance?.DisableButtons();
+    }
+
+    public bool CanRunCurrentTournamentTurn() => !MultiplayerController.IsTournamentActive
+        || _hasStartedHand && GameManager.Instance != null && GameManager.Instance.HasCurrentTournamentDeal()
+            && TrucoTournamentHandReady.RoomRound == DataHandler.Instance.roundNumber && TrucoTournamentHandReady.IsActiveTable();
+
+    bool SetCurrentTurnActor(string actor)
+    {
+        if (_turnOrder.Count == 0)
+            _turnOrder.AddRange(PhotonPlayerHelper.GetTrucoPlayers().Select(player => player.ActorNumber.ToString()));
+        int index = _turnOrder.IndexOf(actor);
+        if (index < 0) return false;
+        currentTurnIndex = index;
+        return true;
     }
 
     /// <summary>Stop turn countdown coroutines when a hand ends (Mazo, trick win, etc.).</summary>

@@ -9,6 +9,43 @@ public sealed class TrucoHttpSessionStateTests
     static readonly DateTimeOffset Now = new DateTimeOffset(2026, 10, 31, 12, 0, 0, TimeSpan.Zero);
     static readonly BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
 
+    [TestCase("{\"success\":true,\"token\":\"access\",\"refreshToken\":\"refresh\"}")]
+    [TestCase("{\"success\":true,\"access_token\":\"access\",\"refresh_token\":\"refresh\"}")]
+    [TestCase("{\"success\":true,\"data\":{\"accessToken\":\"access\",\"refreshToken\":\"refresh\"}}")]
+    public void LoginAndRefreshAcceptRootAndWrappedTokenResponses(string json)
+    {
+        Assert.IsTrue(TrucoSessionTokens.TryRead(json, out string access, out string refresh));
+        Assert.AreEqual("access", access); Assert.AreEqual("refresh", refresh);
+    }
+
+    [Test]
+    public void ExplicitFailureAndInvalidHeaderValuesCannotBecomeCredentials()
+    {
+        Assert.IsFalse(TrucoSessionTokens.TryRead("{\"success\":false,\"token\":\"bad\"}", out _, out _));
+        Assert.IsFalse(TrucoSessionTokens.TryRead("not json", out _, out _));
+        Assert.IsTrue(TrucoSessionTokens.TryRead("{\"token\":\"Bearer access\"}", out string token, out _));
+        Assert.AreEqual("access", token);
+        Assert.IsTrue(TrucoSessionTokens.TryRead("{\"token\":\"access; other=value\"}", out token, out _));
+        Assert.IsNull(token);
+    }
+
+    [Test]
+    public void JsonRefreshRotatesBothCookieAndBearerAndPreservesTheRefreshToken()
+    {
+        HttpApiClient.ClearAuthSession();
+        try
+        {
+            Assert.IsTrue(HttpApiClient.AcceptAuthenticationResponse("{\"token\":\"first\",\"refreshToken\":\"refresh\"}"));
+            Assert.IsTrue(HttpApiClient.AcceptAuthenticationResponse("{\"data\":{\"access_token\":\"second\"}}"));
+            Assert.AreEqual("second", Field("_accessToken"));
+            Assert.AreEqual("refresh", Field("_refreshToken"));
+            StringAssert.Contains("access_token=second", (string)Field("_cookieHeader"));
+            StringAssert.Contains("refresh_token=refresh", (string)Field("_cookieHeader"));
+            StringAssert.DoesNotContain("access_token=first", (string)Field("_cookieHeader"));
+        }
+        finally { HttpApiClient.ClearAuthSession(); }
+    }
+
     [Test]
     public void PartialAccessAndXsrfUpdatesPreserveRefreshCookie()
     {

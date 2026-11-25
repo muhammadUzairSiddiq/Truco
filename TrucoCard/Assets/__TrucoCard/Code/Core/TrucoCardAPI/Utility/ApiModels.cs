@@ -29,6 +29,7 @@ public class Tournament
     public bool withFlor = true;
     public int targetScore = TrucoMatchRules.DefaultTargetScore;
     public bool passwordRequired;
+    public bool rulesConfirmed;
 
 }
 

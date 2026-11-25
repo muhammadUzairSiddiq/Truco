@@ -37,13 +37,13 @@ Recommended error classes: 400 validation, 401 expired/invalid session, 403 role
 
 ## Authentication, profile and public maintenance
 
-Existing login uses `POST /auth/login` with `{email,password}` and returns a nonempty root `accessToken` (legacy `token` is accepted). Follow with `GET /auth/me`:
+Existing login uses `POST /auth/login` with `{email,password}` and returns an access token in `accessToken`, `access_token`, or legacy `token`, either at the root or under `data`. Cookie-only login is also supported when `access_token` is issued. Follow with `GET /auth/me`:
 
 ```json
 {"success":true,"user":{"_id":"player-id","username":"Jugador","role":"player","wallet":{"balance":176}}}
 ```
 
-The wallet balance must be explicitly present, integer and nonnegative; missing balance no longer creates a default. Profile `id` is accepted as a legacy alternative to `_id`. Passwords are not persisted in PlayerPrefs. Login must issue a `refresh_token` cookie if automatic renewal is required; refresh uses that cookie and returns a renewed `access_token` cookie (plus a rotated refresh cookie when appropriate). Partial cookie updates merge, concurrent renewals share one operation, and logs omit tokens, cookies and response bodies. Logout clears manual and native Unity cookies plus in-memory HTTP/Photon/tournament state; pending per-account recovery IDs remain for authenticated reconciliation. Native cookie cleanup follows the [Unity 6 API](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Networking.UnityWebRequest.ClearCookieCache.html).
+The wallet balance must be explicitly present, integer and nonnegative; missing balance no longer creates a default. Profile `id` is accepted as a legacy alternative to `_id`. The account owner requested email/password autofill in PlayerPrefs for this build; `LoginCredentialsStore.Clear()` removes both. Login should issue a `refresh_token` cookie or JSON `refreshToken`/`refresh_token` for automatic renewal. Refresh sends the cookie plus JSON `refreshToken` when available and accepts renewed cookies or root/data JSON tokens. A final 401 offers fresh login while preserving the account-bound tournament recovery ID. Partial cookie updates merge, concurrent renewals share one operation, and logs omit tokens, cookies and response bodies. Logout clears manual and native Unity cookies plus in-memory HTTP/Photon/tournament state; pending per-account recovery IDs remain for authenticated reconciliation. Native cookie cleanup follows the [Unity 6 API](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Networking.UnityWebRequest.ClearCookieCache.html).
 
 Participant lists need only public `_id`, `username` and optional avatar. Do not expose another player's email, wallet or banking data merely because the legacy Unity DTO has those optional fields. Wallet requests and receipt URLs are visible only to their authenticated owner or an authorized admin.
 

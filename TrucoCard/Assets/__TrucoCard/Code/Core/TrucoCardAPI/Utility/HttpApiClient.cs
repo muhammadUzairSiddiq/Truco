@@ -7,6 +7,29 @@ using UnityEngine.Networking;
 
 public static class HttpApiClient
 {
+    public sealed class RequestException : Exception
+    {
+        public long StatusCode { get; }
+        public string Code { get; }
+        // Timeouts, conflicts and server errors require reconciliation before another write.
+        public bool IsDefiniteRejection => StatusCode >= 400 && StatusCode < 500
+            && StatusCode != 408 && StatusCode != 409;
+        public RequestException(long statusCode, string code, string message) : base(message)
+        { StatusCode = statusCode; Code = code; }
+    }
+
+    public static string ReadErrorCode(string response)
+    {
+        try
+        {
+            var json = Newtonsoft.Json.Linq.JObject.Parse(response ?? "");
+            var code = json["code"] ?? (json["error"] as Newtonsoft.Json.Linq.JObject)?["code"];
+            if (code == null && json["error"]?.Type == Newtonsoft.Json.Linq.JTokenType.String
+                && (string)json["error"] == "WALLET_FROZEN") return "WALLET_FROZEN";
+            return code?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)code : null;
+        }
+        catch (Exception) { return null; }
+    }
     const int RequestTimeoutSeconds = 30;
     private static string _cookieHeader;
     private static string _xsrfToken;
@@ -17,6 +40,20 @@ public static class HttpApiClient
     static int _authenticationRevision;
     public static int SessionGeneration { get; private set; }
 
+    public static bool HasAccessToken
+    {
+        get { SynchronizeCookieState(Cookies.Prune(DateTimeOffset.UtcNow)); return !string.IsNullOrWhiteSpace(_accessToken); }
+    }
+
+    public static bool AcceptAuthenticationResponse(string json)
+    {
+        if (!TrucoSessionTokens.TryRead(json, out string access, out string refresh)) return false;
+        // Keep cookies and bearer in agreement when a server rotates tokens in JSON.
+        if (access != null) MergeSessionCookies("access_token=" + access, DateTimeOffset.UtcNow);
+        if (refresh != null) MergeSessionCookies("refresh_token=" + refresh, DateTimeOffset.UtcNow);
+        return HasAccessToken;
+    }
+
     /// <summary>
     /// Perform GET request with cookies and XSRF token if available.
     /// </summary>
@@ -25,6 +62,11 @@ public static class HttpApiClient
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "GET " + url);
         return await SendRequestAsync(url, "GET");
     }
+
+#if UNITY_EDITOR
+    public static Task<string> GetForDiagnosticsAsync(string url, Action<long, string> receiveResponse) =>
+        SendRequestAsync(url, "GET", receiveResponse: receiveResponse);
+#endif
 
     /// <summary>
     /// Perform POST request with JSON body, replay-protection headers, and optional game secret.
@@ -60,7 +102,8 @@ public static class HttpApiClient
         bool isRetry = false,
         string authToken = null,
         bool requireGameSecret = false,
-        string matchToken = null)
+        string matchToken = null,
+        Action<long, string> receiveResponse = null)
     {
         int sessionGeneration = SessionGeneration;
         using (UnityWebRequest req = new UnityWebRequest(url, method))
@@ -113,7 +156,8 @@ public static class HttpApiClient
             bool isReplayReject = IsReplayProtectionReject(req.responseCode, responsePreview);
 
             // Only refresh session on real auth failures — not on replay/timestamp rejects (403 Request Expired).
-            if ((req.responseCode == 401 || (req.responseCode == 403 && !isReplayReject)) && !isRetry)
+            if ((req.responseCode == 401 || (req.responseCode == 403 && !isReplayReject
+                && string.IsNullOrEmpty(ReadErrorCode(responsePreview)))) && !isRetry)
             {
                 TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
                     "Request failed with " + req.responseCode + ". Trying refresh...");
@@ -124,10 +168,11 @@ public static class HttpApiClient
                 if (refreshed)
                 {
                     TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Session refreshed. Retrying original request...");
-                    return await SendRequestAsync(url, method, jsonBody, true, authToken, requireGameSecret, matchToken);
+                    return await SendRequestAsync(url, method, jsonBody, true, authToken, requireGameSecret, matchToken, receiveResponse);
                 }
             }
 
+            receiveResponse?.Invoke(req.responseCode, responsePreview);
             string cleanMessage = responsePreview;
 
             if (req.result != UnityWebRequest.Result.Success || req.responseCode >= 400)
@@ -137,13 +182,18 @@ public static class HttpApiClient
                 TrucoDebugLog.Warn(TrucoDebugLog.Category.Api,
                     $"{method} {path} failed (HTTP {req.responseCode}, {req.result}, replayRejected={isReplayReject}).");
 
-                cleanMessage = ExtractErrorMessage(rawText);
-                throw new System.Exception(cleanMessage);
+                cleanMessage = req.responseCode == 401 && !IsLoginRequest(url)
+                    ? "Tu sesión venció o no es válida. Volvé a iniciar sesión para continuar. Tu inscripción guardada se recuperará al entrar."
+                    : ExtractErrorMessage(rawText);
+                throw new RequestException(req.responseCode, ReadErrorCode(rawText), cleanMessage);
             }
 
             return cleanMessage;
         }
     }
+
+    static bool IsLoginRequest(string url) => Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && uri.AbsolutePath.TrimEnd('/').EndsWith("/auth/login", StringComparison.OrdinalIgnoreCase);
 
     static bool IsReplayProtectionReject(long statusCode, string body)
     {
@@ -209,6 +259,11 @@ public static class HttpApiClient
         {
             try
             {
+                var root = Newtonsoft.Json.Linq.JObject.Parse(responseText);
+                var detail = root["error"] as Newtonsoft.Json.Linq.JObject;
+                var message = detail?["message"] ?? root["message"];
+                if (message?.Type == Newtonsoft.Json.Linq.JTokenType.String)
+                    return ((string)message).Trim();
                 var json = JsonUtility.FromJson<ErrorResponse>(responseText);
                 if (json != null)
                 {
@@ -270,15 +325,17 @@ public static class HttpApiClient
         UnityWebRequest.ClearCookieCache();
     }
 
-    private static void SaveCookies(UnityWebRequest req)
+    private static bool SaveCookies(UnityWebRequest req)
     {
         string setCookie = req.GetResponseHeader("Set-Cookie");
-        if (string.IsNullOrEmpty(setCookie)) return;
-        MergeSessionCookies(setCookie, DateTimeOffset.UtcNow);
+        if (string.IsNullOrEmpty(setCookie)) return false;
+        var changed = Cookies.Merge(setCookie, DateTimeOffset.UtcNow);
+        SynchronizeCookieState(changed);
 
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Session cookies updated.");
         if (!string.IsNullOrEmpty(_xsrfToken))
             TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "XSRF protection available.");
+        return changed.Exists(name => name.Equals("access_token", StringComparison.OrdinalIgnoreCase)) && HasAccessToken;
     }
 
     static void MergeSessionCookies(string header, DateTimeOffset now)
@@ -311,17 +368,16 @@ public static class HttpApiClient
     {
         SynchronizeCookieState(Cookies.Prune(DateTimeOffset.UtcNow));
         if (sessionGeneration != SessionGeneration) return false;
-        if (string.IsNullOrEmpty(_refreshToken))
-        {
-            TrucoDebugLog.Warn(TrucoDebugLog.Category.Api, "No refresh token found. Cannot refresh session.");
-            return false;
-        }
-
         TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Refreshing session...");
 
-        using (UnityWebRequest req = UnityWebRequest.PostWwwForm(ApiConfig.RefreshToken, ""))
+        using (UnityWebRequest req = new UnityWebRequest(ApiConfig.RefreshToken, "POST"))
         {
             req.timeout = RequestTimeoutSeconds;
+            req.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(
+                string.IsNullOrEmpty(_refreshToken) ? "{}"
+                    : Newtonsoft.Json.JsonConvert.SerializeObject(new { refreshToken = _refreshToken })));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
             AttachAuthHeaders(req);
             AttachReplayProtectionHeaders(req);
 
@@ -340,9 +396,16 @@ public static class HttpApiClient
                 return false;
             }
 
-            SaveCookies(req);
-            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, "Refresh successful.");
-            return true;
+            bool cookieRenewed = SaveCookies(req);
+            string response = req.downloadHandler.text;
+            bool validBody = string.IsNullOrWhiteSpace(response)
+                || TrucoSessionTokens.TryRead(response, out _, out _);
+            bool hasBodyAccess = TrucoSessionTokens.TryRead(response, out string access, out _) && access != null;
+            if (validBody && !string.IsNullOrWhiteSpace(response)) AcceptAuthenticationResponse(response);
+            // Some deployments renew only HttpOnly cookies and have an empty response body.
+            bool renewed = validBody && HasAccessToken && (hasBodyAccess || cookieRenewed);
+            TrucoDebugLog.Log(TrucoDebugLog.Category.Api, renewed ? "Session renewed." : "Refresh returned no valid session.");
+            return renewed;
         }
     }
 }
